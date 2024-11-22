@@ -176,6 +176,8 @@ fabric.properties
 # Azure Toolkit for IntelliJ plugin
 # https://plugins.jetbrains.com/plugin/8053-azure-toolkit-for-intellij
 .idea/**/azureSettings.xml
+.idea/modules.xml
+
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij
 

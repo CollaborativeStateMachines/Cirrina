@@ -79,13 +79,14 @@ dependencies {
 
     implementation("io.nats:jnats:2.17.3")
 
-    implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"));
-    implementation("io.opentelemetry:opentelemetry-api");
-    implementation("io.opentelemetry:opentelemetry-sdk");
-    implementation("io.opentelemetry:opentelemetry-exporter-logging");
-    implementation("io.opentelemetry:opentelemetry-exporter-otlp");
-    implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha");
-    implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure");
+    implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"))
+    implementation("io.opentelemetry:opentelemetry-api")
+    implementation("io.opentelemetry:opentelemetry-sdk")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    implementation("io.opentelemetry:opentelemetry-exporter-jaeger:1.34.1")
+    implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha")
+    implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
 
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 

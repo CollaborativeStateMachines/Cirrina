@@ -7,8 +7,25 @@ import at.ac.uibk.dps.cirrina.execution.object.event.NatsEventHandler;
 import at.ac.uibk.dps.cirrina.runtime.OnlineRuntime;
 import at.ac.uibk.dps.cirrina.utils.Id;
 import info.schnatterer.mobynamesgenerator.MobyNamesGenerator;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.propagation.ContextPropagators;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.exporter.jaeger.JaegerGrpcSpanExporter;
+import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
+import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.metrics.export.MetricExporter;
+import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.SpanProcessor;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
+import io.opentelemetry.semconv.ResourceAttributes;
 import java.io.IOException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -161,7 +178,31 @@ public class CirrinaRuntime extends Cirrina {
    * @return OpenTelemetry SDK.
    */
   protected OpenTelemetry getOpenTelemetry() {
-    return AutoConfiguredOpenTelemetrySdk.initialize()
-        .getOpenTelemetrySdk();
+    SpanExporter spanExporter = OtlpGrpcSpanExporter.builder().setEndpoint("http://localhost:4317").build();
+    SpanExporter jaegerSpanExporter = JaegerGrpcSpanExporter.builder().setEndpoint("http://localhost:14250").build();
+
+    SpanProcessor otlpSpanProcessor = BatchSpanProcessor.builder(spanExporter).build();
+    SpanProcessor jaegerSpanProcessor = BatchSpanProcessor.builder(jaegerSpanExporter).build();
+
+    Resource resource = Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "cirrina"));
+
+    SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
+        .addSpanProcessor(otlpSpanProcessor)
+        .addSpanProcessor(jaegerSpanProcessor)
+        .setResource(resource).build();
+
+    MetricExporter metricExporter = OtlpGrpcMetricExporter.builder().setEndpoint("http://localhost:4317").build();
+
+    PeriodicMetricReader metricReader = PeriodicMetricReader.builder(metricExporter).setInterval(java.time.Duration.ofSeconds(5)).build();
+
+    SdkMeterProvider meterProvider = SdkMeterProvider.builder().setResource(resource).registerMetricReader(metricReader).build();
+
+    OpenTelemetrySdk openTelemetrySdk = OpenTelemetrySdk.builder()
+        .setTracerProvider(tracerProvider)
+        .setMeterProvider(meterProvider)
+        .setPropagators(ContextPropagators.create(TextMapPropagator.composite(
+            W3CTraceContextPropagator.getInstance()))).buildAndRegisterGlobal();
+
+    return GlobalOpenTelemetry.get();
   }
 }
