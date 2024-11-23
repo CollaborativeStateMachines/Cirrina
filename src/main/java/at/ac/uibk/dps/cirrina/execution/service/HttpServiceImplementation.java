@@ -1,10 +1,17 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
+
 import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription.Method;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -14,7 +21,9 @@ import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -88,31 +97,44 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * @return Output variables.
    * @throws CompletionException In case of error.
    */
-  private static List<ContextVariable> handleResponse(HttpResponse<byte[]> response) {
-    // Require HTTP OK
-    final var errorCode = response.statusCode();
+  private static List<ContextVariable> handleResponse(HttpResponse<byte[]> response, TracingAttributes tracingAttributes, Span parentSpan) {
+    Span span = tracing.initializeSpan("HTTP Service - Handle Response", tracer, parentSpan,
+        Map.of( ATTR_RESPONSE, Arrays.toString(response.body()),
+            ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
+            ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
+            ATTR_PARENT_STATE_MACHINE_ID, tracingAttributes.getParentStateMachineId(),
+            ATTR_PARENT_STATE_MACHINE_NAME, tracingAttributes.getParentStateMachineName()));
+    try(Scope scope = span.makeCurrent()) {
+      // Require HTTP OK
+      final var errorCode = response.statusCode();
 
-    if (errorCode != HttpURLConnection.HTTP_OK) {
-      throw new CompletionException(new IOException("HTTP error (%d)".formatted(errorCode)));
-    }
-
-    // Acquire the payload
-    final var payload = response.body();
-
-    try {
-      // Empty payload
-      if (payload.length == 0) {
-        return List.of();
+      if (errorCode != HttpURLConnection.HTTP_OK) {
+        throw new CompletionException(new IOException("HTTP error (%d)".formatted(errorCode)));
       }
 
-      // Otherwise we expect a serialized collection of context variables
-      return ContextVariableProtos.ContextVariables.parseFrom(payload)
-          .getDataList().stream()
-          .map(ContextVariableExchange::fromProto)
-          .toList();
-    } catch (InvalidProtocolBufferException e) {
-      throw new CompletionException(
-          new IOException("Unexpected HTTP service invocation value type"));
+      // Acquire the payload
+      final var payload = response.body();
+
+      try {
+        // Empty payload
+        if (payload.length == 0) {
+          return List.of();
+        }
+
+        // Otherwise we expect a serialized collection of context variables
+        return ContextVariableProtos.ContextVariables.parseFrom(payload)
+            .getDataList().stream()
+            .map(ContextVariableExchange::fromProto)
+            .toList();
+      } catch (InvalidProtocolBufferException e) {
+        throw new CompletionException(
+            new IOException("Unexpected HTTP service invocation value type"));
+      }
+    } catch (CompletionException e){
+      tracing.recordException(e, span);
+      throw e;
+    } finally {
+      span.end();
     }
   }
 
@@ -128,8 +150,17 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * @throws UnsupportedOperationException If the invocation failed.
    */
   @Override
-  public CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id) throws UnsupportedOperationException {
-    try {
+  public CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id,
+      TracingAttributes tracingAttributes, Span parentSpan) throws UnsupportedOperationException {
+
+    Span span = tracing.initializeSpan("HTTP Service - Invoke Service", tracer, parentSpan,
+        Map.of( ATTR_INVOKED_BY, id,
+            ATTR_STATE_MACHINE_ID, id,
+            ATTR_STATE_MACHINE_NAME, tracingAttributes != null ? tracingAttributes.getStateMachineName() : "null",
+            ATTR_PARENT_STATE_MACHINE_ID, tracingAttributes != null ? tracingAttributes.getParentStateMachineId() : "null",
+            ATTR_PARENT_STATE_MACHINE_NAME, tracingAttributes != null ? tracingAttributes.getParentStateMachineName() : "null"));
+
+    try(Scope scope = span.makeCurrent()) {
       if (input.stream().anyMatch(ContextVariable::isLazy)) {
         throw new UnsupportedOperationException("All variables need to be evaluated before service input can be converted to bytes");
       }
@@ -154,9 +185,12 @@ public class HttpServiceImplementation extends ServiceImplementation {
           .build();
 
       return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
-          .thenApplyAsync(HttpServiceImplementation::handleResponse, handleExecutor);
+          .thenApplyAsync((response -> handleResponse(response, tracingAttributes, span)), handleExecutor);
     } catch (URISyntaxException | UnsupportedOperationException e) {
+      tracing.recordException(e, span);
       throw new UnsupportedOperationException("Failed to perform HTTP service invocation", e);
+    } finally {
+      span.end();
     }
   }
 

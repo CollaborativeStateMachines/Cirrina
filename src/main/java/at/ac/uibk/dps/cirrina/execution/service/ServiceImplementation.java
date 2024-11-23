@@ -1,9 +1,11 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import io.opentelemetry.api.trace.Span;
 
 /**
  * Abstract service implementation, needs to be specialized.
@@ -37,7 +39,8 @@ public abstract class ServiceImplementation {
    * @return The service invocation output.
    * @throws IOException If the service invocation failed.
    */
-  public abstract CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id) throws IOException;
+  public abstract CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id,
+      TracingAttributes tracingAttributes, Span parentSpan) throws IOException;
 
 
   /**

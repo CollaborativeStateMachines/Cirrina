@@ -7,10 +7,15 @@ import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescript
 import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription.Method;
 import at.ac.uibk.dps.cirrina.csml.description.ServiceImplementationDescription;
 import at.ac.uibk.dps.cirrina.csml.description.ServiceImplementationDescription.ServiceImplementationType;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ServiceImplementationSelectorTest {
+
+  private final TracingAttributes attributes = new TracingAttributes("test","test",
+      "test","test");
+
 
   @Test
   void testSelectMatchingServices() {
@@ -61,7 +66,7 @@ class ServiceImplementationSelectorTest {
     final var serviceSelector = new OptimalServiceImplementationSelector(services);
 
     assertDoesNotThrow(() -> {
-      var selected = serviceSelector.select("A", false);
+      var selected = serviceSelector.select("A", false, attributes, null);
 
       assertEquals(0.5f, selected.get().getCost(), 0.0001);
     });
