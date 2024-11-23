@@ -9,6 +9,7 @@ import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescript
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
+import io.opentelemetry.api.trace.Span;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -30,7 +31,7 @@ class NatsEventHandlerTest {
       public final List<Event> events = new ArrayList<>();
 
       @Override
-      public boolean onReceiveEvent(Event event) {
+      public boolean onReceiveEvent(Event event, Span span) {
         events.add(event);
 
         latch.countDown();
@@ -106,7 +107,7 @@ class NatsEventHandlerTest {
       public final List<Event> events = new ArrayList<>();
 
       @Override
-      public boolean onReceiveEvent(Event event) {
+      public boolean onReceiveEvent(Event event, Span span) {
         events.add(event);
 
         latch.countDown();

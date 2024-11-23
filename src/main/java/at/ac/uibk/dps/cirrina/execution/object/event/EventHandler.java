@@ -35,7 +35,7 @@ public abstract class EventHandler implements AutoCloseable {
     try {
       lock.lock();
 
-      listeners.removeIf(eventListener -> !eventListener.onReceiveEvent(event));
+      listeners.removeIf(eventListener -> !eventListener.onReceiveEvent(event, null));
     } finally {
       lock.unlock();
     }
