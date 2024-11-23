@@ -1,17 +1,21 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_INVOCATIONS;
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_INVOKE_LATENCY;
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE;
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
 
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,12 +47,18 @@ public final class ActionInvokeCommand extends ActionCommand {
   }
 
   @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
+  public List<ActionCommand> execute(TracingAttributes tracingAttributes, Span parentSpan) throws UnsupportedOperationException {
+    Span span = tracing.initializeSpan("Invoke Action", tracer, parentSpan,
+        Map.of( ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
+            ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
+            ATTR_PARENT_STATE_MACHINE_ID, tracingAttributes.getParentStateMachineId(),
+            ATTR_PARENT_STATE_MACHINE_NAME, tracingAttributes.getParentStateMachineName()));
+
     incrementInvocationCounter();
     final var start = Time.timeInMillisecondsSinceStart();
 
-    try {
-      final var serviceImplementation = selectServiceImplementation();
+    try(Scope scope = span.makeCurrent()) {
+      final var serviceImplementation = selectServiceImplementation(tracingAttributes, span);
 
       final var commands = new ArrayList<ActionCommand>();
 
@@ -58,20 +68,23 @@ public final class ActionInvokeCommand extends ActionCommand {
       List<ContextVariable> input = prepareInput(extent);
 
       // Invoke (asynchronously)
-      serviceImplementation.invoke(input, executionContext.scope().getId())
+      serviceImplementation.invoke(input, executionContext.scope().getId(), tracingAttributes, span)
           .exceptionally(e -> {
             logger.error("Service invocation failed for service '{}': {}",
                 serviceImplementation.getInformationString(), e.getMessage(), e);
             return null;
           }).thenAccept(output -> {
             assignServiceOutput(output, extent);
-            raiseEvents(output, eventListener);
+            raiseEvents(output, eventListener, span);
             measurePerformance(start, serviceImplementation);
           });
 
       return commands;
     } catch (Exception e) {
+      tracing.recordException(e, span);
       throw new UnsupportedOperationException("Could not execute invoke action", e);
+    } finally {
+      span.end();
     }
   }
 
@@ -99,15 +112,28 @@ public final class ActionInvokeCommand extends ActionCommand {
    *
    * @return The service implementation.
    */
-  private ServiceImplementation selectServiceImplementation() {
+  private ServiceImplementation selectServiceImplementation(TracingAttributes tracingAttributes, Span parentSpan) {
+    Span span = tracing.initializeSpan("Selecting Service Implementation", tracer, parentSpan,
+        Map.of( ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
+            ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
+            ATTR_PARENT_STATE_MACHINE_ID, tracingAttributes.getParentStateMachineId(),
+            ATTR_PARENT_STATE_MACHINE_NAME, tracingAttributes.getParentStateMachineName()));
+
     final var serviceType = invokeAction.getServiceType();
     final var isLocal = invokeAction.isLocal();
     final var serviceImplementationSelector = executionContext.serviceImplementationSelector();
 
-    return serviceImplementationSelector.select(serviceType, isLocal)
-        .orElseThrow(
-            () -> new IllegalArgumentException(
-                "Could not find a service implementation for the service type '%s'".formatted(serviceType)));
+    try(Scope scope = span.makeCurrent()) {
+      return serviceImplementationSelector.select(serviceType, isLocal, tracingAttributes, span)
+          .orElseThrow(
+              () -> new IllegalArgumentException(
+                  "Could not find a service implementation for the service type '%s'".formatted(serviceType)));
+    } catch (IllegalArgumentException e) {
+      tracing.recordException(e, span);
+      throw e;
+    } finally {
+      span.end();
+    }
   }
 
   /**
@@ -146,10 +172,10 @@ public final class ActionInvokeCommand extends ActionCommand {
    * @param output        Output data.
    * @param eventListener Event listener.
    */
-  private void raiseEvents(List<ContextVariable> output, EventListener eventListener) {
+  private void raiseEvents(List<ContextVariable> output, EventListener eventListener, Span span) {
     invokeAction.getDone().stream()
         .map(event -> event.withData(output))
-        .forEach(eventListener::onReceiveEvent);
+        .forEach(event -> eventListener.onReceiveEvent(event, span));
   }
 
   /**

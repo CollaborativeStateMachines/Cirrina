@@ -1,13 +1,19 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_DATA_LATENCY;
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
 
 import at.ac.uibk.dps.cirrina.execution.object.action.AssignAction;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -24,12 +30,18 @@ public final class ActionAssignCommand extends ActionCommand {
   }
 
   @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
+  public List<ActionCommand> execute(TracingAttributes tracingAttributes, Span parentSpan) throws UnsupportedOperationException {
+    Span span = tracing.initializeSpan("Assign Action", tracer, parentSpan,
+        Map.of( ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
+            ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
+            ATTR_PARENT_STATE_MACHINE_ID, tracingAttributes.getParentStateMachineId(),
+            ATTR_PARENT_STATE_MACHINE_NAME, tracingAttributes.getParentStateMachineName()));
+
     final var start = Time.timeInMillisecondsSinceStart();
 
     final var commands = new ArrayList<ActionCommand>();
 
-    try {
+    try(Scope scope = span.makeCurrent()) {
       final var variable = assignAction.getVariable();
       final var variableName = variable.name();
 
@@ -64,6 +76,9 @@ public final class ActionAssignCommand extends ActionCommand {
 
     } catch (IOException e) {
       logger.error("Data assignment failed: {}", e.getMessage());
+      tracing.recordException(e, span);
+    } finally {
+      span.end();
     }
 
     return commands;
