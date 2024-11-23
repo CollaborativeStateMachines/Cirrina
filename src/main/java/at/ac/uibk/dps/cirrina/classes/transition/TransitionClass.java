@@ -8,6 +8,8 @@ import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.guard.Guard;
 import at.ac.uibk.dps.cirrina.io.plantuml.Exportable;
 import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlVisitor;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
+import io.opentelemetry.api.trace.Span;
 import jakarta.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
@@ -80,10 +82,10 @@ public class TransitionClass extends DefaultEdge implements Exportable {
    * @return True if the transition can be taken based on the guards, otherwise false.
    * @throws UnsupportedOperationException If the transition could not be evaluated.
    */
-  public boolean evaluate(Extent extent) throws UnsupportedOperationException {
+  public boolean evaluate(Extent extent, TracingAttributes tracingAttributes, Span span) throws UnsupportedOperationException {
     try {
       for (var guard : guards) {
-        if (!guard.evaluate(extent)) {
+        if (!guard.evaluate(extent, tracingAttributes, span)) {
           return false;
         }
       }

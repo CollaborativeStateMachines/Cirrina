@@ -3,6 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.object.transition;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand;
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -33,11 +34,11 @@ public final class Transition {
     return isElse ? transitionClass.getElse() : transitionClass.getTargetStateName();
   }
 
-  public List<ActionCommand> getActionCommands(CommandFactory commandFactory) {
+  public List<ActionCommand> getActionCommands(CommandFactory commandFactory, TracingAttributes tracingAttributes) {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
     new TopologicalOrderIterator<>(transitionClass.getActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+        action -> actionCommands.add(commandFactory.createActionCommand(action, tracingAttributes, null)));
 
     return actionCommands;
   }

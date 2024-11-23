@@ -9,6 +9,7 @@ import at.ac.uibk.dps.cirrina.execution.object.context.Context;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
 import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachine;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import org.jgrapht.traverse.TopologicalOrderIterator;
@@ -40,29 +41,29 @@ public final class State implements Scope {
     return stateClassObject;
   }
 
-  public List<ActionCommand> getEntryActionCommands(CommandFactory commandFactory) {
+  public List<ActionCommand> getEntryActionCommands(CommandFactory commandFactory, TracingAttributes tracingAttributes) {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
     new TopologicalOrderIterator<>(stateClassObject.getEntryActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+        action -> actionCommands.add(commandFactory.createActionCommand(action, tracingAttributes, null)));
 
     return actionCommands;
   }
 
-  public List<ActionCommand> getWhileActionCommands(CommandFactory commandFactory) {
+  public List<ActionCommand> getWhileActionCommands(CommandFactory commandFactory, TracingAttributes tracingAttributes) {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
     new TopologicalOrderIterator<>(stateClassObject.getWhileActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+        action -> actionCommands.add(commandFactory.createActionCommand(action, tracingAttributes, null)));
 
     return actionCommands;
   }
 
-  public List<ActionCommand> getExitActionCommands(CommandFactory commandFactory) {
+  public List<ActionCommand> getExitActionCommands(CommandFactory commandFactory, TracingAttributes tracingAttributes) {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
     new TopologicalOrderIterator<>(stateClassObject.getExitActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+        action -> actionCommands.add(commandFactory.createActionCommand(action, tracingAttributes, null)));
 
     return actionCommands;
   }
