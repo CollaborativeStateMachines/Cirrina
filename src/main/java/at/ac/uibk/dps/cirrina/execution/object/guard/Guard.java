@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.guard;
 
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.logging;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
@@ -41,6 +42,7 @@ public class Guard {
    * @throws IllegalArgumentException      If the expression could not be evaluated, or the expression does not produce a boolean value.
    */
   public boolean evaluate(Extent extent, TracingAttributes tracingAttributes, Span parentSpan) throws IllegalArgumentException, UnsupportedOperationException {
+    logging.logGuardEvaluation(expression.toString(), tracingAttributes.getStateMachineName(), tracingAttributes.getStateMachineId());
     Span span = tracing.initializeSpan("Guard Evaluation: " + expression.toString(), tracer, parentSpan,
         Map.of( ATTR_GUARD_EXPRESSION, expression.toString(),
             ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
@@ -58,6 +60,7 @@ public class Guard {
       
     } catch (IllegalArgumentException | UnsupportedOperationException e) {
       tracing.recordException(e, span);
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       throw e;
     } finally {
       span.end();
