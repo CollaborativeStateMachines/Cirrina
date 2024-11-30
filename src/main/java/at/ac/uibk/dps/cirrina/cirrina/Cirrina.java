@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.cirrina;
 
 import at.ac.uibk.dps.cirrina.cirrina.Cirrina.Args.EventHandler;
 import at.ac.uibk.dps.cirrina.cirrina.Cirrina.Args.PersistentContext;
+import at.ac.uibk.dps.cirrina.observability.Logging;
 import at.ac.uibk.dps.cirrina.observability.Tracing;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -112,6 +113,7 @@ public abstract class Cirrina {
   static final Logger logger = LogManager.getLogger();
   public static final Tracer tracer = GlobalOpenTelemetry.getTracer("Cirrina.tracing");
   public static final Tracing tracing = new Tracing();
+  public static final Logging logging = new Logging();
 
   public static void main(String... argv) {
     // Set up logging

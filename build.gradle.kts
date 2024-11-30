@@ -88,6 +88,9 @@ dependencies {
     implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha")
     implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
 
+    implementation("pl.tkowalcz.tjahzi:log4j2-appender-nodep:0.9.17")
+
+
     implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 
     implementation("org.apache.commons:commons-jexl3:3.3")
