@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.statemachine;
 
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.logging;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
@@ -49,7 +50,7 @@ public final class TimeoutActionManager {
    */
   public void start(String actionName, Number delayInMs, Runnable task,
       TracingAttributes tracingAttributes, Span parentSpan) throws IllegalArgumentException {
-
+    logging.logTimeout("start", actionName, tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
     Span span = tracing.initializeSpan("TimeoutActionManager - Start Timeout Actions", tracer, parentSpan,
         Map.of(ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
             ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
@@ -70,6 +71,7 @@ public final class TimeoutActionManager {
       // Keep the task
       timeoutTasks.put(actionName, future);
     } catch (IllegalArgumentException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -86,6 +88,7 @@ public final class TimeoutActionManager {
    * @throws IllegalArgumentException If not exactly one timeout action was found with the provided name.
    */
   public void stop(String actionName, TracingAttributes tracingAttributes, Span parentSpan) throws IllegalArgumentException {
+    logging.logTimeout("stop", actionName, tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
     Span span = tracing.initializeSpan("TimeoutActionManager - Stopping Timeout Action", tracer, parentSpan,
         Map.of( ATTR_ACTION_NAME, actionName,
             ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
@@ -112,6 +115,7 @@ public final class TimeoutActionManager {
       // Remove the task
       timeoutTasks.remove(actionName);
     } catch (IllegalArgumentException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -123,6 +127,7 @@ public final class TimeoutActionManager {
    * Stops all timeout actions.
    */
   public void stopAll(TracingAttributes tracingAttributes, Span parentSpan) {
+    logging.logTimeout("stopAll", null, tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
     Span span = tracing.initializeSpan("TimeoutActionManager - Stopping All Timeout Actions", tracer, parentSpan,
         Map.of( ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
             ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),

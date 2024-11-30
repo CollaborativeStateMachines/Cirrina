@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.statemachine;
 
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.logging;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
@@ -196,6 +197,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    */
   @Override
   public boolean onReceiveEvent(Event event, Span parentSpan) {
+    logging.logEventReception(
+        tracingAttributes.getStateMachineId(), event,
+        activeState!= null ? activeState.getStateObject().getName() : "null",
+        tracingAttributes.getStateMachineName());
     Span span = tracing.initializeSpan("Received Event: " + event.getName(),tracer, parentSpan,
         Map.of(
             ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
@@ -235,6 +240,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
       return true;
     } catch (IllegalStateException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -346,6 +352,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
       return trySelectTransition(transitionObjects, extent, span);
     } catch (IllegalStateException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -378,6 +385,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       return trySelectTransition(transitionObjects, extent, span);
 
     } catch (IllegalStateException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -428,6 +436,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         default -> throw new IllegalStateException("Non-determinism detected");
       };
     } catch (UnsupportedOperationException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw new IllegalStateException("No transition could be selected", e);
     }finally {
@@ -463,6 +472,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         execute(newCommands, span);
       }
     } catch (UnsupportedOperationException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw new UnsupportedOperationException("Could not execute action commands", e);
     } finally {
@@ -520,6 +530,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         }, tracingAttributes, span);
       }
     } catch (UnsupportedOperationException | IllegalArgumentException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -548,6 +559,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       timeoutActionManager.stop(actionName, tracingAttributes, span);
 
     } catch (IllegalArgumentException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -583,6 +595,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalArgumentException If the state is not known.
    */
   private void switchActiveState(State state, Span parentSpan) throws IllegalArgumentException {
+    logging.logActiveStateSwitch(
+        tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName(),
+        activeState != null ? activeState.getStateObject().getName() : "null",
+        state != null ? state.getStateObject().getName() : "null");
     Span span = tracing.initializeSpan("Switching active State", tracer, parentSpan,
         Map.of( ATTR_NEW_STATE, state != null ? state.getStateObject().getName() : "null",
             ATTR_OLD_STATE, activeState != null ? activeState.getStateObject().getName() : "null",
@@ -602,6 +618,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       activeState = state;
 
     } catch (IllegalArgumentException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -620,6 +637,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the exit action cannot be executed.
    */
   private void doExit(State exitingState, @Nullable Event raisingEvent, Span parentSpan) throws UnsupportedOperationException {
+    logging.logStateExit(stateMachineId.toString(), stateMachineClass.getName(), exitingState.getStateObject().getName(), raisingEvent);
     Span span = tracing.initializeSpan("Exiting state " + exitingState.getStateObject().getName(), tracer, parentSpan,
         Map.of(ATTR_EVENT_NAME, raisingEvent != null ? raisingEvent.getName() : "null",
             ATTR_EVENT_ID, raisingEvent != null ? raisingEvent.getId() : "null",
@@ -645,6 +663,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         execute(exitActionCommands, span);
 
       } catch (UnsupportedOperationException e) {
+        logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
         tracing.recordException(e, span);
         throw new UnsupportedOperationException("Could not execute exit actions", e);
       } finally {
@@ -663,6 +682,11 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the transition action cannot be executed.
    */
   private void doTransition(Transition transition, @Nullable Event raisingEvent, Span parentSpan) throws UnsupportedOperationException {
+    logging.logTransition(
+        tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName(),
+        transition.getTransitionObject().getSource().getName(),
+        transition.getTransitionObject().getTarget().getName(),
+        raisingEvent);
     Span span = tracing.initializeSpan("Transition to " + transition.getTransitionObject().getTarget().getName(), tracer, parentSpan,
         Map.of( ATTR_SOURCE_STATE, transition.getTransitionObject().getSource().getName(),
             ATTR_TARGET_STATE, transition.getTransitionObject().getTarget().getName(),
@@ -688,6 +712,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       execute(transitionActionCommands, span);
 
     } catch (UnsupportedOperationException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw new UnsupportedOperationException("Could not execute transition actions", e);
     } finally {
@@ -714,6 +739,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       @Nullable Event raisingEvent,
       @Nullable Span parentSpan
   ) throws UnsupportedOperationException, IllegalArgumentException {
+    logging.logStateEntry(stateMachineId.toString(), stateMachineClass.getName(), enteringState.getStateObject().getName(), raisingEvent);
     Span span = tracing.initializeSpan("Entering state " + enteringState.getStateObject().getName(), tracer, parentSpan,
         Map.of(ATTR_NEW_STATE, enteringState.getStateObject().getName(),
             ATTR_EVENT_NAME, (raisingEvent != null ? raisingEvent.getName() : "null"),
@@ -761,7 +787,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         throw new UnsupportedOperationException("Could not select always transition");
       }
 
-    } catch (IllegalArgumentException | UnsupportedOperationException e){
+    } catch (UnsupportedOperationException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -791,6 +818,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       doTransition(transition, raisingEvent, parentSpan);
 
     } catch (UnsupportedOperationException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -835,6 +863,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
       nextTransitionInstance.ifPresent(t -> handleTransition(t, raisingEvent, span));
     } catch (UnsupportedOperationException | IllegalArgumentException e){
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -866,6 +895,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         handleExternalTransition(transition, raisingEvent, span);
       }
     } catch (UnsupportedOperationException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {
@@ -882,6 +912,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If an on transition could not be selected.
    */
   private Optional<Transition> handleEvent(Event event, Span parentSpan) throws InterruptedException, UnsupportedOperationException {
+    logging.logEventHandling(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName(), event);
     Span span = tracing.initializeSpan("Handling Event " + event.getName(), tracer, parentSpan,
         Map.of( ATTR_EVENT_NAME, event.getName(),
             ATTR_EVENT_ID, event.getId(),
@@ -923,6 +954,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
       return onTransition;
     } catch (IOException | IllegalStateException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw new UnsupportedOperationException("Could not select on transition", e);
     } finally {
@@ -937,6 +969,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    */
   @Override
   public void run() {
+    logging.logStateMachineStart(stateMachineId.toString(), stateMachineClass.getName());
     // Increment state machine instances counter
     counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(1,
         counters.attributesForInstances());
@@ -984,10 +1017,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         }
       }
     } catch (InterruptedException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       logger.info("{} is interrupted", stateMachineId.toString());
 
       Thread.currentThread().interrupt();
     } catch (Exception e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       logger.error("%s received a fatal error".formatted(stateMachineId.toString()), e);
     }
 
