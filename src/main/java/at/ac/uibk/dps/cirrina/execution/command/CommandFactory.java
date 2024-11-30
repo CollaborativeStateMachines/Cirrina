@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.logging;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
@@ -25,6 +26,7 @@ public class CommandFactory {
   }
 
   public ActionCommand createActionCommand(Action action, TracingAttributes tracingAttributes, Span parentSpan) {
+    logging.logActionCreation(action.toString());
     Span span = tracing.initializeSpan("Action Factory " + action.toString(), tracer, parentSpan,
         Map.of( ATTR_STATE_MACHINE_ID,tracingAttributes.getStateMachineId(),
             ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
@@ -53,6 +55,7 @@ public class CommandFactory {
         default -> throw new IllegalArgumentException("Unexpected action");
       }
     } catch (IllegalStateException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       tracing.recordException(e, span);
       throw e;
     } finally {

@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.command;
 
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.logging;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
 
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventChannel;
@@ -34,6 +35,8 @@ public final class ActionRaiseCommand extends ActionCommand {
 
   @Override
   public List<ActionCommand> execute(TracingAttributes tracingAttributes, Span parentSpan) throws UnsupportedOperationException {
+    logging.logAction(raiseAction.toString() + "(" + raiseAction.getEvent().getId() + ")",
+        tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
     Span span = tracing.initializeSpan("Raise Action", tracer, parentSpan,
         Map.of( ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
             ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
@@ -59,6 +62,7 @@ public final class ActionRaiseCommand extends ActionCommand {
         eventHandler.sendEvent(evaluatedEvent, tracingAttributes, span);
       }
     } catch (IOException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       logger.error("Data creation failed: {}", e.getMessage());
       tracing.recordException(e, span);
     } finally {

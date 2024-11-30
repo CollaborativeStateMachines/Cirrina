@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
+import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.logging;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracer;
 import static at.ac.uibk.dps.cirrina.cirrina.Cirrina.tracing;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
@@ -31,6 +32,7 @@ public final class ActionAssignCommand extends ActionCommand {
 
   @Override
   public List<ActionCommand> execute(TracingAttributes tracingAttributes, Span parentSpan) throws UnsupportedOperationException {
+    logging.logAction(assignAction.toString(), tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
     Span span = tracing.initializeSpan("Assign Action", tracer, parentSpan,
         Map.of( ATTR_STATE_MACHINE_ID, tracingAttributes.getStateMachineId(),
             ATTR_STATE_MACHINE_NAME, tracingAttributes.getStateMachineName(),
@@ -75,6 +77,7 @@ public final class ActionAssignCommand extends ActionCommand {
           ));
 
     } catch (IOException e) {
+      logging.logExeption(tracingAttributes.getStateMachineId(), e, tracingAttributes.getStateMachineName());
       logger.error("Data assignment failed: {}", e.getMessage());
       tracing.recordException(e, span);
     } finally {
