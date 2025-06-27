@@ -9,6 +9,8 @@ import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation;
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import at.ac.uibk.dps.cirrina.utils.Time;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,7 @@ public final class ActionInvokeCommand extends ActionCommand {
     this.invokeAction = invokeAction;
   }
 
+  @Trace(name = MethodName.EXECUTE_ACTION)
   @Override
   public List<ActionCommand> execute() throws UnsupportedOperationException {
     incrementInvocationCounter();

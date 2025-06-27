@@ -3,6 +3,8 @@ package at.ac.uibk.dps.cirrina.execution.command;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +26,7 @@ public final class ActionRaiseCommand extends ActionCommand {
     this.raiseAction = raiseAction;
   }
 
+  @Trace(name = MethodName.EXECUTE_ACTION)
   @Override
   public List<ActionCommand> execute() throws UnsupportedOperationException {
     final var commands = new ArrayList<ActionCommand>();

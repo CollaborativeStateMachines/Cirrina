@@ -1,6 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +20,7 @@ public final class ActionMatchCommand extends ActionCommand {
     this.matchAction = matchAction;
   }
 
+  @Trace(name = MethodName.EXECUTE_ACTION)
   @Override
   public List<ActionCommand> execute() throws UnsupportedOperationException {
     final var commands = new ArrayList<ActionCommand>();

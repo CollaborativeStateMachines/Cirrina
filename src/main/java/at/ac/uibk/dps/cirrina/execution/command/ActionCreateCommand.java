@@ -4,6 +4,8 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_DAT
 
 import at.ac.uibk.dps.cirrina.execution.object.action.CreateAction;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import at.ac.uibk.dps.cirrina.utils.Time;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,7 @@ public final class ActionCreateCommand extends ActionCommand {
     this.createAction = createAction;
   }
 
+  @Trace(name = MethodName.EXECUTE_ACTION)
   @Override
   public List<ActionCommand> execute() throws UnsupportedOperationException {
     final var start = Time.timeInMillisecondsSinceStart();
