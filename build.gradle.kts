@@ -7,6 +7,7 @@ plugins {
 
     id("com.google.protobuf") version "0.9.4"
     id("org.pkl-lang") version "0.26.3"
+    id("io.freefair.aspectj.post-compile-weaving") version "8.4"
 }
 
 group = "ac.at.uibk.dps.cirrina"
@@ -84,6 +85,7 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-sdk");
     implementation("io.opentelemetry:opentelemetry-exporter-logging");
     implementation("io.opentelemetry:opentelemetry-exporter-otlp");
+    implementation("io.opentelemetry:opentelemetry-exporter-jaeger:1.34.1")
     implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha");
     implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure");
 
@@ -107,6 +109,9 @@ dependencies {
 
     implementation("org.pkl-lang:pkl-config-java:0.26.2")
     implementation("org.pkl-lang:pkl-codegen-java:0.26.2")
+
+    implementation("org.aspectj:aspectjrt:1.9.21")
+    implementation("org.aspectj:aspectjweaver:1.9.21")
 
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")

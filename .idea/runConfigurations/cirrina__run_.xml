@@ -3,7 +3,13 @@
     <ExternalSystemSettings>
       <option name="env">
         <map>
+          <entry key="OTEL_EXPORTER_JAEGER_ENDPOINT" value="http://localhost:14250" />
+          <entry key="OTEL_EXPORTER_JAEGER_PROTOCOL" value="grpc" />
+          <entry key="OTEL_EXPORTER_OTLP_ENDPOINT" value="http://localhost:4317" />
           <entry key="OTEL_METRIC_EXPORT_INTERVAL" value="1000" />
+          <entry key="OTEL_SERVICE_NAME" value="cirrina" />
+          <entry key="OTEL_TRACES_EXPORTER" value="jaeger,otlp" />
+          <entry key="RUNTIME_NAME" value="runtime" />
         </map>
       </option>
       <option name="executionName" />
@@ -16,7 +22,7 @@
       <option name="taskNames">
         <list>
           <option value="run" />
-          <option value="--args=&quot;--name runtime --delete-job false&quot;" />
+          <option value="--args=&quot;--delete-job false&quot;" />
         </list>
       </option>
       <option name="vmOptions" value=" " />

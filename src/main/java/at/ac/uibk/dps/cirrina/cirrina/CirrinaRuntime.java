@@ -59,7 +59,9 @@ public class CirrinaRuntime extends Cirrina {
         final var openTelemetry = getOpenTelemetry();
 
         // Generate a runtime name
-        final var name = MobyNamesGenerator.getRandomName();
+        final var name = System.getenv("RUNTIME_NAME") != null
+            ? System.getenv("RUNTIME_NAME")
+            : MobyNamesGenerator.getRandomName();
 
         // Create the shared runtime
         final var runtime = new OnlineRuntime(
