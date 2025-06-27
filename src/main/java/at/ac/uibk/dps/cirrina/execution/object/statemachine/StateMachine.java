@@ -4,6 +4,7 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_EVENTS_H
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_EVENTS_RECEIVED;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_INVOCATIONS;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_STATE_MACHINE_INSTANCES;
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_TRANSITIONS;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_DATA_LATENCY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_INVOKE_LATENCY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_RAISE_LATENCY;
@@ -29,9 +30,12 @@ import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.object.state.State;
 import at.ac.uibk.dps.cirrina.execution.object.transition.Transition;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector;
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import at.ac.uibk.dps.cirrina.runtime.Runtime;
 import at.ac.uibk.dps.cirrina.tracing.Counters;
 import at.ac.uibk.dps.cirrina.tracing.Gauges;
+import at.ac.uibk.dps.cirrina.tracing.TracingAttributes;
 import at.ac.uibk.dps.cirrina.utils.Id;
 import at.ac.uibk.dps.cirrina.utils.Time;
 import io.opentelemetry.api.OpenTelemetry;
@@ -114,6 +118,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
   private List<Id> nestedStateMachineIds = new ArrayList<>();
 
+  private final TracingAttributes tracingAttributes;
+
   /**
    * Initializes this state machine instance object. A state machine instance is associated with a state machine object that describes its
    * static structure.
@@ -167,7 +173,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     final var meter = openTelemetry.getMeter("stateMachine-%s".formatted(stateMachineId.toString()));
 
     // Create gauges
-    gauges = new Gauges(meter, getId());
+    gauges = new Gauges(meter, getId(), parentStateMachine != null ? parentStateMachine.getId() : "null");
 
     gauges.addGauge(GAUGE_EVENT_RESPONSE_TIME_EXCLUSIVE);
     gauges.addGauge(GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE);
@@ -176,12 +182,18 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     gauges.addGauge(GAUGE_ACTION_RAISE_LATENCY);
 
     // Create counters
-    counters = new Counters(meter, getId());
+    counters = new Counters(meter, getId(), parentStateMachine != null ? parentStateMachine.getId() : "null");
 
     counters.addCounter(COUNTER_EVENTS_RECEIVED);
     counters.addCounter(COUNTER_EVENTS_HANDLED);
     counters.addCounter(COUNTER_INVOCATIONS);
     counters.addCounter(COUNTER_STATE_MACHINE_INSTANCES);
+    counters.addCounter(COUNTER_TRANSITIONS);
+
+    tracingAttributes = new TracingAttributes(
+        stateMachineId.toString(), stateMachineClass.getName(),
+        parentStateMachine != null ? parentStateMachine.getId() : "null",
+        parentStateMachine != null ? parentStateMachine.getStateMachineClass().getName() : "null");
   }
 
   /**
@@ -190,6 +202,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param event Received event.
    * @thread Events.
    */
+  @Trace(name = MethodName.ON_RECEIVE_EVENT)
   @Override
   public boolean onReceiveEvent(Event event) {
     // Nothing to do if the state machine is terminated
@@ -200,7 +213,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     // Increment events received counter
     counters.getCounter(COUNTER_EVENTS_RECEIVED).add(1,
         counters.attributesForEvent(
-            event.getChannel().toString()));
+            event.getChannel().toString(), activeState != null ? activeState.getStateObject().getName() : "null"));
 
     // Add to the internal event queue
     eventQueue.add(event);
@@ -307,6 +320,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @return On transition or empty in case no matching on transition can be selected.
    * @throws IllegalStateException If non-determinism is detected.
    */
+  @Trace(name = MethodName.TRY_SELECT_ON_TRANSITION)
   private Optional<Transition> trySelectOnTransition(Event event, Extent extent) throws IllegalStateException {
     // Find the transitions from the active state for the given event
     final var transitionObjects = stateMachineClass
@@ -322,6 +336,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @return Always transition or empty in case no always transition can be selected.
    * @throws IllegalStateException If non-determinism is detected.
    */
+  @Trace(name = MethodName.TRY_SELECT_ALWAYS_TRANSITION)
   private Optional<Transition> trySelectAlwaysTransition(Extent extent) throws IllegalStateException {
     // Find the transitions from the active state for the given event
     final var transitionObjects = stateMachineClass
@@ -341,6 +356,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalStateException If non-determinism is detected.
    * @throws IllegalStateException If no transition could be selected.
    */
+  @Trace(name = MethodName.TRY_SELECT_TRANSITION)
   private Optional<Transition> trySelectTransition(
       List<? extends TransitionClass> transitionObjects,
       Extent extent
@@ -377,6 +393,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param actionCommands Commands to execute.
    * @throws UnsupportedOperationException If the action commands cannot be executed.
    */
+  @Trace(name = MethodName.EXECUTE)
   private void execute(List<ActionCommand> actionCommands) throws UnsupportedOperationException {
     try {
       for (final var actionCommand : actionCommands) {
@@ -401,6 +418,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalArgumentException      If the timeout action is not a raise action.
    * @throws IllegalArgumentException      If the timeout action does not have a name.
    */
+  @Trace(name = MethodName.START_ALL_TIMEOUT_ACTIONS)
   private void startAllTimeoutActions(
       List<TimeoutAction> timeoutActionObjects
   ) throws UnsupportedOperationException, IllegalArgumentException {
@@ -437,6 +455,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param actionName Name of timeout action to stop.
    * @throws IllegalArgumentException If not exactly one timeout action was found with the provided name.
    */
+  @Trace(name = MethodName.STOP_TIMEOUT_ACTION)
   private void stopTimeoutAction(String actionName) throws IllegalArgumentException {
     timeoutActionManager.stop(actionName);
   }
@@ -444,6 +463,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   /**
    * Stops all currently started timeout actions.
    */
+  @Trace(name = MethodName.STOP_ALL_TIMEOUT_ACTIONS)
   private void stopAllTimeoutActions() {
     timeoutActionManager.stopAll();
   }
@@ -454,6 +474,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param state New active state.
    * @throws IllegalArgumentException If the state is not known.
    */
+  @Trace(name = MethodName.SWITCH_ACTIVE_STATE)
   private void switchActiveState(State state) throws IllegalArgumentException {
     final var stateName = state.getStateObject().getName();
 
@@ -475,6 +496,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the exit action cannot be executed.
    */
+  @Trace(name = MethodName.DO_EXIT)
   private void doExit(State exitingState, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     // Gather action commands
     final var exitActionCommands = exitingState.getExitActionCommands(
@@ -502,11 +524,14 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition action cannot be executed.
    */
+  @Trace(name = MethodName.DO_TRANSITION)
   private void doTransition(Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     // Do not execute actions for else target transitions
     if (transition.isElse()) {
       return;
     }
+
+    counters.getCounter(COUNTER_TRANSITIONS).add(1, counters.attributesForTransition(transition.isInternalTransition()));
 
     // Gather action commands
     final var transitionActionCommands = transition.getActionCommands(
@@ -534,6 +559,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the states could not be switched.
    * @throws UnsupportedOperationException If an always transition could not be selected.
    */
+  @Trace(name = MethodName.DO_ENTER)
   private Optional<Transition> doEnter(
       State enteringState,
       @Nullable Event raisingEvent
@@ -583,6 +609,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
+  @Trace(name = MethodName.HANDLE_INTERNAL_TRANSITION)
   private void handleInternalTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     // Only perform the transition
     doTransition(transition, raisingEvent);
@@ -595,6 +622,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
+  @Trace(name = MethodName.HANDLE_EXTERNAL_TRANSITION)
   private void handleExternalTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     final var targetStateName = transition.getTargetStateName().get();
 
@@ -622,6 +650,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
+  @Trace(name = MethodName.HANDLE_TRANSITION)
   private void handleTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     if (transition.isInternalTransition()) {
       handleInternalTransition(transition, raisingEvent);
@@ -638,11 +667,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws InterruptedException          If interrupted while waiting for an event.
    * @throws UnsupportedOperationException If an on transition could not be selected.
    */
+  @Trace(name = MethodName.HANDLE_EVENT)
   private Optional<Transition> handleEvent(Event event) throws InterruptedException, UnsupportedOperationException {
     // Increment events received counter
     counters.getCounter(COUNTER_EVENTS_HANDLED).add(1,
         counters.attributesForEvent(
-            event.getChannel().toString()));
+            event.getChannel().toString(), activeState!= null ? activeState.getStateObject().getName() : "null"));
 
     // Find a matching transition
     try {
@@ -779,6 +809,14 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    */
   public StateMachineClass getStateMachineClass() {
     return stateMachineClass;
+  }
+
+  public TracingAttributes getTracingAttributes() {
+    return tracingAttributes;
+  }
+
+  public String getActiveStateName(){
+    return activeState != null ? activeState.getStateObject().getName() : "null";
   }
 
   /**
