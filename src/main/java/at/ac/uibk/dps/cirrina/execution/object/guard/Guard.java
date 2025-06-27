@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.execution.object.guard;
 
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
-import jakarta.annotation.Nullable;
-import java.util.Optional;
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 
 /**
  * Guard, represents an evaluable guard that yields a boolean return value.
@@ -34,6 +34,7 @@ public class Guard {
    * @throws UnsupportedOperationException If the guard expression could not be executed.
    * @throws IllegalArgumentException      If the expression could not be evaluated, or the expression does not produce a boolean value.
    */
+  @Trace(name = MethodName.EVALUATE)
   public boolean evaluate(Extent extent) throws IllegalArgumentException, UnsupportedOperationException {
     var result = expression.execute(extent);
 
