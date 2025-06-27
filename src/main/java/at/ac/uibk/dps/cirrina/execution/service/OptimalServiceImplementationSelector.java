@@ -1,5 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
+import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.ArrayList;
@@ -26,6 +28,7 @@ public class OptimalServiceImplementationSelector extends ServiceImplementationS
    * @param local Whether the local implementation is required to be a local service implementation.
    * @return Selected service implementation.
    */
+  @Trace(name = MethodName.SELECT)
   @Override
   public Optional<ServiceImplementation> select(String name, boolean local) {
     final var serviceImplementationsWithName = new ArrayList<ServiceImplementation>(local ?
