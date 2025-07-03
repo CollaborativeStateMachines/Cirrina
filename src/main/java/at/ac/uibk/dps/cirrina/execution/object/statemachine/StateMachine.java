@@ -30,7 +30,8 @@ import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.object.state.State;
 import at.ac.uibk.dps.cirrina.execution.object.transition.Transition;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector;
-import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.MethodName;
+import at.ac.uibk.dps.cirrina.observability.logging.Log;
 import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import at.ac.uibk.dps.cirrina.runtime.Runtime;
 import at.ac.uibk.dps.cirrina.tracing.Counters;
@@ -203,6 +204,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @thread Events.
    */
   @Trace(name = MethodName.ON_RECEIVE_EVENT)
+  @Log(name = MethodName.ON_RECEIVE_EVENT)
   @Override
   public boolean onReceiveEvent(Event event) {
     // Nothing to do if the state machine is terminated
@@ -321,6 +323,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalStateException If non-determinism is detected.
    */
   @Trace(name = MethodName.TRY_SELECT_ON_TRANSITION)
+  @Log(name = MethodName.TRY_SELECT_ON_TRANSITION)
   private Optional<Transition> trySelectOnTransition(Event event, Extent extent) throws IllegalStateException {
     // Find the transitions from the active state for the given event
     final var transitionObjects = stateMachineClass
@@ -337,6 +340,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalStateException If non-determinism is detected.
    */
   @Trace(name = MethodName.TRY_SELECT_ALWAYS_TRANSITION)
+  @Log(name = MethodName.TRY_SELECT_ALWAYS_TRANSITION)
   private Optional<Transition> trySelectAlwaysTransition(Extent extent) throws IllegalStateException {
     // Find the transitions from the active state for the given event
     final var transitionObjects = stateMachineClass
@@ -357,6 +361,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalStateException If no transition could be selected.
    */
   @Trace(name = MethodName.TRY_SELECT_TRANSITION)
+  @Log(name = MethodName.TRY_SELECT_TRANSITION)
   private Optional<Transition> trySelectTransition(
       List<? extends TransitionClass> transitionObjects,
       Extent extent
@@ -394,6 +399,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the action commands cannot be executed.
    */
   @Trace(name = MethodName.EXECUTE)
+  @Log(name = MethodName.EXECUTE)
   private void execute(List<ActionCommand> actionCommands) throws UnsupportedOperationException {
     try {
       for (final var actionCommand : actionCommands) {
@@ -419,6 +425,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalArgumentException      If the timeout action does not have a name.
    */
   @Trace(name = MethodName.START_ALL_TIMEOUT_ACTIONS)
+  @Log(name = MethodName.START_ALL_TIMEOUT_ACTIONS)
   private void startAllTimeoutActions(
       List<TimeoutAction> timeoutActionObjects
   ) throws UnsupportedOperationException, IllegalArgumentException {
@@ -456,6 +463,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalArgumentException If not exactly one timeout action was found with the provided name.
    */
   @Trace(name = MethodName.STOP_TIMEOUT_ACTION)
+  @Log(name = MethodName.STOP_TIMEOUT_ACTION)
   private void stopTimeoutAction(String actionName) throws IllegalArgumentException {
     timeoutActionManager.stop(actionName);
   }
@@ -464,6 +472,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * Stops all currently started timeout actions.
    */
   @Trace(name = MethodName.STOP_ALL_TIMEOUT_ACTIONS)
+  @Log(name = MethodName.STOP_ALL_TIMEOUT_ACTIONS)
   private void stopAllTimeoutActions() {
     timeoutActionManager.stopAll();
   }
@@ -475,6 +484,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalArgumentException If the state is not known.
    */
   @Trace(name = MethodName.SWITCH_ACTIVE_STATE)
+  @Log(name = MethodName.SWITCH_ACTIVE_STATE)
   private void switchActiveState(State state) throws IllegalArgumentException {
     final var stateName = state.getStateObject().getName();
 
@@ -497,6 +507,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the exit action cannot be executed.
    */
   @Trace(name = MethodName.DO_EXIT)
+  @Log(name = MethodName.DO_EXIT)
   private void doExit(State exitingState, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     // Gather action commands
     final var exitActionCommands = exitingState.getExitActionCommands(
@@ -525,6 +536,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the transition action cannot be executed.
    */
   @Trace(name = MethodName.DO_TRANSITION)
+  @Log(name = MethodName.DO_TRANSITION)
   private void doTransition(Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     // Do not execute actions for else target transitions
     if (transition.isElse()) {
@@ -560,6 +572,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If an always transition could not be selected.
    */
   @Trace(name = MethodName.DO_ENTER)
+  @Log(name = MethodName.DO_ENTER)
   private Optional<Transition> doEnter(
       State enteringState,
       @Nullable Event raisingEvent
@@ -610,6 +623,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
   @Trace(name = MethodName.HANDLE_INTERNAL_TRANSITION)
+  @Log(name = MethodName.HANDLE_INTERNAL_TRANSITION)
   private void handleInternalTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     // Only perform the transition
     doTransition(transition, raisingEvent);
@@ -623,6 +637,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
   @Trace(name = MethodName.HANDLE_EXTERNAL_TRANSITION)
+  @Log(name = MethodName.HANDLE_EXTERNAL_TRANSITION)
   private void handleExternalTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     final var targetStateName = transition.getTargetStateName().get();
 
@@ -651,6 +666,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
   @Trace(name = MethodName.HANDLE_TRANSITION)
+  @Log(name = MethodName.HANDLE_TRANSITION)
   private void handleTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
     if (transition.isInternalTransition()) {
       handleInternalTransition(transition, raisingEvent);
@@ -668,6 +684,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If an on transition could not be selected.
    */
   @Trace(name = MethodName.HANDLE_EVENT)
+  @Log(name = MethodName.HANDLE_EVENT)
   private Optional<Transition> handleEvent(Event event) throws InterruptedException, UnsupportedOperationException {
     // Increment events received counter
     counters.getCounter(COUNTER_EVENTS_HANDLED).add(1,
@@ -710,6 +727,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * <p>
    * Execution ends when the state machine instance has reached a terminal state or when it is interrupted.
    */
+  @Log(name = MethodName.RUN)
   @Override
   public void run() {
     // Increment state machine instances counter
