@@ -7,7 +7,8 @@ import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
-import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.MethodName;
+import at.ac.uibk.dps.cirrina.observability.logging.Log;
 import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 
 public class CommandFactory {
@@ -19,6 +20,7 @@ public class CommandFactory {
   }
 
   @Trace(name = MethodName.CREATE_ACTION_COMMAND)
+  @Log(name = MethodName.CREATE_ACTION_COMMAND)
   public ActionCommand createActionCommand(Action action) {
     switch (action) {
       case AssignAction assignAction -> {
