@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.observability.tracing;
+package at.ac.uibk.dps.cirrina.observability;
 
 public enum MethodName {
   DO_ENTER,
@@ -25,5 +25,7 @@ public enum MethodName {
   STOP,
   STOP_ALL,
   INVOKE,
-  SELECT
+  SELECT,
+  HANDLE_RESPONSE,
+  RUN
 }

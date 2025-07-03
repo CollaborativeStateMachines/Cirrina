@@ -113,6 +113,8 @@ dependencies {
     implementation("org.aspectj:aspectjrt:1.9.21")
     implementation("org.aspectj:aspectjweaver:1.9.21")
 
+    implementation("pl.tkowalcz.tjahzi:log4j2-appender-nodep:0.9.17")
+
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 

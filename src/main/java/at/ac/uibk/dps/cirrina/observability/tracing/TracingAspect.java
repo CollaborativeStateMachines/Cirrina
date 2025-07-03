@@ -1,8 +1,9 @@
 package at.ac.uibk.dps.cirrina.observability.tracing;
 
-import static at.ac.uibk.dps.cirrina.observability.tracing.MethodName.*;
+import static at.ac.uibk.dps.cirrina.observability.MethodName.*;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*;
 
+import at.ac.uibk.dps.cirrina.observability.MethodName;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
