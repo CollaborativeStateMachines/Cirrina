@@ -2,7 +2,8 @@ package at.ac.uibk.dps.cirrina.execution.object.guard;
 
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
-import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.MethodName;
+import at.ac.uibk.dps.cirrina.observability.logging.Log;
 import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 
 /**
@@ -35,6 +36,7 @@ public class Guard {
    * @throws IllegalArgumentException      If the expression could not be evaluated, or the expression does not produce a boolean value.
    */
   @Trace(name = MethodName.EVALUATE)
+  @Log(name = MethodName.EVALUATE)
   public boolean evaluate(Extent extent) throws IllegalArgumentException, UnsupportedOperationException {
     var result = expression.execute(extent);
 

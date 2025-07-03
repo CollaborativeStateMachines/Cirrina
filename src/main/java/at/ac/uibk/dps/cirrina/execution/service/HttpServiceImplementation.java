@@ -4,7 +4,8 @@ import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescript
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
-import at.ac.uibk.dps.cirrina.observability.tracing.MethodName;
+import at.ac.uibk.dps.cirrina.observability.MethodName;
+import at.ac.uibk.dps.cirrina.observability.logging.Log;
 import at.ac.uibk.dps.cirrina.observability.tracing.Trace;
 import at.ac.uibk.dps.cirrina.observability.tracing.TraceStatic;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -92,6 +93,7 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * @throws CompletionException In case of error.
    */
   @TraceStatic
+  @Log(name = MethodName.HANDLE_RESPONSE)
   private static List<ContextVariable> handleResponse(HttpResponse<byte[]> response) {
     // Require HTTP OK
     final var errorCode = response.statusCode();
@@ -132,6 +134,7 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * @throws UnsupportedOperationException If the invocation failed.
    */
   @Trace(name = MethodName.INVOKE)
+  @Log(name = MethodName.INVOKE)
   @Override
   public CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id) throws UnsupportedOperationException {
     try {
