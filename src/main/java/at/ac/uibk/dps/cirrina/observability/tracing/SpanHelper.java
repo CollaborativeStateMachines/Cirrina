@@ -22,8 +22,6 @@ public class SpanHelper {
     MethodName methodAnnotation = traceAnnotation.name();
     String calledMethodName = method.getName();
 
-
-
     if (target instanceof StateMachine stateMachine) {
 
       var tracingAttributes = stateMachine.getTracingAttributes();
@@ -102,17 +100,16 @@ public class SpanHelper {
   private void spanNameCreator(String methodName, Map<String, String> attributes, String additionalInfo) {
     put(attributes, "Name", "SM " + attributes.get(ATTR_STATE_MACHINE_NAME) + " - " + methodName +
         " " + (additionalInfo != null ? additionalInfo : ""));
-
   }
 
-  private void handleEnterOrExit(Map<String, String> attributes, String methodName, StateMachine stateMachine, Object[] args){
+  private void handleEnterOrExit(Map<String, String> attributes, String methodName, StateMachine stateMachine, Object[] args) {
     State state = (State) args[0];
     Event raisingEvent = (Event) args[1];
     spanNameCreator(methodName, attributes, null);
     put(attributes, ATTR_EVENT_NAME, raisingEvent != null ? raisingEvent.getName() : "null");
     put(attributes, ATTR_EVENT_ID, raisingEvent != null ? raisingEvent.getId() : "null");
 
-    if(methodName.equals("doEnter")) {
+    if (methodName.equals("doEnter")) {
       put(attributes, ATTR_NEW_STATE, state.getStateObject().getName());
       put(attributes, ATTR_OLD_STATE, stateMachine.getActiveStateName());
     } else {
@@ -122,7 +119,8 @@ public class SpanHelper {
 
   }
 
-  private void handleEventReceptionHandlingAndOnTransitions(Object[] args, String methodName, StateMachine stateMachine, Map<String, String> attributes) {
+  private void handleEventReceptionHandlingAndOnTransitions(Object[] args, String methodName, StateMachine stateMachine,
+      Map<String, String> attributes) {
     Event event = (Event) args[0];
     spanNameCreator(methodName, attributes, null);
     put(attributes, ATTR_EVENT_NAME, event.getName());
@@ -132,7 +130,8 @@ public class SpanHelper {
 
   }
 
-  private void handleAlwaysTransitionsAndStartStopAllTimeouts(Map<String, String> attributes, StateMachine stateMachine, String calledMethodName){
+  private void handleAlwaysTransitionsAndStartStopAllTimeouts(Map<String, String> attributes, StateMachine stateMachine,
+      String calledMethodName) {
     spanNameCreator(calledMethodName, attributes, null);
     put(attributes, ATTR_ACTIVE_STATE, stateMachine.getActiveStateName());
   }
@@ -152,8 +151,7 @@ public class SpanHelper {
 
   private void handleTransition(Object[] args, String calledMethodName, StateMachine stateMachine, Map<String, String> attributes) {
     Transition transition = (Transition) args[0];
-    Event transition_event =  (Event) args[1];
-    spanNameCreator(calledMethodName, attributes, null);
+    Event transition_event = (Event) args[1];
     boolean isElse = transition.isElse();
     spanNameCreator(calledMethodName, attributes, isElse ? "(ELSE)" : null);
     put(attributes, ATTR_SOURCE_STATE, transition.getTransitionObject().getSource().getName());
@@ -163,7 +161,7 @@ public class SpanHelper {
     put(attributes, ATTR_ACTIVE_STATE, stateMachine.getActiveStateName());
     if (calledMethodName.equals("handleInternalTransition")) {
       put(attributes, ATTR_TRANSITION_INTERNAL, "true");
-    }  else if (calledMethodName.equals("handleExternalTransition")) {
+    } else if (calledMethodName.equals("handleExternalTransition")) {
       put(attributes, ATTR_TRANSITION_INTERNAL, "false");
     } else {
       put(attributes, ATTR_TRANSITION_INTERNAL, String.valueOf(transition.isInternalTransition()));
@@ -172,7 +170,7 @@ public class SpanHelper {
   }
 
   private void handleActionExecution(String calledMethodName, Map<String, String> attributes, Object target) {
-    spanNameCreator(calledMethodName, attributes, "action");
+    spanNameCreator(calledMethodName, attributes, target.getClass().getSimpleName());
     put(attributes, ATTR_ACTION_NAME, target.getClass().getSimpleName());
   }
 
@@ -214,12 +212,11 @@ public class SpanHelper {
 
   private void handleServiceSelection(Object[] args, String calledMethodName, Map<String, String> attributes) {
     String name = (String) args[0];
-    boolean local =  (boolean) args[1];
+    boolean local = (boolean) args[1];
     spanNameCreator(calledMethodName, attributes, null);
     put(attributes, ATTR_SERVICE_NAME, name);
     put(attributes, ATTR_IS_LOCAL, String.valueOf(local));
   }
-
 
   private void copyTracingAttributes(Map<String, String> target, TracingAttributes src) {
     put(target, ATTR_STATE_MACHINE_ID, src.getStateMachineId());
@@ -236,8 +233,8 @@ public class SpanHelper {
   }
 
   private void put(Map<String, String> map, String key, String value) {
-    if (value != null) map.put(key, value);
+    if (value != null) {
+      map.put(key, value);
+    }
   }
-
-
 }
