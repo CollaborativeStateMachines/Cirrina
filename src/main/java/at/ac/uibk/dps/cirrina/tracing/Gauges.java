@@ -1,6 +1,8 @@
 package at.ac.uibk.dps.cirrina.tracing;
 
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.ATTR_PARENT_STATE_MACHINE_NAME;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.ATTR_STATE_MACHINE_ID;
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.ATTR_STATE_MACHINE_NAME;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ATTR_DATA_LOCALITY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ATTR_DATA_OPERATION;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ATTR_DATA_SIZE;
@@ -22,12 +24,19 @@ public class Gauges {
 
   private final String stateMachineId;
 
+  private final String stateMachineName;
+
   private final String parentStateMachineId;
 
-  public Gauges(Meter meter, String stateMachineId, String parentStateMachineId) {
+  private final String parentStateMachineName;
+
+  public Gauges(Meter meter, String stateMachineId, String parentStateMachineId, String stateMachineName, String parentStateMachineName) {
     this.meter = meter;
     this.stateMachineId = stateMachineId;
     this.parentStateMachineId = parentStateMachineId;
+    this.stateMachineName = stateMachineName;
+    this.parentStateMachineName = parentStateMachineName;
+
   }
 
   public Attributes attributesForData(String operation, String dataLocality, int dataSize) {
@@ -36,7 +45,9 @@ public class Gauges {
         .put(GAUGE_ATTR_DATA_LOCALITY, dataLocality)
         .put(GAUGE_ATTR_DATA_SIZE, dataSize)
         .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+        .put(ATTR_STATE_MACHINE_NAME, stateMachineName)
         .put(ATTR_PARENT_STATE_MACHINE_ID, parentStateMachineId)
+        .put(ATTR_PARENT_STATE_MACHINE_NAME, parentStateMachineName)
         .build();
   }
 
@@ -44,7 +55,9 @@ public class Gauges {
     return Attributes.builder()
         .put(GAUGE_ATTR_INVOCATION_LOCALITY, serviceLocality)
         .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+        .put(ATTR_STATE_MACHINE_NAME, stateMachineName)
         .put(ATTR_PARENT_STATE_MACHINE_ID, parentStateMachineId)
+        .put(ATTR_PARENT_STATE_MACHINE_NAME, parentStateMachineName)
         .build();
   }
 
@@ -52,7 +65,9 @@ public class Gauges {
     return Attributes.builder()
         .put(GAUGE_ATTR_EVENT_CHANNEL, eventChannel)
         .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+        .put(ATTR_STATE_MACHINE_NAME, stateMachineName)
         .put(ATTR_PARENT_STATE_MACHINE_ID, parentStateMachineId)
+        .put(ATTR_PARENT_STATE_MACHINE_NAME, parentStateMachineName)
         .build();
   }
 

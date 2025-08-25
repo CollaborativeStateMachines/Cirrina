@@ -40,6 +40,7 @@ public class SemanticConvention {
   public static final String ATTR_TRANSITION_INTERNAL = "cirrina.transition.internal";
 
   //Tracing Attributes
+  public static final String ATTR_TRANSITION_ELSE = "cirrina.transition.else";
   public static final String ATTR_GUARD_EXPRESSION = "cirrina.guard.expression";
   public static final String ATTR_EVENT_NAME = "cirrina.event.name";
   public static final String ATTR_EVENT_ID = "cirrina.event.id";

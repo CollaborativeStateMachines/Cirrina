@@ -185,6 +185,10 @@ public class LoggingAspect {
 
   private void logTransition(StateMachine sm, Object[] args) {
     Transition transition = (Transition) args[0];
+    LoggingContext.putTransitionStates(transition);
+    if (transition.isElse()) {
+      return;
+    }
     Event event = args[1] == null ? null : (Event) args[1];
     loggingHelper.logTransition(
         sm.getTracingAttributes().getStateMachineId(),

@@ -174,7 +174,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     final var meter = openTelemetry.getMeter("stateMachine-%s".formatted(stateMachineId.toString()));
 
     // Create gauges
-    gauges = new Gauges(meter, getId(), parentStateMachine != null ? parentStateMachine.getId() : "null");
+    gauges = new Gauges(meter, getId(), parentStateMachine != null ? parentStateMachine.getId() : "null",
+        stateMachineClass.getName(), parentStateMachine != null ? parentStateMachine.getStateMachineClass().getName() : "null");
 
     gauges.addGauge(GAUGE_EVENT_RESPONSE_TIME_EXCLUSIVE);
     gauges.addGauge(GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE);
@@ -183,7 +184,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     gauges.addGauge(GAUGE_ACTION_RAISE_LATENCY);
 
     // Create counters
-    counters = new Counters(meter, getId(), parentStateMachine != null ? parentStateMachine.getId() : "null");
+    counters = new Counters(meter, getId(), parentStateMachine != null ? parentStateMachine.getId() : "null",
+        stateMachineClass.getName(), parentStateMachine != null ? parentStateMachine.getStateMachineClass().getName() : "null");
 
     counters.addCounter(COUNTER_EVENTS_RECEIVED);
     counters.addCounter(COUNTER_EVENTS_HANDLED);

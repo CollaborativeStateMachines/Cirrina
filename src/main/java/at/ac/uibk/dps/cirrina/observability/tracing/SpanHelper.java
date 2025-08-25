@@ -154,6 +154,8 @@ public class SpanHelper {
     Transition transition = (Transition) args[0];
     Event transition_event =  (Event) args[1];
     spanNameCreator(calledMethodName, attributes, null);
+    boolean isElse = transition.isElse();
+    spanNameCreator(calledMethodName, attributes, isElse ? "(ELSE)" : null);
     put(attributes, ATTR_SOURCE_STATE, transition.getTransitionObject().getSource().getName());
     put(attributes, ATTR_TARGET_STATE, transition.getTransitionObject().getTarget().getName());
     put(attributes, ATTR_EVENT_NAME, transition_event != null ? transition_event.getName() : "null");
@@ -166,6 +168,7 @@ public class SpanHelper {
     } else {
       put(attributes, ATTR_TRANSITION_INTERNAL, String.valueOf(transition.isInternalTransition()));
     }
+    put(attributes, ATTR_TRANSITION_ELSE, isElse ? "true" : "false");
   }
 
   private void handleActionExecution(String calledMethodName, Map<String, String> attributes, Object target) {
