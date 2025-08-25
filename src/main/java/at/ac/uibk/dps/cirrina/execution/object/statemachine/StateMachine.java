@@ -691,7 +691,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     // Increment events received counter
     counters.getCounter(COUNTER_EVENTS_HANDLED).add(1,
         counters.attributesForEvent(
-            event.getChannel().toString(), activeState!= null ? activeState.getStateObject().getName() : "null"));
+            event.getChannel().toString(), activeState != null ? activeState.getStateObject().getName() : "null"));
 
     // Find a matching transition
     try {
@@ -835,8 +835,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     return tracingAttributes;
   }
 
-  public String getActiveStateName(){
+  public String getActiveStateName() {
     return activeState != null ? activeState.getStateObject().getName() : "null";
+  }
+
+  public State getActiveState() {
+    return activeState;
   }
 
   /**

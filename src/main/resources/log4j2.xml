@@ -1,22 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration packages="pl.tkowalcz.tjahzi.log4j2">
-  <Loggers>
-    <Root level="DEBUG">
-      <AppenderRef ref="Loki"/>
-    </Root>
-  </Loggers>
+<Configuration status="WARN">
+  <Properties>
+    <Property name="LEVEL">${sys:LOG_LEVEL:-INFO}</Property>
+    <Property name="APP_LEVEL">${sys:APP_LOG_LEVEL:-INFO}</Property>
+    <Property name="LOKI_HOST_NAME">${sys:LOKI_HOST:-localhost}</Property>
+    <Property name="LOKI_PORT_NUMBER">${sys:LOKI_PORT:-3100}</Property>
+  </Properties>
 
-  <appenders>
+  <Appenders>
     <Loki name="Loki" bufferSizeMegabytes="64">
-      <host>localhost</host>
-      <port>3100</port>
-
+      <host>${LOKI_HOST_NAME}</host>
+      <port>${LOKI_PORT_NUMBER}</port>
       <ThresholdFilter level="ALL"/>
       <PatternLayout>
         <Pattern>[%t] %d{MM-dd HH:mm:ss.SSS} %5p - %m%n%exception{full}</Pattern>
       </PatternLayout>
 
-      <Label name="server" value="127.0.0.1"/>
+      <Label name="Server" value="127.0.0.1"/>
+
+      <Label name="State_Machine_Id" pattern="%X{cirrina.state_machine.id}"/>
+      <Label name="State_Machine_name" pattern="%X{cirrina.state_machine.name}"/>
+      <Label name="Operation" pattern="%X{cirrina.operation}"/>
+      <Label name="Event" pattern="%X{cirrina.event.name}"/>
+      <Label name="Trace_Id" pattern="%X{cirrina.trace_id}"/>
+      <Label name="Span_Id" pattern="%X{cirrina.span_id}"/>
+      <Label name="New_State" pattern="%X{cirrina.new.state}"/>
+      <Label name="Old_State" pattern="%X{cirrina.old.state}"/>
+      <Label name="Action_Name" pattern="%X{cirrina.action.action_name}"/>
+      <Label name="Guard_Expression" pattern="%X{cirrina.guard.expression}"/>
+      <Label name="Service_Name" pattern="%X{cirrina.service_name}"/>
     </Loki>
-  </appenders>
-</configuration>
+
+    <Async name="AsyncLoki" bufferSize="512" blocking="true" includeLocation="false">
+      <AppenderRef ref="Loki"/>
+    </Async>
+  </Appenders>
+
+  <Loggers>
+    <Root level="${LEVEL}">
+      <AppenderRef ref="AsyncLoki"/>
+    </Root>
+  </Loggers>
+</Configuration>

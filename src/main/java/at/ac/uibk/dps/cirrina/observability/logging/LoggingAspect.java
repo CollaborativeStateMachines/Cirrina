@@ -32,135 +32,151 @@ public class LoggingAspect {
 
     Log logAnnotation = method.getAnnotation(Log.class);
     MethodName methodName = logAnnotation.name();
+    try {
+      if (target instanceof StateMachine stateMachine) {
+        var tracingAttributes = stateMachine.getTracingAttributes();
+        stateMachineAttributes.get().clear();
+        copyAttributes(stateMachineAttributes.get(), tracingAttributes);
 
-    if (target instanceof StateMachine stateMachine) {
-      var tracingAttributes = stateMachine.getTracingAttributes();
-      stateMachineAttributes.get().clear();
-      copyAttributes(stateMachineAttributes.get(), tracingAttributes);
+        LoggingContext.putOperation(methodName.name());
+        LoggingContext.putStateMachineAttributes(tracingAttributes);
+        LoggingContext.putOtelIdsIfAny();
 
-      switch (methodName) {
-        case ON_RECEIVE_EVENT:
-          logEventReception(stateMachine, args, tracingAttributes);
-          break;
+        switch (methodName) {
+          case ON_RECEIVE_EVENT:
+            if (!stateMachine.isTerminated()) {
+              logEventReception(stateMachine, args, stateMachine.getTracingAttributes());
+            }
+            break;
 
-        case TRY_SELECT_ON_TRANSITION: //
-          loggingHelper.logOnTransitionSelection(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case TRY_SELECT_ON_TRANSITION:
+            loggingHelper.logOnTransitionSelection(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case TRY_SELECT_ALWAYS_TRANSITION://
-          loggingHelper.logAlwaysTransitionSelection(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case TRY_SELECT_ALWAYS_TRANSITION:
+            loggingHelper.logAlwaysTransitionSelection(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case TRY_SELECT_TRANSITION:
-          loggingHelper.logTransitionSelection(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case TRY_SELECT_TRANSITION:
+            loggingHelper.logTransitionSelection(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case EXECUTE:
-          loggingHelper.logActionExecution(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case EXECUTE:
+            loggingHelper.logActionExecution(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case START_ALL_TIMEOUT_ACTIONS: //
-          loggingHelper.logAllTimeoutActionsStartSM(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case START_ALL_TIMEOUT_ACTIONS:
+            LoggingContext.putActionName(target.getClass().getSimpleName());
+            loggingHelper.logAllTimeoutActionsStartSM(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case STOP_ALL_TIMEOUT_ACTIONS: //
-          loggingHelper.logAllTimeoutActionsStopSM(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case STOP_ALL_TIMEOUT_ACTIONS:
+            LoggingContext.putActionName(target.getClass().getSimpleName());
+            loggingHelper.logAllTimeoutActionsStopSM(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case STOP_TIMEOUT_ACTION: //
-          loggingHelper.logTimeoutActionStopSM(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case STOP_TIMEOUT_ACTION:
+            LoggingContext.putActionName(target.getClass().getSimpleName());
+            loggingHelper.logTimeoutActionStopSM(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case SWITCH_ACTIVE_STATE:
-          logStateSwitch(stateMachine, args);
-          break;
+          case SWITCH_ACTIVE_STATE:
+            logStateSwitch(stateMachine, args);
+            break;
 
-        case DO_EXIT:
-          logStateExit(stateMachine, args);
-          break;
+          case DO_EXIT:
+            logStateExit(stateMachine, args);
+            break;
 
-        case DO_TRANSITION:
-          logTransition(stateMachine, args);
-          break;
+          case DO_TRANSITION:
+            logTransition(stateMachine, args);
+            break;
 
-        case DO_ENTER:
-          logStateEntry(stateMachine, args);
-          break;
+          case DO_ENTER:
+            logStateEntry(stateMachine, args);
+            break;
 
-        case HANDLE_INTERNAL_TRANSITION:
-          loggingHelper.logInternalTransition(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case HANDLE_INTERNAL_TRANSITION:
+            loggingHelper.logInternalTransition(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case HANDLE_EXTERNAL_TRANSITION:
-          loggingHelper.logExternalTransition(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case HANDLE_EXTERNAL_TRANSITION:
+            loggingHelper.logExternalTransition(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case HANDLE_TRANSITION: //
-          loggingHelper.logTransitionChoice(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          break;
+          case HANDLE_TRANSITION:
+            loggingHelper.logTransitionHandling(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
+            break;
 
-        case HANDLE_EVENT:
-          logEventHandling(stateMachine, args);
-          break;
+          case HANDLE_EVENT:
+            logEventHandling(stateMachine, args);
+            break;
 
-        case RUN:
-          loggingHelper.logStateMachineStart(tracingAttributes.getStateMachineId(), tracingAttributes.getStateMachineName());
-          logStateMachineStart(stateMachine);
-          break;
+          case RUN:
+            logStateMachineStart(stateMachine);
+            break;
+        }
+      } else {
+        LoggingContext.putOperation(methodName.name());
+        LoggingContext.putOtelIdsIfAny();
+        LoggingContext.putTracingFromMap(stateMachineAttributes.get(), ATTR_STATE_MACHINE_ID, ATTR_STATE_MACHINE_NAME);
+
+        switch (methodName) {
+          case EXECUTE_ACTION:
+            LoggingContext.putActionName(target.getClass().getSimpleName());
+            logActionExecution(target, stateMachineAttributes.get());
+            break;
+
+          case START, STOP, STOP_ALL:
+            logTimeoutStartAndStop(target, methodName, stateMachineAttributes.get());
+            break;
+
+          case INVOKE:
+            logServiceInvocation(stateMachineAttributes.get());
+            break;
+
+          case HANDLE_RESPONSE:
+            logResponseHandling(args, stateMachineAttributes.get());
+            break;
+
+          case EVALUATE:
+            logGuardEvaluation(stateMachineAttributes.get(), target);
+            break;
+
+          case SEND_EVENT:
+            logEventSending(args, stateMachineAttributes.get());
+            break;
+
+          case CREATE_ACTION_COMMAND:
+            logActionCreation(args, stateMachineAttributes.get());
+            break;
+
+          case SELECT:
+            loggingHelper.logServiceSelection(stateMachineAttributes.get().get(ATTR_STATE_MACHINE_ID),
+                stateMachineAttributes.get().get(ATTR_STATE_MACHINE_NAME));
+            break;
+        }
       }
-    } else {
-      switch (methodName) {
-        case EXECUTE_ACTION:
-          logActionExecution(target, stateMachineAttributes.get());
-          break;
-
-        case START, STOP, STOP_ALL:
-          logTimeoutStartAndStop(target, methodName, stateMachineAttributes.get());
-          break;
-
-        case INVOKE:
-          logServiceInvocation(stateMachineAttributes.get());
-          break;
-
-        case HANDLE_RESPONSE:
-          logResponseHandling(args, stateMachineAttributes.get());
-          break;
-
-        case EVALUATE:
-          logGuardEvaluation(stateMachineAttributes.get(), target);
-          break;
-
-        case SEND_EVENT:
-          logEventSending(args, stateMachineAttributes.get());
-          break;
-
-        case CREATE_ACTION_COMMAND:
-          logActionCreation(args, stateMachineAttributes.get());
-          break;
-
-        case SELECT:
-          loggingHelper.logServiceSelection(stateMachineAttributes.get().get(ATTR_STATE_MACHINE_ID),
-              stateMachineAttributes.get().get(ATTR_STATE_MACHINE_NAME));
-      }
-    }
-
-    try{
       return joinPoint.proceed();
     } catch (Throwable throwable) {
       loggingHelper.logException(stateMachineAttributes.get().get(ATTR_STATE_MACHINE_ID),
           throwable, stateMachineAttributes.get().get(ATTR_STATE_MACHINE_NAME));
       throw throwable;
+    } finally {
+      LoggingContext.clear();
     }
   }
 
   private void logEventReception(StateMachine sm, Object[] args, TracingAttributes tracingAttributes) {
     Event onReceiveEvent = (Event) args[0];
+    LoggingContext.putEvent(onReceiveEvent);
     loggingHelper.logEventReception(tracingAttributes.getStateMachineId(), onReceiveEvent,
         sm.getActiveStateName(), tracingAttributes.getStateMachineName());
   }
 
   private void logStateSwitch(StateMachine sm, Object[] args) {
     State newState = (State) args[0];
+    LoggingContext.putStateFromTo(sm.getActiveState(), newState);
     loggingHelper.logActiveStateSwitch(
         sm.getTracingAttributes().getStateMachineId(),
         sm.getTracingAttributes().getStateMachineName(),
@@ -172,14 +188,18 @@ public class LoggingAspect {
   private void logStateEntry(StateMachine sm, Object[] args) {
     State state = (State) args[0];
     Event event = (Event) args[1];
-    loggingHelper.logStateEntry(sm.getTracingAttributes().getStateMachineId().toString(), sm.getClass().getName(),
+    LoggingContext.putNewState(state);
+    LoggingContext.putEvent(event);
+    loggingHelper.logStateEntry(sm.getTracingAttributes().getStateMachineId(), sm.getClass().getName(),
         state.getStateObject().getName(), event);
   }
 
   private void logStateExit(StateMachine sm, Object[] args) {
     State state = (State) args[0];
     Event event = (Event) args[1];
-    loggingHelper.logStateExit(sm.getTracingAttributes().getStateMachineId().toString(), sm.getClass().getName(),
+    LoggingContext.putOldState(state);
+    LoggingContext.putEvent(event);
+    loggingHelper.logStateExit(sm.getTracingAttributes().getStateMachineId(), sm.getClass().getName(),
         state.getStateObject().getName(), event);
   }
 
@@ -200,19 +220,24 @@ public class LoggingAspect {
 
   private void logEventHandling(StateMachine sm, Object[] args) {
     Event event = (Event) args[0];
+    LoggingContext.putEvent(event);
     loggingHelper.logEventHandling(sm.getTracingAttributes().getStateMachineId(),
         sm.getTracingAttributes().getStateMachineName(), event);
   }
 
   private void logStateMachineStart(StateMachine sm) {
-    loggingHelper.logStateMachineStart(sm.getTracingAttributes().getStateMachineId().toString(), sm.getClass().getName());
+    loggingHelper.logStateMachineStart(sm.getTracingAttributes().getStateMachineId(), sm.getTracingAttributes().getStateMachineName());
   }
 
-  private void logActionExecution(Object target, Map<String, String> tracingAttributes){
-    loggingHelper.logAction(target.getClass().getSimpleName(), tracingAttributes.get(ATTR_STATE_MACHINE_ID), tracingAttributes.get(ATTR_STATE_MACHINE_NAME));
+  private void logActionExecution(Object target, Map<String, String> tracingAttributes) {
+    LoggingContext.putActionName(target.getClass().getSimpleName());
+    loggingHelper.logAction(target.getClass().getSimpleName(),
+        tracingAttributes.get(ATTR_STATE_MACHINE_ID),
+        tracingAttributes.get(ATTR_STATE_MACHINE_NAME));
   }
 
   private void logTimeoutStartAndStop(Object target, MethodName methodName, Map<String, String> tracingAttributes) {
+    LoggingContext.putActionName(target.getClass().getSimpleName() + " " + methodName.name());
     switch (methodName) {
       case START:
         loggingHelper.logTimeout("Start", target.getClass().getSimpleName(), tracingAttributes.get(ATTR_STATE_MACHINE_ID),
@@ -230,12 +255,14 @@ public class LoggingAspect {
   }
 
   private void logServiceInvocation(Map<String, String> tracingAttributes) {
+    LoggingContext.putService("HTTP Service");
     loggingHelper.logServiceInvocation("HTTP Service",
         tracingAttributes.get(ATTR_STATE_MACHINE_ID), tracingAttributes.get(ATTR_STATE_MACHINE_NAME));
   }
 
   private void logResponseHandling(Object[] args, Map<String, String> tracingAttributes) {
-    HttpResponse response = (HttpResponse) args[0];
+    LoggingContext.putService("HTTP Service");
+    HttpResponse<?> response = (HttpResponse<?>) args[0];
     loggingHelper.logServiceResponseHandling("HTTP Service", response,
         tracingAttributes.get(ATTR_STATE_MACHINE_ID),
         tracingAttributes.get(ATTR_STATE_MACHINE_NAME));
@@ -244,6 +271,7 @@ public class LoggingAspect {
   private void logGuardEvaluation(Map<String, String> tracingAttributes, Object target) {
     Guard guard = (Guard) target;
     var expression = guard.getExpression().toString();
+    LoggingContext.putGuard(guard);
     loggingHelper.logGuardEvaluation(expression, tracingAttributes.get(ATTR_STATE_MACHINE_NAME),
         tracingAttributes.get(ATTR_STATE_MACHINE_ID));
 
@@ -251,6 +279,7 @@ public class LoggingAspect {
 
   private void logEventSending(Object[] args, Map<String, String> tracingAttributes) {
     Event event = (Event) args[0];
+    LoggingContext.putEvent(event);
     loggingHelper.logEventSending(event, tracingAttributes.get(ATTR_STATE_MACHINE_ID),
         tracingAttributes.get(ATTR_STATE_MACHINE_NAME));
 
@@ -258,6 +287,7 @@ public class LoggingAspect {
 
   private void logActionCreation(Object[] args, Map<String, String> tracingAttributes) {
     Action action = (Action) args[0];
+    LoggingContext.putActionName(action.toString());
     loggingHelper.logActionCreation(action.toString(), tracingAttributes.get(ATTR_STATE_MACHINE_ID),
         tracingAttributes.get(ATTR_STATE_MACHINE_NAME));
   }
@@ -271,7 +301,9 @@ public class LoggingAspect {
   }
 
   private void put(Map<String, String> map, String key, String value) {
-    if (value != null) map.put(key, value);
+    if (value != null) {
+      map.put(key, value);
+    }
   }
 
 }

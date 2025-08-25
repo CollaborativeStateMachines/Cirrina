@@ -44,6 +44,7 @@ public class SemanticConvention {
   public static final String ATTR_GUARD_EXPRESSION = "cirrina.guard.expression";
   public static final String ATTR_EVENT_NAME = "cirrina.event.name";
   public static final String ATTR_EVENT_ID = "cirrina.event.id";
+  public static final String ATTR_EVENT_CHANNEL = "cirrina.event_channel";
   public static final String ATTR_ACTION_NAME = "cirrina.action.action_name";
   public static final String ATTR_TARGET_STATE = "cirrina.target.state";
   public static final String ATTR_SOURCE_STATE = "cirrina.source.state";
@@ -53,4 +54,7 @@ public class SemanticConvention {
   public static final String ATTR_INVOKED_BY = "cirrina.invoked_by";
   public static final String ATTR_SERVICE_NAME = "cirrina.service_name";
   public static final String ATTR_IS_LOCAL = "cirrina.is_local";
+  public static final String ATTR_TRACE_ID = "cirrina.trace_id";
+  public static final String ATTR_SPAN_ID = "cirrina.span_id";
+  public static final String ATTR_OPERATION = "cirrina.operation";
 }

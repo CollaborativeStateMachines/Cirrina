@@ -98,7 +98,9 @@ dependencies {
 
     implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
 
+    implementation("org.apache.logging.log4j:log4j-api:2.23.1")
     implementation("org.apache.logging.log4j:log4j-core:2.23.1")
+    runtimeOnly("org.apache.logging.log4j:log4j-slf4j-impl:2.23.1")
 
     implementation("org.glassfish.expressly:expressly:5.0.0")
 
