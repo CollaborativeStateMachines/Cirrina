@@ -23,10 +23,7 @@ public class Extent {
   }
 
   public Extent(List<Context> low, Context high) {
-    extent = Stream.concat(
-            low.stream(),
-            Stream.of(high))
-        .toList();
+    extent = Stream.concat(low.stream(), Stream.of(high)).toList();
   }
 
   public int setOrCreate(String name, Object value) throws IOException {
@@ -71,20 +68,20 @@ public class Extent {
   }
 
   public Optional<Object> resolve(String name) {
-    return extent.reversed().stream()
-        .map(context -> {
-          try {
-            return Optional.ofNullable(context.get(name));
-          } catch (IOException e) {
-            return Optional.empty();
-          }
-        })
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .findFirst();
+    return extent
+      .reversed()
+      .stream()
+      .map(context -> {
+        try {
+          return Optional.ofNullable(context.get(name));
+        } catch (IOException e) {
+          return Optional.empty();
+        }
+      })
+      .filter(Optional::isPresent)
+      .map(Optional::get)
+      .findFirst();
   }
 
-  public record SetResult(int size, Context context) {
-
-  }
+  public record SetResult(int size, Context context) {}
 }

@@ -15,7 +15,9 @@ public class ServiceImplementationBuilder {
 
   private final List<? extends ServiceImplementationDescription> serviceImplementationDescriptions;
 
-  private ServiceImplementationBuilder(List<? extends ServiceImplementationDescription> serviceImplementationDescriptions) {
+  private ServiceImplementationBuilder(
+    List<? extends ServiceImplementationDescription> serviceImplementationDescriptions
+  ) {
     this.serviceImplementationDescriptions = serviceImplementationDescriptions;
   }
 
@@ -25,7 +27,9 @@ public class ServiceImplementationBuilder {
    * @param serviceImplementationDescription Service implementation description.
    * @return Builder.
    */
-  public static ServiceImplementationBuilder from(ServiceImplementationDescription serviceImplementationDescription) {
+  public static ServiceImplementationBuilder from(
+    ServiceImplementationDescription serviceImplementationDescription
+  ) {
     var list = new ArrayList<ServiceImplementationDescription>();
     list.add(serviceImplementationDescription);
     return new ServiceImplementationBuilder(list);
@@ -37,7 +41,9 @@ public class ServiceImplementationBuilder {
    * @param serviceImplementationDescriptions Service implementation descriptions.
    * @return Builder.
    */
-  public static ServiceImplementationBuilder from(List<? extends ServiceImplementationDescription> serviceImplementationDescriptions) {
+  public static ServiceImplementationBuilder from(
+    List<? extends ServiceImplementationDescription> serviceImplementationDescriptions
+  ) {
     return new ServiceImplementationBuilder(serviceImplementationDescriptions);
   }
 
@@ -46,13 +52,27 @@ public class ServiceImplementationBuilder {
    *
    * @return Service implementation.
    */
-  private static ServiceImplementation buildOne(ServiceImplementationDescription serviceImplementationDescription) {
+  private static ServiceImplementation buildOne(
+    ServiceImplementationDescription serviceImplementationDescription
+  ) {
     switch (serviceImplementationDescription) {
       case HttpServiceImplementationDescription s -> {
         return new HttpServiceImplementation(
-            new Parameters(s.getName(), s.getCost(), s.isLocal(), s.getScheme(), s.getHost(), s.getPort(), s.getEndPoint(), s.getMethod()));
+          new Parameters(
+            s.getName(),
+            s.getCost(),
+            s.isLocal(),
+            s.getScheme(),
+            s.getHost(),
+            s.getPort(),
+            s.getEndPoint(),
+            s.getMethod()
+          )
+        );
       }
-      default -> throw new IllegalStateException(String.format("Unexpected value: %s", serviceImplementationDescription.getType()));
+      default -> throw new IllegalStateException(
+        String.format("Unexpected value: %s", serviceImplementationDescription.getType())
+      );
     }
   }
 

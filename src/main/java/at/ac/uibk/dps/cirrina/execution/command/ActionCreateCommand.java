@@ -18,7 +18,6 @@ public final class ActionCreateCommand extends ActionCommand {
 
   ActionCreateCommand(ExecutionContext executionContext, CreateAction createAction) {
     super(executionContext);
-
     this.createAction = createAction;
   }
 
@@ -38,9 +37,9 @@ public final class ActionCreateCommand extends ActionCommand {
 
       // If the variable should be created persistently, we assume that the lowest priority context in the extent is the persistent context,
       // if the variable should not be created persistently, we assume that the highest priority context in the extent is the relevant local context
-      final var targetContext = isPersistent ?
-          extent.getLow() : // The lowest priority context in the extent is the persistent context
-          extent.getHigh(); // The highest priority context in the extent is the local context in scope
+      final var targetContext = isPersistent
+        ? extent.getLow() // The lowest priority context in the extent is the persistent context
+        : extent.getHigh(); // The highest priority context in the extent is the local context in scope
 
       // Create the variable
       // Acquire the value, in case the variable is lazy, we have to find the value through evaluating the value expression
@@ -63,13 +62,12 @@ public final class ActionCreateCommand extends ActionCommand {
 
       final var gauges = executionContext.gauges();
 
-      gauges.getGauge(GAUGE_ACTION_DATA_LATENCY).set(delta,
-          gauges.attributesForData(
-              "create",
-              !isPersistent ? "local" : "persistent",
-              size
-          ));
-
+      gauges
+        .getGauge(GAUGE_ACTION_DATA_LATENCY)
+        .set(
+          delta,
+          gauges.attributesForData("create", !isPersistent ? "local" : "persistent", size)
+        );
     } catch (Exception e) {
       logger.error("Data creation failed: {}", e.getMessage());
     }

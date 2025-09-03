@@ -14,7 +14,9 @@ public class OptimalServiceImplementationSelector extends ServiceImplementationS
    *
    * @param serviceImplementations Known service implementations.
    */
-  public OptimalServiceImplementationSelector(Multimap<String, ServiceImplementation> serviceImplementations) {
+  public OptimalServiceImplementationSelector(
+    Multimap<String, ServiceImplementation> serviceImplementations
+  ) {
     super(serviceImplementations);
   }
 
@@ -28,29 +30,41 @@ public class OptimalServiceImplementationSelector extends ServiceImplementationS
    */
   @Override
   public Optional<ServiceImplementation> select(String name, boolean local) {
-    final var serviceImplementationsWithName = new ArrayList<ServiceImplementation>(local ?
-        Multimaps.filterValues(serviceImplementations, ServiceImplementation::isLocal).get(name) :
-        serviceImplementations.get(name));
+    final var serviceImplementationsWithName = new ArrayList<ServiceImplementation>(
+      local
+        ? Multimaps.filterValues(serviceImplementations, ServiceImplementation::isLocal).get(name)
+        : serviceImplementations.get(name)
+    );
 
     if (serviceImplementationsWithName.isEmpty()) {
       return Optional.empty();
     }
 
-    final var maxCost = serviceImplementationsWithName.stream().mapToDouble(ServiceImplementation::getCost).max().orElse(1);
-    final var maxPerformance = serviceImplementationsWithName.stream().mapToDouble(ServiceImplementation::getPerformance).max().orElse(1);
+    final var maxCost = serviceImplementationsWithName
+      .stream()
+      .mapToDouble(ServiceImplementation::getCost)
+      .max()
+      .orElse(1);
+    final var maxPerformance = serviceImplementationsWithName
+      .stream()
+      .mapToDouble(ServiceImplementation::getPerformance)
+      .max()
+      .orElse(1);
 
-    final var costs = serviceImplementationsWithName.stream()
-        .map(serviceImplementation -> serviceImplementation.getCost() / maxCost)
-        .toList();
+    final var costs = serviceImplementationsWithName
+      .stream()
+      .map(serviceImplementation -> serviceImplementation.getCost() / maxCost)
+      .toList();
 
-    final var performances = serviceImplementationsWithName.stream()
-        .map(serviceImplementation -> serviceImplementation.getPerformance() / maxPerformance)
-        .toList();
+    final var performances = serviceImplementationsWithName
+      .stream()
+      .map(serviceImplementation -> serviceImplementation.getPerformance() / maxPerformance)
+      .toList();
 
     final var selectedIndex = IntStream.range(0, serviceImplementationsWithName.size())
-        .boxed()
-        .min(Comparator.comparingDouble(i -> costs.get(i) / performances.get(i)))
-        .get();
+      .boxed()
+      .min(Comparator.comparingDouble(i -> costs.get(i) / performances.get(i)))
+      .get();
 
     return Optional.of(serviceImplementationsWithName.get(selectedIndex));
   }

@@ -9,7 +9,9 @@ public class PlantUmlExporter {
 
   private final List<StateMachineClass> stateMachineClasses = new ArrayList<>();
 
-  public static PlantUmlExporter from(CollaborativeStateMachineClass collaborativeStateMachineClass) {
+  public static PlantUmlExporter from(
+    CollaborativeStateMachineClass collaborativeStateMachineClass
+  ) {
     var exporter = new PlantUmlExporter();
     collaborativeStateMachineClass.getStateMachineClasses().forEach(exporter::withStateMachine);
     return exporter;

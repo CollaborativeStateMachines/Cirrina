@@ -20,7 +20,6 @@ public final class ActionRaiseCommand extends ActionCommand {
 
   ActionRaiseCommand(ExecutionContext executionContext, RaiseAction raiseAction) {
     super(executionContext);
-
     this.raiseAction = raiseAction;
   }
 

@@ -37,8 +37,10 @@ public abstract class ServiceImplementation {
    * @return The service invocation output.
    * @throws IOException If the service invocation failed.
    */
-  public abstract CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id) throws IOException;
-
+  public abstract CompletableFuture<List<ContextVariable>> invoke(
+    List<ContextVariable> input,
+    String id
+  ) throws IOException;
 
   /**
    * Returns the dynamic performance of this service implementation.

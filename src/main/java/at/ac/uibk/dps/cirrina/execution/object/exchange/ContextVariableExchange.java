@@ -31,9 +31,12 @@ public class ContextVariableExchange {
    * @return Context variable exchange.
    * @throws UnsupportedOperationException If the context variable could not be read.
    */
-  public static ContextVariableExchange fromBytes(byte[] data) throws UnsupportedOperationException {
+  public static ContextVariableExchange fromBytes(byte[] data)
+    throws UnsupportedOperationException {
     try {
-      return new ContextVariableExchange(fromProto(ContextVariableProtos.ContextVariable.parseFrom(data)));
+      return new ContextVariableExchange(
+        fromProto(ContextVariableProtos.ContextVariable.parseFrom(data))
+      );
     } catch (InvalidProtocolBufferException e) {
       throw new UnsupportedOperationException("Could not read context variable from bytes");
     }
@@ -45,7 +48,8 @@ public class ContextVariableExchange {
    * @param proto Context variable proto.
    * @return Context variable object.
    */
-  public static ContextVariable fromProto(ContextVariableProtos.ContextVariable proto) throws UnsupportedOperationException {
+  public static ContextVariable fromProto(ContextVariableProtos.ContextVariable proto)
+    throws UnsupportedOperationException {
     return new ContextVariable(proto.getName(), ValueExchange.fromProto(proto.getValue()));
   }
 
@@ -65,9 +69,9 @@ public class ContextVariableExchange {
    */
   public ContextVariableProtos.ContextVariable toProto() {
     return ContextVariableProtos.ContextVariable.newBuilder()
-        .setName(contextVariable.name())
-        .setValue(new ValueExchange(contextVariable.value()).toProto())
-        .build();
+      .setName(contextVariable.name())
+      .setValue(new ValueExchange(contextVariable.value()).toProto())
+      .build();
   }
 
   /**

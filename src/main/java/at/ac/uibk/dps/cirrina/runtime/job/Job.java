@@ -51,7 +51,12 @@ public class Job {
    * @param jobDescription   Job description.
    * @param curatorFramework Curator framework.
    */
-  public Job(String jobName, String nodePath, JobDescription jobDescription, CuratorFramework curatorFramework) {
+  public Job(
+    String jobName,
+    String nodePath,
+    JobDescription jobDescription,
+    CuratorFramework curatorFramework
+  ) {
     this.jobName = jobName;
     this.nodePath = nodePath;
     this.jobDescription = jobDescription;
@@ -86,7 +91,10 @@ public class Job {
 
     // Acquire a job lock
     try {
-      sharedLock = new InterProcessSemaphoreMutex(curatorFramework, String.format(LOCK_PATH_FORMAT, jobName));
+      sharedLock = new InterProcessSemaphoreMutex(
+        curatorFramework,
+        String.format(LOCK_PATH_FORMAT, jobName)
+      );
       sharedLock.acquire();
     } catch (Exception e) {
       throw new UnsupportedOperationException("Failed to create/acquire job lock", e);
@@ -122,7 +130,10 @@ public class Job {
     try {
       return curatorFramework.checkExists().forPath(nodePath) != null;
     } catch (Exception e) {
-      throw new UnsupportedOperationException("Failed to check for existence of '%s'".formatted(nodePath), e);
+      throw new UnsupportedOperationException(
+        "Failed to check for existence of '%s'".formatted(nodePath),
+        e
+      );
     }
   }
 

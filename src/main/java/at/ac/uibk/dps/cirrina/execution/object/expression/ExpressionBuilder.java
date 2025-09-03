@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina.execution.object.expression;
 
-
 /**
  * Expression builder, builds an expression based on an expression source string. Built expressions are cached, repeatedly building the same
  * expression will return the same expression.

@@ -8,7 +8,6 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
 import org.junit.jupiter.api.Test;
 
-
 class DescriptionParserTest {
 
   @Test

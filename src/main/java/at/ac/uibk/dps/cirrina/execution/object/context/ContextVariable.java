@@ -7,22 +7,21 @@ import java.util.Objects;
  * Context variable, contained within a context.
  */
 public record ContextVariable(
-    /**
-     * Name of the context variable.
-     */
-    String name,
+  /**
+   * Name of the context variable.
+   */
+  String name,
 
-    /**
-     * Value of the context variable. Can be an arbitrary value or must be an expression in case this context variable is lazy.
-     */
-    Object value,
+  /**
+   * Value of the context variable. Can be an arbitrary value or must be an expression in case this context variable is lazy.
+   */
+  Object value,
 
-    /**
-     * Laziness of the context variable, if true, the value must be an expression and the value of the context variable is acquired through executing the expression.
-     */
-    boolean isLazy
+  /**
+   * Laziness of the context variable, if true, the value must be an expression and the value of the context variable is acquired through executing the expression.
+   */
+  boolean isLazy
 ) {
-
   public ContextVariable {
     Objects.requireNonNull(name, "Name cannot be null");
   }
@@ -63,7 +62,10 @@ public record ContextVariable(
       try {
         return new ContextVariable(name, ((Expression) expression).execute(extent));
       } catch (UnsupportedOperationException e) {
-        throw new UnsupportedOperationException("Could not evaluate variable '%s'".formatted(name), e);
+        throw new UnsupportedOperationException(
+          "Could not evaluate variable '%s'".formatted(name),
+          e
+        );
       }
     } else {
       return this;

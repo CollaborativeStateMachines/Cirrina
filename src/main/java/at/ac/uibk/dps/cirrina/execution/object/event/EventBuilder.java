@@ -35,10 +35,13 @@ public class EventBuilder {
     return new EventBuilder(eventDescription);
   }
 
-  private static List<ContextVariable> buildVariableList(List<ContextVariableDescription> contextVariableDescriptions) {
-    return contextVariableDescriptions.stream()
-        .map(c -> ContextVariableBuilder.from(c).build())
-        .toList();
+  private static List<ContextVariable> buildVariableList(
+    List<ContextVariableDescription> contextVariableDescriptions
+  ) {
+    return contextVariableDescriptions
+      .stream()
+      .map(c -> ContextVariableBuilder.from(c).build())
+      .toList();
   }
 
   /**
@@ -48,9 +51,9 @@ public class EventBuilder {
    */
   public Event build() {
     return new Event(
-        eventDescription.getName(),
-        eventDescription.getChannel(),
-        buildVariableList(eventDescription.getData())
+      eventDescription.getName(),
+      eventDescription.getChannel(),
+      buildVariableList(eventDescription.getData())
     );
   }
 }

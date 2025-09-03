@@ -116,13 +116,13 @@ public class InMemoryContext extends Context {
    */
   @Override
   public List<ContextVariable> getAll() throws IOException {
-    return values.entrySet().stream()
-        .map(entry -> new ContextVariable(entry.getKey(), entry.getValue()))
-        .toList();
+    return values
+      .entrySet()
+      .stream()
+      .map(entry -> new ContextVariable(entry.getKey(), entry.getValue()))
+      .toList();
   }
 
   @Override
-  public void close() throws IOException {
-
-  }
+  public void close() throws IOException {}
 }

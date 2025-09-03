@@ -133,12 +133,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @thread Runtime.
    */
   public StateMachine(
-      Runtime parentRuntime,
-      StateMachineClass stateMachineClass,
-      ServiceImplementationSelector serviceImplementationSelector,
-      OpenTelemetry openTelemetry,
-      @Nullable StateMachine parentStateMachine,
-      double endTimeInMs
+    Runtime parentRuntime,
+    StateMachineClass stateMachineClass,
+    ServiceImplementationSelector serviceImplementationSelector,
+    OpenTelemetry openTelemetry,
+    @Nullable StateMachine parentStateMachine,
+    double endTimeInMs
   ) {
     this.parentRuntime = parentRuntime;
     this.stateMachineClass = stateMachineClass;
@@ -146,25 +146,33 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     this.parentStateMachine = parentStateMachine;
     this.endTimeInMs = endTimeInMs;
 
-    stateMachineEventHandler = new StateMachineEventHandler(this, this.parentRuntime.getEventHandler());
+    stateMachineEventHandler = new StateMachineEventHandler(
+      this,
+      this.parentRuntime.getEventHandler()
+    );
 
     // Build the local context
     try {
-      localContext = stateMachineClass.getLocalContextClass()
-          .map(ContextBuilder::from)
-          .orElseGet(ContextBuilder::from)
-          .inMemoryContext(true)
-          .build();
+      localContext = stateMachineClass
+        .getLocalContextClass()
+        .map(ContextBuilder::from)
+        .orElseGet(ContextBuilder::from)
+        .inMemoryContext(true)
+        .build();
     } catch (IOException ignored) {
       throw new IllegalStateException(); // This should not happen
     }
 
     // Construct state instances
-    stateInstances = stateMachineClass.vertexSet().stream()
-        .collect(Collectors.toMap(StateClass::getName, state -> new State(state, this)));
+    stateInstances = stateMachineClass
+      .vertexSet()
+      .stream()
+      .collect(Collectors.toMap(StateClass::getName, state -> new State(state, this)));
 
     // Create an OpenTelemetry meter
-    final var meter = openTelemetry.getMeter("stateMachine-%s".formatted(stateMachineId.toString()));
+    final var meter = openTelemetry.getMeter(
+      "stateMachine-%s".formatted(stateMachineId.toString())
+    );
 
     // Create gauges
     gauges = new Gauges(meter, getId());
@@ -198,9 +206,9 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     }
 
     // Increment events received counter
-    counters.getCounter(COUNTER_EVENTS_RECEIVED).add(1,
-        counters.attributesForEvent(
-            event.getChannel().toString()));
+    counters
+      .getCounter(COUNTER_EVENTS_RECEIVED)
+      .add(1, counters.attributesForEvent(event.getChannel().toString()));
 
     // Add to the internal event queue
     eventQueue.add(event);
@@ -212,8 +220,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     // Propagate internal events to nested state machines
     if (event.getChannel() == EventChannel.INTERNAL) {
       for (final var nestedStateMachineId : nestedStateMachineIds) {
-        final var nestedStateMachineInstance = parentRuntime.findInstance(nestedStateMachineId)
-            .orElseThrow(() -> new IllegalStateException("Nested state machine could not be found, could not propagate event"));
+        final var nestedStateMachineInstance = parentRuntime
+          .findInstance(nestedStateMachineId)
+          .orElseThrow(() ->
+            new IllegalStateException(
+              "Nested state machine could not be found, could not propagate event"
+            )
+          );
 
         nestedStateMachineInstance.onReceiveEvent(event);
       }
@@ -255,17 +268,22 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event.
    * @return Command factory.
    */
-  private CommandFactory stateMachineScopedCommandFactory(StateMachine stateMachine, @Nullable Event raisingEvent) {
-    return new CommandFactory(new ExecutionContext(
-        stateMachine,                  // Scope
-        raisingEvent,                  // Raising event
+  private CommandFactory stateMachineScopedCommandFactory(
+    StateMachine stateMachine,
+    @Nullable Event raisingEvent
+  ) {
+    return new CommandFactory(
+      new ExecutionContext(
+        stateMachine, // Scope
+        raisingEvent, // Raising event
         serviceImplementationSelector, // Service implementation selector
-        stateMachineEventHandler,      // Event handler
-        this,                          // Event listener
-        gauges,                        // Gauges
-        counters,                      // Counters
-        false                          // Is while?
-    ));
+        stateMachineEventHandler, // Event handler
+        this, // Event listener
+        gauges, // Gauges
+        counters, // Counters
+        false // Is while?
+      )
+    );
   }
 
   /**
@@ -276,17 +294,23 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param isWhile      Whether the command factory build while actions.
    * @return Command factory.
    */
-  private CommandFactory stateScopedCommandFactory(State state, @Nullable Event raisingEvent, boolean isWhile) {
-    return new CommandFactory(new ExecutionContext(
-        state,                         // Scope
-        raisingEvent,                  // Raising event
+  private CommandFactory stateScopedCommandFactory(
+    State state,
+    @Nullable Event raisingEvent,
+    boolean isWhile
+  ) {
+    return new CommandFactory(
+      new ExecutionContext(
+        state, // Scope
+        raisingEvent, // Raising event
         serviceImplementationSelector, // Service implementation selector
-        stateMachineEventHandler,      // Event handler
-        this,                          // Event listener
-        gauges,                        // Gauges
-        counters,                      // Counters
-        false                          // Is while?
-    ));
+        stateMachineEventHandler, // Event handler
+        this, // Event listener
+        gauges, // Gauges
+        counters, // Counters
+        false // Is while?
+      )
+    );
   }
 
   /**
@@ -296,7 +320,9 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @return StateClass instance or empty.
    */
   private Optional<State> findStateInstanceByName(String name) {
-    return stateInstances.containsKey(name) ? Optional.of(stateInstances.get(name)) : Optional.empty();
+    return stateInstances.containsKey(name)
+      ? Optional.of(stateInstances.get(name))
+      : Optional.empty();
   }
 
   /**
@@ -307,10 +333,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @return On transition or empty in case no matching on transition can be selected.
    * @throws IllegalStateException If non-determinism is detected.
    */
-  private Optional<Transition> trySelectOnTransition(Event event, Extent extent) throws IllegalStateException {
+  private Optional<Transition> trySelectOnTransition(Event event, Extent extent)
+    throws IllegalStateException {
     // Find the transitions from the active state for the given event
-    final var transitionObjects = stateMachineClass
-        .findOnTransitionsFromStateByEventName(activeState.getStateObject(), event.getName());
+    final var transitionObjects = stateMachineClass.findOnTransitionsFromStateByEventName(
+      activeState.getStateObject(),
+      event.getName()
+    );
 
     return trySelectTransition(transitionObjects, extent);
   }
@@ -322,10 +351,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @return Always transition or empty in case no always transition can be selected.
    * @throws IllegalStateException If non-determinism is detected.
    */
-  private Optional<Transition> trySelectAlwaysTransition(Extent extent) throws IllegalStateException {
+  private Optional<Transition> trySelectAlwaysTransition(Extent extent)
+    throws IllegalStateException {
     // Find the transitions from the active state for the given event
-    final var transitionObjects = stateMachineClass
-        .findAlwaysTransitionsFromState(activeState.getStateObject());
+    final var transitionObjects = stateMachineClass.findAlwaysTransitionsFromState(
+      activeState.getStateObject()
+    );
 
     return trySelectTransition(transitionObjects, extent);
   }
@@ -342,8 +373,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalStateException If no transition could be selected.
    */
   private Optional<Transition> trySelectTransition(
-      List<? extends TransitionClass> transitionObjects,
-      Extent extent
+    List<? extends TransitionClass> transitionObjects,
+    Extent extent
   ) throws IllegalStateException {
     try {
       // A transition is taken when its guard conditions evaluate to true, or they do not evaluate to true, but an else target state is provided
@@ -401,21 +432,25 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws IllegalArgumentException      If the timeout action is not a raise action.
    * @throws IllegalArgumentException      If the timeout action does not have a name.
    */
-  private void startAllTimeoutActions(
-      List<TimeoutAction> timeoutActionObjects
-  ) throws UnsupportedOperationException, IllegalArgumentException {
+  private void startAllTimeoutActions(List<TimeoutAction> timeoutActionObjects)
+    throws UnsupportedOperationException, IllegalArgumentException {
     for (final var timeoutActionObject : timeoutActionObjects) {
       // The evaluated delay value is required to be numeric
       final var delay = timeoutActionObject.getDelay().execute(getExtent());
 
       if (!(delay instanceof Number)) {
         throw new UnsupportedOperationException(
-            "The delay expression '%s' did not evaluate to a numeric value".formatted(timeoutActionObject.getDelay()));
+          "The delay expression '%s' did not evaluate to a numeric value".formatted(
+            timeoutActionObject.getDelay()
+          )
+        );
       }
 
       // Create action command
-      final var actionTimeoutCommand = stateMachineScopedCommandFactory(this, null)
-          .createActionCommand(timeoutActionObject.getAction());
+      final var actionTimeoutCommand = stateMachineScopedCommandFactory(
+        this,
+        null
+      ).createActionCommand(timeoutActionObject.getAction());
 
       if (!(actionTimeoutCommand instanceof ActionRaiseCommand)) {
         throw new IllegalArgumentException("A timeout action must be a raise action");
@@ -475,10 +510,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the exit action cannot be executed.
    */
-  private void doExit(State exitingState, @Nullable Event raisingEvent) throws UnsupportedOperationException {
+  private void doExit(State exitingState, @Nullable Event raisingEvent)
+    throws UnsupportedOperationException {
     // Gather action commands
     final var exitActionCommands = exitingState.getExitActionCommands(
-        stateScopedCommandFactory(exitingState, raisingEvent, false));
+      stateScopedCommandFactory(exitingState, raisingEvent, false)
+    );
 
     // Stop timeout actions
     stopAllTimeoutActions();
@@ -502,7 +539,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition action cannot be executed.
    */
-  private void doTransition(Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
+  private void doTransition(Transition transition, @Nullable Event raisingEvent)
+    throws UnsupportedOperationException {
     // Do not execute actions for else target transitions
     if (transition.isElse()) {
       return;
@@ -510,7 +548,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
     // Gather action commands
     final var transitionActionCommands = transition.getActionCommands(
-        stateMachineScopedCommandFactory(this, raisingEvent));
+      stateMachineScopedCommandFactory(this, raisingEvent)
+    );
 
     // Execute in order
     try {
@@ -534,16 +573,16 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws UnsupportedOperationException If the states could not be switched.
    * @throws UnsupportedOperationException If an always transition could not be selected.
    */
-  private Optional<Transition> doEnter(
-      State enteringState,
-      @Nullable Event raisingEvent
-  ) throws UnsupportedOperationException, IllegalArgumentException {
+  private Optional<Transition> doEnter(State enteringState, @Nullable Event raisingEvent)
+    throws UnsupportedOperationException, IllegalArgumentException {
     // Gather action commands
     final var entryActionCommands = enteringState.getEntryActionCommands(
-        stateScopedCommandFactory(enteringState, raisingEvent, false));
+      stateScopedCommandFactory(enteringState, raisingEvent, false)
+    );
 
     final var whileActionCommands = enteringState.getWhileActionCommands(
-        stateScopedCommandFactory(enteringState, raisingEvent, true));
+      stateScopedCommandFactory(enteringState, raisingEvent, true)
+    );
 
     final var timeoutActionObjects = enteringState.getTimeoutActionObjects();
 
@@ -583,7 +622,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
-  private void handleInternalTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
+  private void handleInternalTransition(
+    @NotNull Transition transition,
+    @Nullable Event raisingEvent
+  ) throws UnsupportedOperationException {
     // Only perform the transition
     doTransition(transition, raisingEvent);
   }
@@ -595,13 +637,20 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
-  private void handleExternalTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
+  private void handleExternalTransition(
+    @NotNull Transition transition,
+    @Nullable Event raisingEvent
+  ) throws UnsupportedOperationException {
     final var targetStateName = transition.getTargetStateName().get();
 
     // Acquire the target state instance
-    final var targetStateInstance = findStateInstanceByName(targetStateName)
-        .orElseThrow(() -> new IllegalArgumentException(
-            "Target state '%s' cannot be found in state machine".formatted(transition.getTargetStateName())));
+    final var targetStateInstance = findStateInstanceByName(targetStateName).orElseThrow(() ->
+      new IllegalArgumentException(
+        "Target state '%s' cannot be found in state machine".formatted(
+          transition.getTargetStateName()
+        )
+      )
+    );
 
     // Exit the current state
     doExit(activeState, raisingEvent);
@@ -622,7 +671,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @param raisingEvent The raising event or null.
    * @throws UnsupportedOperationException If the transition could not be handled.
    */
-  private void handleTransition(@NotNull Transition transition, @Nullable Event raisingEvent) throws UnsupportedOperationException {
+  private void handleTransition(@NotNull Transition transition, @Nullable Event raisingEvent)
+    throws UnsupportedOperationException {
     if (transition.isInternalTransition()) {
       handleInternalTransition(transition, raisingEvent);
     } else {
@@ -638,11 +688,12 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * @throws InterruptedException          If interrupted while waiting for an event.
    * @throws UnsupportedOperationException If an on transition could not be selected.
    */
-  private Optional<Transition> handleEvent(Event event) throws InterruptedException, UnsupportedOperationException {
+  private Optional<Transition> handleEvent(Event event)
+    throws InterruptedException, UnsupportedOperationException {
     // Increment events received counter
-    counters.getCounter(COUNTER_EVENTS_HANDLED).add(1,
-        counters.attributesForEvent(
-            event.getChannel().toString()));
+    counters
+      .getCounter(COUNTER_EVENTS_HANDLED)
+      .add(1, counters.attributesForEvent(event.getChannel().toString()));
 
     // Find a matching transition
     try {
@@ -650,7 +701,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       final var eventDataContext = new InMemoryContext(true);
 
       for (var contextVariable : event.getData()) {
-        eventDataContext.create(EVENT_DATA_VARIABLE_PREFIX + contextVariable.name(), contextVariable.value());
+        eventDataContext.create(
+          EVENT_DATA_VARIABLE_PREFIX + contextVariable.name(),
+          contextVariable.value()
+        );
       }
 
       // Create a temporary extent that contains the event data
@@ -662,7 +716,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       onTransition.ifPresent(transition -> {
         try {
           for (var contextVariable : event.getData()) {
-            getExtent().setOrCreate(EVENT_DATA_VARIABLE_PREFIX + contextVariable.name(), contextVariable.value());
+            getExtent().setOrCreate(
+              EVENT_DATA_VARIABLE_PREFIX + contextVariable.name(),
+              contextVariable.value()
+            );
           }
         } catch (IOException e) {
           logger.error("Failed to set event data", e);
@@ -683,12 +740,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   @Override
   public void run() {
     // Increment state machine instances counter
-    counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(1,
-        counters.attributesForInstances());
+    counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(1, counters.attributesForInstances());
 
     try {
       // Acquire the initial state instance
-      final var initialStateInstance = stateInstances.get(stateMachineClass.getInitialState().getName());
+      final var initialStateInstance = stateInstances.get(
+        stateMachineClass.getInitialState().getName()
+      );
 
       // TransitionClass into the initial state
       var nextTransition = doEnter(initialStateInstance, null);
@@ -722,10 +780,9 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         if (event != null) {
           final var delta = Time.timeInMillisecondsSinceEpoch() - event.getCreatedTime();
 
-          gauges.getGauge(GAUGE_EVENT_RESPONSE_TIME_EXCLUSIVE).set(delta,
-              gauges.attributesForEvent(
-                  event.getChannel().toString()
-              ));
+          gauges
+            .getGauge(GAUGE_EVENT_RESPONSE_TIME_EXCLUSIVE)
+            .set(delta, gauges.attributesForEvent(event.getChannel().toString()));
         }
       }
     } catch (InterruptedException e) {
@@ -739,8 +796,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     logger.info("{} has stopped", stateMachineId.toString());
 
     // Decrement state machine instances counter
-    counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(-1,
-        counters.attributesForInstances());
+    counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(-1, counters.attributesForInstances());
 
     // Remove the state machine instance from the runtime
     parentRuntime.remove(this);
@@ -754,8 +810,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   @Override
   public Extent getExtent() {
     return Optional.ofNullable(parentStateMachine)
-        .map(parent -> parent.getExtent().extend(localContext))
-        .orElseGet(() -> parentRuntime.getExtent().extend(localContext));
+      .map(parent -> parent.getExtent().extend(localContext))
+      .orElseGet(() -> parentRuntime.getExtent().extend(localContext));
   }
 
   @Override

@@ -46,9 +46,11 @@ public final class StateMachineClassBuilder {
    */
   private List<StateMachineClass> buildNestedStateMachines() throws IllegalArgumentException {
     // Build all nested state machines
-    return stateMachineDescription.getStateMachines().stream()
-        .map(nestedStateMachineClass -> new StateMachineClassBuilder(nestedStateMachineClass).build())
-        .toList();
+    return stateMachineDescription
+      .getStateMachines()
+      .stream()
+      .map(nestedStateMachineClass -> new StateMachineClassBuilder(nestedStateMachineClass).build())
+      .toList();
   }
 
   /**
@@ -61,17 +63,19 @@ public final class StateMachineClassBuilder {
     var nestedStateMachines = buildNestedStateMachines();
 
     var parameters = new StateMachineClass.Parameters(
-        stateMachineDescription.getName(),
-        stateMachineDescription.getLocalContext(),
-        nestedStateMachines
+      stateMachineDescription.getName(),
+      stateMachineDescription.getLocalContext(),
+      nestedStateMachines
     );
 
     var stateMachine = new StateMachineClass(parameters);
 
     // Attempt to add vertices
-    stateMachineDescription.getStates().stream()
-        .map(stateClass -> StateClassBuilder.from(stateMachine.getId(), stateClass).build())
-        .forEach(stateMachine::addVertex);
+    stateMachineDescription
+      .getStates()
+      .stream()
+      .map(stateClass -> StateClassBuilder.from(stateMachine.getId(), stateClass).build())
+      .forEach(stateMachine::addVertex);
 
     return stateMachine;
   }
@@ -88,32 +92,50 @@ public final class StateMachineClassBuilder {
     var stateMachine = buildBase();
 
     // Attempt to add edges
-    stateMachineDescription.getStates().stream()
-        .map(StateDescription.class::cast)
-        .forEach(stateClass -> {
-          // Acquire source node, this is expected to always succeed as we use the previously created state
-          var sourceStateClass = stateMachine.findStateClassByName(stateClass.getName()).get();
+    stateMachineDescription
+      .getStates()
+      .stream()
+      .map(StateDescription.class::cast)
+      .forEach(stateClass -> {
+        // Acquire source node, this is expected to always succeed as we use the previously created state
+        var sourceStateClass = stateMachine.findStateClassByName(stateClass.getName()).get();
 
-          Consumer<List<? extends TransitionDescription>> processTransitions = (on) -> {
-            for (var transitionClass : on) {
-              // Acquire the target node, if the target is not provided, this is a self-transition
-              var targetStateClass = Optional.ofNullable(transitionClass.getTarget())
-                  .map(targetName -> stateMachine.findStateClassByName(targetName)
-                      .orElseThrow(() -> new IllegalArgumentException("Transition has an invalid target state '%s'".formatted(targetName))))
-                  .orElse(sourceStateClass);
+        Consumer<List<? extends TransitionDescription>> processTransitions = on -> {
+          for (var transitionClass : on) {
+            // Acquire the target node, if the target is not provided, this is a self-transition
+            var targetStateClass = Optional.ofNullable(transitionClass.getTarget())
+              .map(targetName ->
+                stateMachine
+                  .findStateClassByName(targetName)
+                  .orElseThrow(() ->
+                    new IllegalArgumentException(
+                      "Transition has an invalid target state '%s'".formatted(targetName)
+                    )
+                  )
+              )
+              .orElse(sourceStateClass);
 
-              // Attempt to add an edge to the state machine graph that resembles the transition
-              if (!stateMachine.addEdge(sourceStateClass, targetStateClass,
-                  TransitionClassBuilder.from(transitionClass).build())) {
-                throw new IllegalArgumentException(
-                    "The edge between states '%s' and '%s' is illegal in '%s'".formatted(sourceStateClass.getName(),
-                        targetStateClass.getName(), stateMachineDescription.getName()));
-              }
+            // Attempt to add an edge to the state machine graph that resembles the transition
+            if (
+              !stateMachine.addEdge(
+                sourceStateClass,
+                targetStateClass,
+                TransitionClassBuilder.from(transitionClass).build()
+              )
+            ) {
+              throw new IllegalArgumentException(
+                "The edge between states '%s' and '%s' is illegal in '%s'".formatted(
+                  sourceStateClass.getName(),
+                  targetStateClass.getName(),
+                  stateMachineDescription.getName()
+                )
+              );
             }
-          };
+          }
+        };
 
-          // TODO: This is actually allowed, depending on the guard conditions
-          /* // Ensure that "on" transitions have distinct events
+        // TODO: This is actually allowed, depending on the guard conditions
+        /* // Ensure that "on" transitions have distinct events
           var hasDuplicateEdges = stateClass.getOn().stream()
               .collect(Collectors.groupingBy(OnTransitionDescription::getEvent, Collectors.counting())).entrySet().stream()
               .anyMatch(entry -> entry.getValue() > 1);
@@ -122,11 +144,11 @@ public final class StateMachineClassBuilder {
                 "Multiple outwards transitions with the same event in '%s'".formatted(stateMachineDescription.name));
           }*/
 
-          processTransitions.accept(stateClass.getOn());
+        processTransitions.accept(stateClass.getOn());
 
-          // Attempt to add edges corresponding to the "always" transitions, these transitions are optional
-          processTransitions.accept(stateClass.getAlways());
-        });
+        // Attempt to add edges corresponding to the "always" transitions, these transitions are optional
+        processTransitions.accept(stateClass.getAlways());
+      });
 
     return stateMachine;
   }

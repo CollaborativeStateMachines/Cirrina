@@ -38,7 +38,6 @@ public final class ActionInvokeCommand extends ActionCommand {
    */
   ActionInvokeCommand(ExecutionContext executionContext, InvokeAction invokeAction) {
     super(executionContext);
-
     this.invokeAction = invokeAction;
   }
 
@@ -58,16 +57,22 @@ public final class ActionInvokeCommand extends ActionCommand {
       List<ContextVariable> input = prepareInput(extent);
 
       // Invoke (asynchronously)
-      serviceImplementation.invoke(input, executionContext.scope().getId())
-          .exceptionally(e -> {
-            logger.error("Service invocation failed for service '{}': {}",
-                serviceImplementation.getInformationString(), e.getMessage(), e);
-            return null;
-          }).thenAccept(output -> {
-            assignServiceOutput(output, extent);
-            raiseEvents(output, eventListener);
-            measurePerformance(start, serviceImplementation);
-          });
+      serviceImplementation
+        .invoke(input, executionContext.scope().getId())
+        .exceptionally(e -> {
+          logger.error(
+            "Service invocation failed for service '{}': {}",
+            serviceImplementation.getInformationString(),
+            e.getMessage(),
+            e
+          );
+          return null;
+        })
+        .thenAccept(output -> {
+          assignServiceOutput(output, extent);
+          raiseEvents(output, eventListener);
+          measurePerformance(start, serviceImplementation);
+        });
 
       return commands;
     } catch (Exception e) {
@@ -81,17 +86,21 @@ public final class ActionInvokeCommand extends ActionCommand {
    * @return List of evaluated input variables.
    */
   private List<ContextVariable> prepareInput(Extent extent) {
-    return invokeAction.getInput().stream()
-        .map(variable -> variable.evaluate(extent))
-        .collect(Collectors.toList());
+    return invokeAction
+      .getInput()
+      .stream()
+      .map(variable -> variable.evaluate(extent))
+      .collect(Collectors.toList());
   }
 
   /**
    * Increment the invocation counter.
    */
   private void incrementInvocationCounter() {
-    executionContext.counters().getCounter(COUNTER_INVOCATIONS)
-        .add(1, executionContext.counters().attributesForInvocation());
+    executionContext
+      .counters()
+      .getCounter(COUNTER_INVOCATIONS)
+      .add(1, executionContext.counters().attributesForInvocation());
   }
 
   /**
@@ -104,10 +113,13 @@ public final class ActionInvokeCommand extends ActionCommand {
     final var isLocal = invokeAction.isLocal();
     final var serviceImplementationSelector = executionContext.serviceImplementationSelector();
 
-    return serviceImplementationSelector.select(serviceType, isLocal)
-        .orElseThrow(
-            () -> new IllegalArgumentException(
-                "Could not find a service implementation for the service type '%s'".formatted(serviceType)));
+    return serviceImplementationSelector
+      .select(serviceType, isLocal)
+      .orElseThrow(() ->
+        new IllegalArgumentException(
+          "Could not find a service implementation for the service type '%s'".formatted(serviceType)
+        )
+      );
   }
 
   /**
@@ -118,25 +130,29 @@ public final class ActionInvokeCommand extends ActionCommand {
    */
   private void assignServiceOutput(List<ContextVariable> output, Extent extent) {
     for (final var outputReference : invokeAction.getOutput()) {
-      output.stream()
-          .filter(variable -> variable.name().equals(outputReference.getReference()))
-          .findFirst()
-          .ifPresentOrElse(
-              outputVariable -> {
-                try {
-                  extent.trySet(outputReference.getReference(), outputVariable.value());
-                } catch (Exception e) {
-                  logger.error(
-                      "Failed to assign service output to variable '{}': {}",
-                      outputReference.getReference(), e.getMessage(), e
-                  );
-                }
-              },
-              () -> logger.warn(
-                  "Service output does not contain expected variable '{}'",
-                  outputReference.getReference()
-              )
-          );
+      output
+        .stream()
+        .filter(variable -> variable.name().equals(outputReference.getReference()))
+        .findFirst()
+        .ifPresentOrElse(
+          outputVariable -> {
+            try {
+              extent.trySet(outputReference.getReference(), outputVariable.value());
+            } catch (Exception e) {
+              logger.error(
+                "Failed to assign service output to variable '{}': {}",
+                outputReference.getReference(),
+                e.getMessage(),
+                e
+              );
+            }
+          },
+          () ->
+            logger.warn(
+              "Service output does not contain expected variable '{}'",
+              outputReference.getReference()
+            )
+        );
     }
   }
 
@@ -147,9 +163,11 @@ public final class ActionInvokeCommand extends ActionCommand {
    * @param eventListener Event listener.
    */
   private void raiseEvents(List<ContextVariable> output, EventListener eventListener) {
-    invokeAction.getDone().stream()
-        .map(event -> event.withData(output))
-        .forEach(eventListener::onReceiveEvent);
+    invokeAction
+      .getDone()
+      .stream()
+      .map(event -> event.withData(output))
+      .forEach(eventListener::onReceiveEvent);
   }
 
   /**
@@ -163,18 +181,22 @@ public final class ActionInvokeCommand extends ActionCommand {
     final var now = Time.timeInMillisecondsSinceStart();
     final var gauges = executionContext.gauges();
 
-    gauges.getGauge(GAUGE_ACTION_INVOKE_LATENCY).set(now - start,
-        gauges.attributesForInvocation(
-            serviceImplementation.isLocal() ? "local" : "remote"
-        ));
+    gauges
+      .getGauge(GAUGE_ACTION_INVOKE_LATENCY)
+      .set(
+        now - start,
+        gauges.attributesForInvocation(serviceImplementation.isLocal() ? "local" : "remote")
+      );
 
     // Measure inclusive response time
     final var raisingEvent = executionContext.raisingEvent();
     if (raisingEvent != null) {
-      gauges.getGauge(GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE).set(
+      gauges
+        .getGauge(GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE)
+        .set(
           Time.timeInMillisecondsSinceEpoch() - raisingEvent.getCreatedTime(),
           gauges.attributesForEvent(raisingEvent.getChannel().toString())
-      );
+        );
     }
   }
 }

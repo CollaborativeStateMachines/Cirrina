@@ -4,7 +4,6 @@ import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescript
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Invoke action, invokes a service type.
@@ -50,12 +49,10 @@ public final class InvokeAction extends Action {
   }
 
   public record Parameters(
-      String serviceType,
-      boolean isLocal,
-      List<ContextVariable> input,
-      List<Event> done,
-      List<ContextVariableReferenceDescription> output
-  ) {
-
-  }
+    String serviceType,
+    boolean isLocal,
+    List<ContextVariable> input,
+    List<Event> done,
+    List<ContextVariableReferenceDescription> output
+  ) {}
 }

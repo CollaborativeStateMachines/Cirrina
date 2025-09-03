@@ -67,7 +67,8 @@ public class ValueExchange {
    * @return Value object.
    * @throws UnsupportedOperationException If the value type is unknown.
    */
-  public static Object fromProto(ContextVariableProtos.Value proto) throws UnsupportedOperationException {
+  public static Object fromProto(ContextVariableProtos.Value proto)
+    throws UnsupportedOperationException {
     switch (proto.getValueCase()) {
       case INTEGER -> {
         return proto.getInteger();
@@ -95,12 +96,16 @@ public class ValueExchange {
       }
       case LIST -> {
         // Convert to ArrayList to ensure mutability
-        return fromCollectionProto(proto.getList()).collect(Collectors.toCollection(ArrayList::new));
+        return fromCollectionProto(proto.getList()).collect(
+          Collectors.toCollection(ArrayList::new)
+        );
       }
       case MAP -> {
         return fromMapProto(proto.getMap());
       }
-      default -> throw new UnsupportedOperationException("Context variable value type could not be read");
+      default -> throw new UnsupportedOperationException(
+        "Context variable value type could not be read"
+      );
     }
   }
 
@@ -111,9 +116,10 @@ public class ValueExchange {
    * @return stream of objects
    * @throws UnsupportedOperationException if an entry could not be parsed
    */
-  private static Stream<Object> fromCollectionProto(ContextVariableProtos.ValueCollection collection) throws UnsupportedOperationException {
-    return collection.getEntryList().stream()
-        .map(ValueExchange::fromProto);
+  private static Stream<Object> fromCollectionProto(
+    ContextVariableProtos.ValueCollection collection
+  ) throws UnsupportedOperationException {
+    return collection.getEntryList().stream().map(ValueExchange::fromProto);
   }
 
   /**
@@ -123,12 +129,17 @@ public class ValueExchange {
    * @return map with objects as key and value
    * @throws UnsupportedOperationException if an entry could not be parsed
    */
-  private static Map<Object, Object> fromMapProto(ContextVariableProtos.ValueMap map) throws UnsupportedOperationException {
-    return map.getEntryList().stream()
-        .collect(Collectors.toMap(
-            valueMapEntry -> fromProto(valueMapEntry.getKey()),
-            valueMapEntry -> fromProto(valueMapEntry.getValue())
-        ));
+  private static Map<Object, Object> fromMapProto(ContextVariableProtos.ValueMap map)
+    throws UnsupportedOperationException {
+    return map
+      .getEntryList()
+      .stream()
+      .collect(
+        Collectors.toMap(
+          valueMapEntry -> fromProto(valueMapEntry.getKey()),
+          valueMapEntry -> fromProto(valueMapEntry.getValue())
+        )
+      );
   }
 
   /**
@@ -139,10 +150,10 @@ public class ValueExchange {
    */
   private static ContextVariableProtos.ValueCollection toCollectionProto(Stream<?> stream) {
     return ContextVariableProtos.ValueCollection.newBuilder()
-        .addAllEntry(stream
-            .map(entry -> new ValueExchange(entry).toProto())
-            .collect(Collectors.toList()))
-        .build();
+      .addAllEntry(
+        stream.map(entry -> new ValueExchange(entry).toProto()).collect(Collectors.toList())
+      )
+      .build();
   }
 
   /**
@@ -153,13 +164,19 @@ public class ValueExchange {
    */
   private static ContextVariableProtos.ValueMap toMapProto(Map<?, ?> map) {
     return ContextVariableProtos.ValueMap.newBuilder()
-        .addAllEntry(map.entrySet().stream()
-            .map(entry -> ContextVariableProtos.ValueMapEntry.newBuilder()
-                .setKey(new ValueExchange(entry.getKey()).toProto())
-                .setValue(new ValueExchange(entry.getValue()).toProto())
-                .build())
-            .collect(Collectors.toList()))
-        .build();
+      .addAllEntry(
+        map
+          .entrySet()
+          .stream()
+          .map(entry ->
+            ContextVariableProtos.ValueMapEntry.newBuilder()
+              .setKey(new ValueExchange(entry.getKey()).toProto())
+              .setValue(new ValueExchange(entry.getValue()).toProto())
+              .build()
+          )
+          .collect(Collectors.toList())
+      )
+      .build();
   }
 
   /**
@@ -191,7 +208,9 @@ public class ValueExchange {
       case Object[] array -> builder.setArray(toCollectionProto(Arrays.stream(array)));
       case List<?> list -> builder.setList(toCollectionProto(list.stream()));
       case Map<?, ?> map -> builder.setMap(toMapProto(map));
-      default -> throw new UnsupportedOperationException("Value type could not be converted to proto");
+      default -> throw new UnsupportedOperationException(
+        "Value type could not be converted to proto"
+      );
     }
 
     return builder.build();

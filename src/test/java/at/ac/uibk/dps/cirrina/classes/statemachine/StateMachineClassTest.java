@@ -8,11 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
-import at.ac.uibk.dps.cirrina.execution.object.action.CreateAction;
-import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
 import java.util.List;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -26,9 +23,13 @@ public class StateMachineClassTest {
 
     var parser = new DescriptionParser<>(CollaborativeStateMachineDescription.class);
     assertDoesNotThrow(() -> {
-      var collaborativeStateMachine = CollaborativeStateMachineClassBuilder.from(parser.parse(json)).build();
+      var collaborativeStateMachine = CollaborativeStateMachineClassBuilder.from(
+        parser.parse(json)
+      ).build();
 
-      stateMachineClass = collaborativeStateMachine.findStateMachineClassByName("stateMachine1").get();
+      stateMachineClass = collaborativeStateMachine
+        .findStateMachineClassByName("stateMachine1")
+        .get();
     });
   }
 
@@ -78,13 +79,22 @@ public class StateMachineClassTest {
   @Test
   void testFindTransitionByEventName() {
     assertDoesNotThrow(() -> {
-      var t = stateMachineClass.findOnTransitionsFromStateByEventName(stateMachineClass.findStateClassByName("state1").get(), "e1");
+      var t = stateMachineClass.findOnTransitionsFromStateByEventName(
+        stateMachineClass.findStateClassByName("state1").get(),
+        "e1"
+      );
       assertEquals(1, t.size());
       assertEquals("state2", t.getFirst().getTargetStateName().get());
 
-      assertEquals(0,
-          stateMachineClass.findOnTransitionsFromStateByEventName(stateMachineClass.findStateClassByName("state1").get(), "nonExisting")
-              .size());
+      assertEquals(
+        0,
+        stateMachineClass
+          .findOnTransitionsFromStateByEventName(
+            stateMachineClass.findStateClassByName("state1").get(),
+            "nonExisting"
+          )
+          .size()
+      );
     });
   }
 

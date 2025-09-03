@@ -44,7 +44,8 @@ public final class State implements Scope {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
     new TopologicalOrderIterator<>(stateClassObject.getEntryActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+      action -> actionCommands.add(commandFactory.createActionCommand(action))
+    );
 
     return actionCommands;
   }
@@ -53,7 +54,8 @@ public final class State implements Scope {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
     new TopologicalOrderIterator<>(stateClassObject.getWhileActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+      action -> actionCommands.add(commandFactory.createActionCommand(action))
+    );
 
     return actionCommands;
   }
@@ -61,8 +63,9 @@ public final class State implements Scope {
   public List<ActionCommand> getExitActionCommands(CommandFactory commandFactory) {
     List<ActionCommand> actionCommands = new ArrayList<>();
 
-    new TopologicalOrderIterator<>(stateClassObject.getExitActionGraph()).forEachRemaining(
-        action -> actionCommands.add(commandFactory.createActionCommand(action)));
+    new TopologicalOrderIterator<>(stateClassObject.getExitActionGraph()).forEachRemaining(action ->
+      actionCommands.add(commandFactory.createActionCommand(action))
+    );
 
     return actionCommands;
   }
@@ -71,7 +74,8 @@ public final class State implements Scope {
     List<TimeoutAction> timeoutActionObjects = new ArrayList<>();
 
     new TopologicalOrderIterator<>(stateClassObject.getAfterActionGraph()).forEachRemaining(
-        timeoutActionObject -> timeoutActionObjects.add((TimeoutAction) timeoutActionObject));
+      timeoutActionObject -> timeoutActionObjects.add((TimeoutAction) timeoutActionObject)
+    );
 
     return timeoutActionObjects;
   }

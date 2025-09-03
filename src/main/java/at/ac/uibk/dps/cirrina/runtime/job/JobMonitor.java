@@ -91,50 +91,54 @@ public class JobMonitor implements CuratorCacheListener {
 
   private void nodeCreated(String nodePath, byte[] data) {
     getJobName(nodePath).ifPresent(jobName -> {
-      // Job path already present
-      if (jobs.containsKey(nodePath)) {
-        return;
-      }
+        // Job path already present
+        if (jobs.containsKey(nodePath)) {
+          return;
+        }
 
-      // Acquire the data as a string
-      final var dataAsUtf8String = new String(data, StandardCharsets.UTF_8);
-
-      try {
-        // Parse the description
-        final var jobDescription = new JobDescriptionParser().parse(dataAsUtf8String);
-
-        // Create the job
-        final var job = new Job(jobName, nodePath, jobDescription, curatorFramework);
-
-        // Register as known job
-        jobs.put(nodePath, job);
-
-        // Call listener
-        jobListener.newJob(job);
-      } catch (UnsupportedOperationException | IllegalArgumentException e) {
-        logger.error("Failed to parse job description for job '{}'. Skipping this job.", jobName, e);
+        // Acquire the data as a string
+        final var dataAsUtf8String = new String(data, StandardCharsets.UTF_8);
 
         try {
-          // Delete the invalid job
-          new Job(jobName, nodePath, null, curatorFramework).delete();
-          logger.info("Deleted invalid job '{}'", jobName);
-        } catch (Exception ex) {
-          logger.error("Failed to delete invalid job '{}'", jobName, ex);
+          // Parse the description
+          final var jobDescription = new JobDescriptionParser().parse(dataAsUtf8String);
+
+          // Create the job
+          final var job = new Job(jobName, nodePath, jobDescription, curatorFramework);
+
+          // Register as known job
+          jobs.put(nodePath, job);
+
+          // Call listener
+          jobListener.newJob(job);
+        } catch (UnsupportedOperationException | IllegalArgumentException e) {
+          logger.error(
+            "Failed to parse job description for job '{}'. Skipping this job.",
+            jobName,
+            e
+          );
+
+          try {
+            // Delete the invalid job
+            new Job(jobName, nodePath, null, curatorFramework).delete();
+            logger.info("Deleted invalid job '{}'", jobName);
+          } catch (Exception ex) {
+            logger.error("Failed to delete invalid job '{}'", jobName, ex);
+          }
         }
-      }
-    });
+      });
   }
 
   private void nodeDeleted(String nodePath) {
     getJobName(nodePath).ifPresent(jobName -> {
-      // Job path already present
-      if (!jobs.containsKey(nodePath)) {
-        return;
-      }
+        // Job path already present
+        if (!jobs.containsKey(nodePath)) {
+          return;
+        }
 
-      // Remove from the collection of known jobs
-      jobs.remove(nodePath);
-    });
+        // Remove from the collection of known jobs
+        jobs.remove(nodePath);
+      });
   }
 
   /**

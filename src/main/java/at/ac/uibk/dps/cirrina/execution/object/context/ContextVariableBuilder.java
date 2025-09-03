@@ -93,7 +93,9 @@ public class ContextVariableBuilder {
     }
     // If neither name and value nor context variable class is provided, throw an exception or handle it according to your use case
     else {
-      throw new IllegalStateException("Name and value or context variable class must be provided to build the context variable.");
+      throw new IllegalStateException(
+        "Name and value or context variable class must be provided to build the context variable."
+      );
     }
   }
 }

@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import java.util.Optional;
 
 /**
  * Assign action, assigns a new value to a variable.
@@ -26,9 +25,5 @@ public final class AssignAction extends Action {
     return variable;
   }
 
-  public record Parameters(
-      ContextVariable variable
-  ) {
-
-  }
+  public record Parameters(ContextVariable variable) {}
 }

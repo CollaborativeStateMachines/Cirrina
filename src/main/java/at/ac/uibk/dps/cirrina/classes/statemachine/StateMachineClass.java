@@ -4,11 +4,9 @@ import at.ac.uibk.dps.cirrina.classes.state.StateClass;
 import at.ac.uibk.dps.cirrina.classes.transition.OnTransitionClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextDescription;
-import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import at.ac.uibk.dps.cirrina.execution.object.guard.Guard;
 import at.ac.uibk.dps.cirrina.io.plantuml.Exportable;
 import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlVisitor;
 import jakarta.annotation.Nullable;
@@ -25,7 +23,9 @@ import org.jgrapht.graph.DirectedPseudograph;
  * A state machine is a graph consisting of state classes as vertices and transition classes as edges. An edge between two vertices (states)
  * represents a possible transition between the states.
  */
-public final class StateMachineClass extends DirectedPseudograph<StateClass, TransitionClass> implements Exportable {
+public final class StateMachineClass
+  extends DirectedPseudograph<StateClass, TransitionClass>
+  implements Exportable {
 
   /**
    * The state machine class ID.
@@ -54,10 +54,11 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    */
   StateMachineClass(Parameters parameters) {
     super(TransitionClass.class);
-
     this.name = parameters.name;
     this.localContextClass = parameters.localContextClass;
-    this.nestedStateMachineClasses = Collections.unmodifiableList(parameters.nestedStateMachineClasses);
+    this.nestedStateMachineClasses = Collections.unmodifiableList(
+      parameters.nestedStateMachineClasses
+    );
   }
 
   /**
@@ -89,9 +90,10 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    */
   public Optional<StateClass> findStateClassByName(String stateName) {
     // Attempt to match the provided name to a known state
-    final var states = vertexSet().stream()
-        .filter(state -> state.getName().equals(stateName))
-        .toList();
+    final var states = vertexSet()
+      .stream()
+      .filter(state -> state.getName().equals(stateName))
+      .toList();
 
     if (states.isEmpty()) {
       return Optional.empty();
@@ -106,12 +108,16 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    * @param eventName      The event name.
    * @return The list of on-transitions.
    */
-  public List<OnTransitionClass> findOnTransitionsFromStateByEventName(StateClass fromStateClass, String eventName) {
-    return outgoingEdgesOf(fromStateClass).stream()
-        .filter(OnTransitionClass.class::isInstance)
-        .map(OnTransitionClass.class::cast)
-        .filter(transition -> transition.getEventName().equals(eventName))
-        .toList();
+  public List<OnTransitionClass> findOnTransitionsFromStateByEventName(
+    StateClass fromStateClass,
+    String eventName
+  ) {
+    return outgoingEdgesOf(fromStateClass)
+      .stream()
+      .filter(OnTransitionClass.class::isInstance)
+      .map(OnTransitionClass.class::cast)
+      .filter(transition -> transition.getEventName().equals(eventName))
+      .toList();
   }
 
   /**
@@ -121,9 +127,10 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    * @return The list of always-transitions.
    */
   public List<TransitionClass> findAlwaysTransitionsFromState(StateClass fromStateClass) {
-    return outgoingEdgesOf(fromStateClass).stream()
-        .filter(transition -> !(transition instanceof OnTransitionClass))
-        .toList();
+    return outgoingEdgesOf(fromStateClass)
+      .stream()
+      .filter(transition -> !(transition instanceof OnTransitionClass))
+      .toList();
   }
 
   /**
@@ -168,10 +175,7 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    * @return Initial state.
    */
   public StateClass getInitialState() {
-    return vertexSet().stream()
-        .filter(StateClass::isInitial)
-        .findFirst()
-        .get();
+    return vertexSet().stream().filter(StateClass::isInitial).findFirst().get();
   }
 
   /**
@@ -180,10 +184,11 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    * @return Events handled by this state machine.
    */
   public List<String> getInputEvents() {
-    return edgeSet().stream()
-        .filter(OnTransitionClass.class::isInstance)
-        .map(onTransition -> ((OnTransitionClass) onTransition).getEventName())
-        .toList();
+    return edgeSet()
+      .stream()
+      .filter(OnTransitionClass.class::isInstance)
+      .map(onTransition -> ((OnTransitionClass) onTransition).getEventName())
+      .toList();
   }
 
   /**
@@ -193,17 +198,24 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    */
   public List<Event> getOutputEvents() {
     return Stream.concat(
-        // Raise action events
-        Stream.concat(
-            vertexSet().stream().flatMap(v -> v.getActionsOfType(RaiseAction.class).stream()),
-            edgeSet().stream().flatMap(e -> e.getActionsOfType(RaiseAction.class).stream())
-        ).map(RaiseAction::getEvent),
-
-        // Invoke action events
-        Stream.concat(
-            vertexSet().stream().flatMap(v -> v.getActionsOfType(InvokeAction.class).stream()),
-            edgeSet().stream().flatMap(e -> e.getActionsOfType(InvokeAction.class).stream())
-        ).flatMap(invokeAction -> invokeAction.getDone().stream())
+      // Raise action events
+      Stream.concat(
+        vertexSet()
+          .stream()
+          .flatMap(v -> v.getActionsOfType(RaiseAction.class).stream()),
+        edgeSet()
+          .stream()
+          .flatMap(e -> e.getActionsOfType(RaiseAction.class).stream())
+      ).map(RaiseAction::getEvent),
+      // Invoke action events
+      Stream.concat(
+        vertexSet()
+          .stream()
+          .flatMap(v -> v.getActionsOfType(InvokeAction.class).stream()),
+        edgeSet()
+          .stream()
+          .flatMap(e -> e.getActionsOfType(InvokeAction.class).stream())
+      ).flatMap(invokeAction -> invokeAction.getDone().stream())
     ).toList();
   }
 
@@ -214,9 +226,9 @@ public final class StateMachineClass extends DirectedPseudograph<StateClass, Tra
    * @param localContextClass         Local context class or empty if none declared.
    * @param nestedStateMachineClasses Nested state machine classes.
    */
-  record Parameters(String name,
-                    @Nullable ContextDescription localContextClass,
-                    List<StateMachineClass> nestedStateMachineClasses) {
-
-  }
+  record Parameters(
+    String name,
+    @Nullable ContextDescription localContextClass,
+    List<StateMachineClass> nestedStateMachineClasses
+  ) {}
 }

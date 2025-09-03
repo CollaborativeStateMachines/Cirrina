@@ -23,7 +23,9 @@ public final class TimeoutActionManager {
   /**
    * Timeout task scheduler, configured with a pre-defined number of threads.
    */
-  private final ScheduledExecutorService timeoutTaskScheduler = Executors.newScheduledThreadPool(NUM_THREADS);
+  private final ScheduledExecutorService timeoutTaskScheduler = Executors.newScheduledThreadPool(
+    NUM_THREADS
+  );
 
   /**
    * A collection of running timeout tasks encapsulating the execution of timeout actions. The keys are timeout action names.
@@ -40,14 +42,22 @@ public final class TimeoutActionManager {
    * @param task       The task to execute.
    * @throws IllegalArgumentException If two timeout actions with the same name have been started without being stopped.
    */
-  public void start(String actionName, Number delayInMs, Runnable task) throws IllegalArgumentException {
+  public void start(String actionName, Number delayInMs, Runnable task)
+    throws IllegalArgumentException {
     // Ensure unique timeout action names
     if (timeoutTasks.containsKey(actionName)) {
-      throw new IllegalArgumentException("Duplicate timeout action name '%s'".formatted(actionName));
+      throw new IllegalArgumentException(
+        "Duplicate timeout action name '%s'".formatted(actionName)
+      );
     }
 
     // Schedule at an interval
-    final var future = timeoutTaskScheduler.scheduleWithFixedDelay(task, delayInMs.intValue(), delayInMs.intValue(), TimeUnit.MILLISECONDS);
+    final var future = timeoutTaskScheduler.scheduleWithFixedDelay(
+      task,
+      delayInMs.intValue(),
+      delayInMs.intValue(),
+      TimeUnit.MILLISECONDS
+    );
 
     // Keep the task
     timeoutTasks.put(actionName, future);
@@ -63,13 +73,17 @@ public final class TimeoutActionManager {
    */
   public void stop(String actionName) throws IllegalArgumentException {
     // Retrieve the timeout task
-    final var timeoutTasksWithName = timeoutTasks.entrySet().stream()
-        .filter(entry -> entry.getKey().equals(actionName))
-        .map(Map.Entry::getValue)
-        .toList();
+    final var timeoutTasksWithName = timeoutTasks
+      .entrySet()
+      .stream()
+      .filter(entry -> entry.getKey().equals(actionName))
+      .map(Map.Entry::getValue)
+      .toList();
 
     if (timeoutTasksWithName.size() != 1) {
-      throw new IllegalArgumentException("Expected exactly one timeout action with the name '%s'".formatted(actionName));
+      throw new IllegalArgumentException(
+        "Expected exactly one timeout action with the name '%s'".formatted(actionName)
+      );
     }
 
     final var timeoutTask = timeoutTasksWithName.getFirst();
@@ -86,8 +100,7 @@ public final class TimeoutActionManager {
    */
   public void stopAll() {
     // Cancel all tasks
-    timeoutTasks.values()
-        .forEach(future -> future.cancel(true));
+    timeoutTasks.values().forEach(future -> future.cancel(true));
 
     // And clear
     timeoutTasks.clear();

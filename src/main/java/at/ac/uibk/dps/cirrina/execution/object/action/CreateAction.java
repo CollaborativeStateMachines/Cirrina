@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import java.util.Optional;
 
 /**
  * Create action, creates a new variable.
@@ -37,10 +36,5 @@ public final class CreateAction extends Action {
     return isPersistent;
   }
 
-  public record Parameters(
-      ContextVariable variable,
-      boolean isPersistent
-  ) {
-
-  }
+  public record Parameters(ContextVariable variable, boolean isPersistent) {}
 }

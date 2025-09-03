@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
-import java.util.Optional;
 
 /**
  * Timeout action object.
@@ -63,11 +62,5 @@ public final class TimeoutAction extends Action {
     return action;
   }
 
-  public record Parameters(
-      String name,
-      Expression delay,
-      Action action
-  ) {
-
-  }
+  public record Parameters(String name, Expression delay, Action action) {}
 }

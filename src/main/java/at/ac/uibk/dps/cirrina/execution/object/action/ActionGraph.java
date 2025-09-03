@@ -31,13 +31,15 @@ public final class ActionGraph extends SimpleDirectedGraph<Action, DefaultEdge> 
    */
   public ActionGraph(ActionGraph actionGraph) {
     this();
-
     // Add vertices
     actionGraph.vertexSet().forEach(this::addVertex);
 
     // Add edges
-    actionGraph.edgeSet().forEach(
-        edge -> addEdge(actionGraph.getEdgeSource(edge), actionGraph.getEdgeTarget(edge), edge));
+    actionGraph
+      .edgeSet()
+      .forEach(edge ->
+        addEdge(actionGraph.getEdgeSource(edge), actionGraph.getEdgeTarget(edge), edge)
+      );
   }
 
   /**
@@ -48,10 +50,7 @@ public final class ActionGraph extends SimpleDirectedGraph<Action, DefaultEdge> 
    * @return Actions of type.
    */
   public <T> List<T> getActionsOfType(Class<T> type) {
-    return vertexSet().stream()
-        .filter(type::isInstance)
-        .map(type::cast)
-        .toList();
+    return vertexSet().stream().filter(type::isInstance).map(type::cast).toList();
   }
 
   public List<Action> getActions() {

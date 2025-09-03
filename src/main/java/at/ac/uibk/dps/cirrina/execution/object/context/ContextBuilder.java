@@ -71,7 +71,8 @@ public class ContextBuilder {
    * @throws IOException If the context could not be built.
    * @see NatsContext
    */
-  public ContextBuilder natsContext(boolean isLocal, String natsUrl, String bucketName) throws IOException {
+  public ContextBuilder natsContext(boolean isLocal, String natsUrl, String bucketName)
+    throws IOException {
     context = new NatsContext(isLocal, natsUrl, bucketName);
 
     return this;

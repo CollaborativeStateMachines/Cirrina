@@ -78,7 +78,8 @@ public abstract class Runtime implements EventListener {
   /**
    * StateClass machine instance executor service, manages running state machine instances.
    */
-  private final ExecutorService stateMachineInstanceExecutorService = Executors.newCachedThreadPool();
+  private final ExecutorService stateMachineInstanceExecutorService =
+    Executors.newCachedThreadPool();
 
   /**
    * List of instantiated state machines.
@@ -93,7 +94,12 @@ public abstract class Runtime implements EventListener {
    * @param persistentContext Persistent context.
    * @param openTelemetry     OpenTelemetry.
    */
-  public Runtime(String name, EventHandler eventHandler, Context persistentContext, OpenTelemetry openTelemetry) {
+  public Runtime(
+    String name,
+    EventHandler eventHandler,
+    Context persistentContext,
+    OpenTelemetry openTelemetry
+  ) {
     this.name = name;
 
     // Keep dependencies
@@ -115,9 +121,12 @@ public abstract class Runtime implements EventListener {
    * @return The state machine instance or an empty optional if no state machine instance was found for the given instance id.
    */
   public Optional<StateMachine> findInstance(Id stateMachineId) {
-    return stateMachines.stream()
-        .filter(stateMachineInstance -> stateMachineInstance.getStateMachineInstanceId().equals(stateMachineId))
-        .findFirst();
+    return stateMachines
+      .stream()
+      .filter(stateMachineInstance ->
+        stateMachineInstance.getStateMachineInstanceId().equals(stateMachineId)
+      )
+      .findFirst();
   }
 
   /**
@@ -133,11 +142,16 @@ public abstract class Runtime implements EventListener {
    * @throws UnsupportedOperationException If a state machine could not be instantiated.
    */
   protected List<Id> newInstance(
-      CollaborativeStateMachineClass collaborativeStateMachineClass,
-      ServiceImplementationSelector serviceImplementationSelector,
-      double endTime
+    CollaborativeStateMachineClass collaborativeStateMachineClass,
+    ServiceImplementationSelector serviceImplementationSelector,
+    double endTime
   ) throws UnsupportedOperationException {
-    return newInstances(collaborativeStateMachineClass.getStateMachineClasses(), serviceImplementationSelector, null, endTime);
+    return newInstances(
+      collaborativeStateMachineClass.getStateMachineClasses(),
+      serviceImplementationSelector,
+      null,
+      endTime
+    );
   }
 
   /**
@@ -151,10 +165,10 @@ public abstract class Runtime implements EventListener {
    * @throws UnsupportedOperationException If a state machine could not be instantiated.
    */
   protected List<Id> newInstances(
-      List<StateMachineClass> stateMachineClasses,
-      ServiceImplementationSelector serviceImplementationSelector,
-      @Nullable Id parentInstanceId,
-      double endTime
+    List<StateMachineClass> stateMachineClasses,
+    ServiceImplementationSelector serviceImplementationSelector,
+    @Nullable Id parentInstanceId,
+    double endTime
   ) throws UnsupportedOperationException {
     var instanceIds = new ArrayList<Id>();
 
@@ -162,7 +176,12 @@ public abstract class Runtime implements EventListener {
       // Instantiate the state machine instance hierarchy
       try {
         // Parent
-        var instanceId = newInstance(stateMachine, serviceImplementationSelector, parentInstanceId, endTime);
+        var instanceId = newInstance(
+          stateMachine,
+          serviceImplementationSelector,
+          parentInstanceId,
+          endTime
+        );
         instanceIds.add(instanceId);
 
         final var nestedStateMachineIds = new ArrayList<Id>();
@@ -170,7 +189,13 @@ public abstract class Runtime implements EventListener {
         // Add nested state machines
         if (!stateMachine.getNestedStateMachineClasses().isEmpty()) {
           nestedStateMachineIds.addAll(
-              newInstances(stateMachine.getNestedStateMachineClasses(), serviceImplementationSelector, instanceId, endTime));
+            newInstances(
+              stateMachine.getNestedStateMachineClasses(),
+              serviceImplementationSelector,
+              instanceId,
+              endTime
+            )
+          );
         }
 
         // Add to the collection of created state machine instance IDs
@@ -200,10 +225,10 @@ public abstract class Runtime implements EventListener {
    * @throws UnsupportedOperationException If the parent state machine could not be found.
    */
   protected Id newInstance(
-      StateMachineClass stateMachineClass,
-      ServiceImplementationSelector serviceImplementationSelector,
-      @Nullable Id parentInstanceId,
-      double endTime
+    StateMachineClass stateMachineClass,
+    ServiceImplementationSelector serviceImplementationSelector,
+    @Nullable Id parentInstanceId,
+    double endTime
   ) throws UnsupportedOperationException {
     if (stateMachineInstanceExecutorService.isShutdown()) {
       throw new UnsupportedOperationException("Runtime is shut down");
@@ -212,24 +237,33 @@ public abstract class Runtime implements EventListener {
     final var stateMachineName = stateMachineClass.getName();
     final var parentIdAsString = parentInstanceId == null ? "" : parentInstanceId.toString();
 
-    logger.info("Creating new instance of '{}' - parent is '{}'...", stateMachineName, parentIdAsString);
+    logger.info(
+      "Creating new instance of '{}' - parent is '{}'...",
+      stateMachineName,
+      parentIdAsString
+    );
 
     // Find the parent state machine instance
-    final var parentInstance = parentInstanceId == null ? null : findInstance(parentInstanceId).orElse(null);
+    final var parentInstance = parentInstanceId == null
+      ? null
+      : findInstance(parentInstanceId).orElse(null);
 
     if (parentInstanceId != null && parentInstance == null) {
       throw new UnsupportedOperationException(
-          "The parent state machine instance with ID '%s' could not be found".formatted(parentInstanceId.toString()));
+        "The parent state machine instance with ID '%s' could not be found".formatted(
+          parentInstanceId.toString()
+        )
+      );
     }
 
     // Create the state machine instance
     final var stateMachineInstance = new StateMachine(
-        this,
-        stateMachineClass,
-        serviceImplementationSelector,
-        openTelemetry,
-        parentInstance,
-        endTime
+      this,
+      stateMachineClass,
+      serviceImplementationSelector,
+      openTelemetry,
+      parentInstance,
+      endTime
     );
 
     // Add event listener to the event handler
@@ -243,7 +277,11 @@ public abstract class Runtime implements EventListener {
 
     final var stateMachineInstanceId = stateMachineInstance.getStateMachineInstanceId();
 
-    logger.info("Created an instance of '{}' with ID '{}'", stateMachineName, stateMachineInstanceId.toString());
+    logger.info(
+      "Created an instance of '{}' with ID '{}'",
+      stateMachineName,
+      stateMachineInstanceId.toString()
+    );
 
     return stateMachineInstanceId;
   }
@@ -269,7 +307,10 @@ public abstract class Runtime implements EventListener {
       shutdown();
 
       // Wait for completion
-      return stateMachineInstanceExecutorService.awaitTermination(timeoutInMs, TimeUnit.MILLISECONDS);
+      return stateMachineInstanceExecutorService.awaitTermination(
+        timeoutInMs,
+        TimeUnit.MILLISECONDS
+      );
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }

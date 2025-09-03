@@ -14,7 +14,6 @@ public final class ActionMatchCommand extends ActionCommand {
 
   ActionMatchCommand(ExecutionContext executionContext, MatchAction matchAction) {
     super(executionContext);
-
     this.matchAction = matchAction;
   }
 

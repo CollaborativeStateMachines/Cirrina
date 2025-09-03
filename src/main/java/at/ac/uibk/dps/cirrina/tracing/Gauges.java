@@ -28,25 +28,25 @@ public class Gauges {
 
   public Attributes attributesForData(String operation, String dataLocality, int dataSize) {
     return Attributes.builder()
-        .put(GAUGE_ATTR_DATA_OPERATION, operation)
-        .put(GAUGE_ATTR_DATA_LOCALITY, dataLocality)
-        .put(GAUGE_ATTR_DATA_SIZE, dataSize)
-        .put(ATTR_STATE_MACHINE_ID, stateMachineId)
-        .build();
+      .put(GAUGE_ATTR_DATA_OPERATION, operation)
+      .put(GAUGE_ATTR_DATA_LOCALITY, dataLocality)
+      .put(GAUGE_ATTR_DATA_SIZE, dataSize)
+      .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+      .build();
   }
 
   public Attributes attributesForInvocation(String serviceLocality) {
     return Attributes.builder()
-        .put(GAUGE_ATTR_INVOCATION_LOCALITY, serviceLocality)
-        .put(ATTR_STATE_MACHINE_ID, stateMachineId)
-        .build();
+      .put(GAUGE_ATTR_INVOCATION_LOCALITY, serviceLocality)
+      .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+      .build();
   }
 
   public Attributes attributesForEvent(String eventChannel) {
     return Attributes.builder()
-        .put(GAUGE_ATTR_EVENT_CHANNEL, eventChannel)
-        .put(ATTR_STATE_MACHINE_ID, stateMachineId)
-        .build();
+      .put(GAUGE_ATTR_EVENT_CHANNEL, eventChannel)
+      .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+      .build();
   }
 
   public void addGauge(String name) {

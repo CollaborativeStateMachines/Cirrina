@@ -13,7 +13,8 @@ import org.jgrapht.graph.DirectedPseudograph;
  * A collaborative state machine is a graph with state machine classes as vertices and events as edges. An edge in the collaborative state
  * machine graphs represents how a state machine can be "activated" by another state machine based on an event.
  */
-public final class CollaborativeStateMachineClass extends DirectedPseudograph<StateMachineClass, Event> {
+public final class CollaborativeStateMachineClass
+  extends DirectedPseudograph<StateMachineClass, Event> {
 
   /**
    * The name of the collaborative state machine.
@@ -32,7 +33,6 @@ public final class CollaborativeStateMachineClass extends DirectedPseudograph<St
    */
   CollaborativeStateMachineClass(String name, List<ContextVariable> persistentContextVariables) {
     super(Event.class);
-
     this.name = name;
     this.persistentContextVariables = persistentContextVariables;
   }
@@ -57,9 +57,10 @@ public final class CollaborativeStateMachineClass extends DirectedPseudograph<St
    */
   public Optional<StateMachineClass> findStateMachineClassByName(String name) {
     // Attempt to match the provided name to a known state machine
-    var states = vertexSet().stream()
-        .filter(state -> state.getName().equals(name))
-        .toList();
+    var states = vertexSet()
+      .stream()
+      .filter(state -> state.getName().equals(name))
+      .toList();
 
     // Expect precisely one state machine with the provided name
     if (states.size() != 1) {

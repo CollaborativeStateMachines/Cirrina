@@ -22,8 +22,8 @@ public abstract class StateClassBuilder {
    * @return State class builder.
    */
   public static StateClassBuilder from(
-      UUID parentStateMachineId,
-      StateDescription stateDescription
+    UUID parentStateMachineId,
+    StateDescription stateDescription
   ) {
     return new StateClassFromDescriptionBuilder(parentStateMachineId, stateDescription);
   }
@@ -58,8 +58,8 @@ public abstract class StateClassBuilder {
      * @param stateDescription     State description.
      */
     private StateClassFromDescriptionBuilder(
-        UUID parentStateMachineId,
-        StateDescription stateDescription
+      UUID parentStateMachineId,
+      StateDescription stateDescription
     ) {
       this.parentStateMachineId = parentStateMachineId;
       this.stateDescription = stateDescription;
@@ -75,10 +75,13 @@ public abstract class StateClassBuilder {
     @Override
     public StateClass build() throws IllegalArgumentException {
       // Resolve actions
-      final Function<List<? extends ActionDescription>, List<Action>> resolveActions = (List<? extends ActionDescription> actions) ->
-          actions.stream()
-              .map(actionDescription -> ActionBuilder.from(actionDescription).build())
-              .toList();
+      final Function<List<? extends ActionDescription>, List<Action>> resolveActions = (List<
+        ? extends ActionDescription
+      > actions) ->
+        actions
+          .stream()
+          .map(actionDescription -> ActionBuilder.from(actionDescription).build())
+          .toList();
 
       final var entryActions = resolveActions.apply(stateDescription.getEntry());
       final var exitActions = resolveActions.apply(stateDescription.getExit());
@@ -90,7 +93,8 @@ public abstract class StateClassBuilder {
       }
 
       // Create the state class
-      return new StateClass(new StateClass.BaseParameters(
+      return new StateClass(
+        new StateClass.BaseParameters(
           parentStateMachineId,
           stateDescription.getName(),
           stateDescription.getLocalContext(),
@@ -100,7 +104,8 @@ public abstract class StateClassBuilder {
           exitActions,
           whileActions,
           afterActions
-      ));
+        )
+      );
     }
   }
 }

@@ -57,15 +57,14 @@ public class OnlineRuntime extends Runtime implements JobListener {
    * @param deleteJob         Delete job when consumed.
    */
   public OnlineRuntime(
-      String name,
-      EventHandler eventHandler,
-      Context persistentContext,
-      OpenTelemetry openTelemetry,
-      CuratorFramework curatorFramework,
-      boolean deleteJob
+    String name,
+    EventHandler eventHandler,
+    Context persistentContext,
+    OpenTelemetry openTelemetry,
+    CuratorFramework curatorFramework,
+    boolean deleteJob
   ) {
     super(name, eventHandler, persistentContext, openTelemetry);
-
     this.deleteJob = deleteJob;
 
     // Create a job monitor
@@ -86,7 +85,11 @@ public class OnlineRuntime extends Runtime implements JobListener {
 
     if (!name.equals(jobDescriptionRuntimeName)) {
       logger.info(
-          "Found job for runtime '%s' which does not match this runtime's name '%s', ignoring".formatted(jobDescriptionRuntimeName, name));
+        "Found job for runtime '%s' which does not match this runtime's name '%s', ignoring".formatted(
+          jobDescriptionRuntimeName,
+          name
+        )
+      );
 
       return;
     }
@@ -102,7 +105,11 @@ public class OnlineRuntime extends Runtime implements JobListener {
 
         // Schedule job
         synchronized (futureJobs) {
-          logger.info("Found a job for {} it is {} now", jobDescription.getStartTime(), Time.timeInMillisecondsSinceStart());
+          logger.info(
+            "Found a job for {} it is {} now",
+            jobDescription.getStartTime(),
+            Time.timeInMillisecondsSinceStart()
+          );
 
           futureJobs.put(jobDescription.getStartTime(), jobDescription);
         }
@@ -120,23 +127,32 @@ public class OnlineRuntime extends Runtime implements JobListener {
 
   private void startJob(JobDescription jobDescription) {
     // Create the collaborative state machine from the description
-    final var collaborativeStateMachine = CollaborativeStateMachineClassBuilder.from(jobDescription.getCollaborativeStateMachine())
-        .build();
+    final var collaborativeStateMachine = CollaborativeStateMachineClassBuilder.from(
+      jobDescription.getCollaborativeStateMachine()
+    ).build();
 
     // Acquire the service implementation selector
     final var serviceImplementationSelector = new RandomServiceImplementationSelector(
-        ServiceImplementationBuilder.from(jobDescription.getServiceImplementations()).build());
+      ServiceImplementationBuilder.from(jobDescription.getServiceImplementations()).build()
+    );
 
     // Acquire the state machine name
     final var stateMachineName = jobDescription.getStateMachineName();
 
     // Find the state machine by name
-    final var stateMachine = collaborativeStateMachine.findStateMachineClassByName(stateMachineName)
-        .orElseThrow(() -> new UnsupportedOperationException(
-            "A state machine with the name '%s' does not exist in the collaborative state machine".formatted(stateMachineName)));
+    final var stateMachine = collaborativeStateMachine
+      .findStateMachineClassByName(stateMachineName)
+      .orElseThrow(() ->
+        new UnsupportedOperationException(
+          "A state machine with the name '%s' does not exist in the collaborative state machine".formatted(
+            stateMachineName
+          )
+        )
+      );
 
     // Create persistent variables
-    final var persistentContextVariables = collaborativeStateMachine.getPersistentContextVariables();
+    final var persistentContextVariables =
+      collaborativeStateMachine.getPersistentContextVariables();
 
     persistentContextVariables.forEach(variable -> {
       try {
@@ -144,29 +160,52 @@ public class OnlineRuntime extends Runtime implements JobListener {
 
         persistentContext.create(variable.name(), variable.value());
       } catch (IOException e) {
-        logger.info("Did not create persistent context variable '{}', possibly already exists", variable.name());
+        logger.info(
+          "Did not create persistent context variable '{}', possibly already exists",
+          variable.name()
+        );
       }
     });
 
     // Create instances, newInstances will also instantiate nested state machines
-    final var instanceIds = newInstances(List.of(stateMachine), serviceImplementationSelector, null, jobDescription.getEndTime());
+    final var instanceIds = newInstances(
+      List.of(stateMachine),
+      serviceImplementationSelector,
+      null,
+      jobDescription.getEndTime()
+    );
 
     // Assign local data from the job description if the job description contains any local data. Assign to the parent and nested state machines
     if (!jobDescription.getLocalData().isEmpty()) {
       for (final var instanceId : instanceIds) {
-        final var stateMachineInstance = findInstance(instanceId)
-            .orElseThrow(() -> new UnsupportedOperationException(
-                "State machine '%s' with id '%s' was not instantiated.".formatted(stateMachine.getName(), instanceId)));
+        final var stateMachineInstance = findInstance(instanceId).orElseThrow(() ->
+          new UnsupportedOperationException(
+            "State machine '%s' with id '%s' was not instantiated.".formatted(
+              stateMachine.getName(),
+              instanceId
+            )
+          )
+        );
 
         for (final var localData : jobDescription.getLocalData().entrySet()) {
           try {
             // Assign local data entry, evaluate the value as an expression
             final var valueExpression = ExpressionBuilder.from(localData.getValue()).build();
 
-            stateMachineInstance.getExtent().setOrCreate(localData.getKey(), valueExpression.execute(stateMachineInstance.getExtent()));
+            stateMachineInstance
+              .getExtent()
+              .setOrCreate(
+                localData.getKey(),
+                valueExpression.execute(stateMachineInstance.getExtent())
+              );
           } catch (IOException | IllegalArgumentException e) {
             throw new UnsupportedOperationException(
-                "Could not assign value '%s' to local data variable '%s'".formatted(localData.getKey(), localData.getValue()), e);
+              "Could not assign value '%s' to local data variable '%s'".formatted(
+                localData.getKey(),
+                localData.getValue()
+              ),
+              e
+            );
           }
         }
       }
@@ -186,17 +225,19 @@ public class OnlineRuntime extends Runtime implements JobListener {
 
         // Collect the keys of the entries that need to be processed and removed
         synchronized (futureJobs) {
-          futureJobs.entries().removeIf(entry -> {
-            final var startTime = entry.getKey();
+          futureJobs
+            .entries()
+            .removeIf(entry -> {
+              final var startTime = entry.getKey();
 
-            if (startTime < currentTime) {
-              logger.info("Starting job ({}) at time: {}", startTime, currentTime);
+              if (startTime < currentTime) {
+                logger.info("Starting job ({}) at time: {}", startTime, currentTime);
 
-              startJob(entry.getValue());
-              return true;
-            }
-            return false;
-          });
+                startJob(entry.getValue());
+                return true;
+              }
+              return false;
+            });
         }
 
         // Sleep
