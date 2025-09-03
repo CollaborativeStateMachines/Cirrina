@@ -7,6 +7,7 @@ plugins {
 
     id("com.google.protobuf") version "0.9.4"
     id("org.pkl-lang") version "0.26.3"
+    kotlin("jvm")
 }
 
 group = "ac.at.uibk.dps.cirrina"
@@ -61,8 +62,6 @@ protobuf {
 }
 
 dependencies {
-    implementation("com.beust:jcommander:1.82")
-
     implementation("com.ecwid.consul:consul-api:1.4.5")
 
     implementation("com.fasterxml.jackson.core:jackson-databind:2.15.1")
@@ -112,6 +111,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 
     testImplementation("org.mockito:mockito-core:5.11.0")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 repositories {

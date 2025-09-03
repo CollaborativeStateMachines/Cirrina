@@ -26,20 +26,6 @@ public class CirrinaRuntime extends Cirrina {
   private final Id runtimeId = new Id();
 
   /**
-   * Shared arguments.
-   */
-  private final Args args;
-
-  /**
-   * Initializes this main object.
-   *
-   * @param args The arguments to the main object.
-   */
-  CirrinaRuntime(Args args) {
-    this.args = args;
-  }
-
-  /**
    * Run the runtime.
    */
   @Override
@@ -68,7 +54,7 @@ public class CirrinaRuntime extends Cirrina {
             persistentContext,
             openTelemetry,
             curatorFramework,
-            args.runtimeArgs.deleteJob);
+            EnvironmentVariables.INSTANCE.getDeleteJob().get());
 
         logger.info("Starting runtime: {}", name);
 
@@ -94,13 +80,13 @@ public class CirrinaRuntime extends Cirrina {
    * @throws IllegalArgumentException If the event handler provided is not known.
    */
   protected EventHandler newEventHandler() throws IOException, IllegalArgumentException {
-    switch (args.runtimeArgs.eventHandler) {
-      case Nats -> {
+    switch (EnvironmentVariables.INSTANCE.getEventProvider().get()) {
+      case NATS -> {
         return newNatsEventHandler();
       }
     }
 
-    throw new IllegalArgumentException("Unknown event handler '%s'".formatted(args.runtimeArgs.eventHandler));
+    throw new IllegalArgumentException("Unknown event handler '%s'".formatted(EnvironmentVariables.INSTANCE.getEventProvider().get()));
   }
 
   /**
@@ -110,7 +96,7 @@ public class CirrinaRuntime extends Cirrina {
    * @throws IOException If the event handler could not be constructed.
    */
   private NatsEventHandler newNatsEventHandler() throws IOException {
-    return new NatsEventHandler(args.runtimeArgs.natsEventHandlerArgs.natsUrl);
+    return new NatsEventHandler(EnvironmentVariables.INSTANCE.getNatsEventUrl().get());
   }
 
   /**
@@ -121,13 +107,13 @@ public class CirrinaRuntime extends Cirrina {
    * @throws IllegalArgumentException If the persistent context provided is not known.
    */
   protected Context newPersistentContext() throws IOException, IllegalArgumentException {
-    switch (args.runtimeArgs.persistentContext) {
-      case Nats -> {
+    switch (EnvironmentVariables.INSTANCE.getPersistentContextProvider().get()) {
+      case NATS -> {
         return newNatsPersistentContext();
       }
     }
 
-    throw new IllegalArgumentException("Unknown persistent context '%s'".formatted(args.runtimeArgs.eventHandler));
+    throw new IllegalArgumentException("Unknown persistent context '%s'".formatted(EnvironmentVariables.INSTANCE.getPersistentContextProvider().get()));
   }
 
   /**
@@ -137,8 +123,8 @@ public class CirrinaRuntime extends Cirrina {
    * @throws IOException If the persistent context could not be constructed.
    */
   private NatsContext newNatsPersistentContext() throws IOException {
-    return new NatsContext(false, args.runtimeArgs.natsPersistentContextArgs.natsUrl,
-        args.runtimeArgs.natsPersistentContextArgs.bucketName);
+    return new NatsContext(false, EnvironmentVariables.INSTANCE.getNatsPersistentContextUrl().get(),
+        EnvironmentVariables.INSTANCE.getNatsPersistentContextBucket().get());
   }
 
   /**
@@ -148,10 +134,10 @@ public class CirrinaRuntime extends Cirrina {
    */
   public CuratorFramework newCuratorFramework() {
     return CuratorFrameworkFactory.builder()
-        .connectString(args.runtimeArgs.zooKeeperArgs.connectString)
+        .connectString(EnvironmentVariables.INSTANCE.getZookeeperUrl().get())
         .retryPolicy(new ExponentialBackoffRetry(1000, 3))
-        .connectionTimeoutMs(args.runtimeArgs.zooKeeperArgs.timeoutInMs)
-        .sessionTimeoutMs(args.runtimeArgs.zooKeeperArgs.sessionTimeoutInMs)
+        .connectionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperTimeout().get())
+        .sessionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperSessionTimeout().get())
         .build();
   }
 
