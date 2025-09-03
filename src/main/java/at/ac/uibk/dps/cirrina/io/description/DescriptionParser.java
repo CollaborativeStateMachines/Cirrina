@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.io.description;
 import org.pkl.config.java.ConfigEvaluator;
 import org.pkl.core.ModuleSource;
 
-
 /**
  * Generic DescriptionParser. Provides functionality to parse JSON data into an object of the parser's value type.
  */

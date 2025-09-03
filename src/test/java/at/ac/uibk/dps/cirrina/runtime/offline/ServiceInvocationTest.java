@@ -44,35 +44,43 @@ public class ServiceInvocationTest {
   public static void setUp() throws IOException {
     httpServer = HttpServer.create(new InetSocketAddress(8000), 0);
 
-    httpServer.createContext("/increment", new HttpHandler() {
-      public void handle(HttpExchange exchange) throws IOException {
-        final var payload = exchange.getRequestBody().readAllBytes();
+    httpServer.createContext(
+      "/increment",
+      new HttpHandler() {
+        public void handle(HttpExchange exchange) throws IOException {
+          final var payload = exchange.getRequestBody().readAllBytes();
 
-        final var in = ContextVariableProtos.ContextVariables.parseFrom(payload)
-            .getDataList().stream()
+          final var in = ContextVariableProtos.ContextVariables.parseFrom(payload)
+            .getDataList()
+            .stream()
             .map(ContextVariableExchange::fromProto)
             .toList();
 
-        final var v = in.stream().filter(e -> e.name().equals("v")).findFirst();
+          final var v = in
+            .stream()
+            .filter(e -> e.name().equals("v"))
+            .findFirst();
 
-        // Create output
-        final var out = ContextVariableProtos.ContextVariables.newBuilder()
-            .addAllData(Stream.of(new ContextVariable("v", (int) v.get().value() + 1))
+          // Create output
+          final var out = ContextVariableProtos.ContextVariables.newBuilder()
+            .addAllData(
+              Stream.of(new ContextVariable("v", (int) v.get().value() + 1))
                 .map(contextVariable -> new ContextVariableExchange(contextVariable).toProto())
                 .toList()
             )
             .build()
             .toByteArray();
 
-        // Response stateMachineInstanceStatus and length
-        exchange.sendResponseHeaders(200, out.length);
+          // Response stateMachineInstanceStatus and length
+          exchange.sendResponseHeaders(200, out.length);
 
-        // Output the response
-        try (final var stream = exchange.getResponseBody()) {
-          stream.write(out);
+          // Output the response
+          try (final var stream = exchange.getResponseBody()) {
+            stream.write(out);
+          }
         }
       }
-    });
+    );
 
     httpServer.start();
 
@@ -80,7 +88,9 @@ public class ServiceInvocationTest {
 
     final var parser = new DescriptionParser<>(CollaborativeStateMachineDescription.class);
     Assertions.assertDoesNotThrow(() -> {
-      collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(parser.parse(json)).build();
+      collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
+        parser.parse(json)
+      ).build();
     });
   }
 
@@ -93,11 +103,8 @@ public class ServiceInvocationTest {
   void testServiceInvocationExecute() {
     Assertions.assertDoesNotThrow(() -> {
       final var mockEventHandler = new EventHandler() {
-
         @Override
-        public void close() throws Exception {
-
-        }
+        public void close() throws Exception {}
 
         @Override
         public void sendEvent(Event event, String source) {
@@ -105,24 +112,16 @@ public class ServiceInvocationTest {
         }
 
         @Override
-        public void subscribe(String topic) {
-
-        }
+        public void subscribe(String topic) {}
 
         @Override
-        public void unsubscribe(String topic) {
-
-        }
+        public void unsubscribe(String topic) {}
 
         @Override
-        public void subscribe(String source, String subject) {
-
-        }
+        public void subscribe(String source, String subject) {}
 
         @Override
-        public void unsubscribe(String source, String subject) {
-
-        }
+        public void unsubscribe(String source, String subject) {}
       };
 
       // Mock a persistent context using an in-memory context
@@ -148,8 +147,17 @@ public class ServiceInvocationTest {
       var serviceDescriptions = new ServiceImplementationDescription[1];
 
       {
-        var service = new HttpServiceImplementationDescription("increment", 1.0, true, ServiceImplementationType.HTTP, "http", "localhost",
-            8000, "/increment", Method.GET);
+        var service = new HttpServiceImplementationDescription(
+          "increment",
+          1.0,
+          true,
+          ServiceImplementationType.HTTP,
+          "http",
+          "localhost",
+          8000,
+          "/increment",
+          Method.GET
+        );
 
         serviceDescriptions[0] = service;
       }
@@ -157,7 +165,10 @@ public class ServiceInvocationTest {
       final var services = ServiceImplementationBuilder.from(List.of(serviceDescriptions)).build();
       final var serviceImplementationSelector = new OptimalServiceImplementationSelector(services);
 
-      final var instances = runtime.newInstance(collaborativeStateMachineClass, serviceImplementationSelector);
+      final var instances = runtime.newInstance(
+        collaborativeStateMachineClass,
+        serviceImplementationSelector
+      );
 
       assertEquals(1, instances.size());
 

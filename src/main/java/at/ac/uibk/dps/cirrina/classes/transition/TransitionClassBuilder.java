@@ -23,9 +23,7 @@ public abstract class TransitionClassBuilder {
    * @param transitionDescription Transition description.
    * @return Builder.
    */
-  public static TransitionClassBuilder from(
-      TransitionDescription transitionDescription
-  ) {
+  public static TransitionClassBuilder from(TransitionDescription transitionDescription) {
     return new TransitionClassFromDescriptionBuilder(transitionDescription);
   }
 
@@ -54,9 +52,7 @@ public abstract class TransitionClassBuilder {
      *
      * @param transitionDescription Transition description.
      */
-    private TransitionClassFromDescriptionBuilder(
-        TransitionDescription transitionDescription
-    ) {
+    private TransitionClassFromDescriptionBuilder(TransitionDescription transitionDescription) {
       this.transitionDescription = transitionDescription;
     }
 
@@ -70,34 +66,40 @@ public abstract class TransitionClassBuilder {
     @Override
     public TransitionClass build() throws IllegalArgumentException {
       // Resolve guards
-      Function<List<? extends GuardDescription>, List<Guard>> resolveGuards = (List<? extends GuardDescription> guards) ->
-          guards.stream()
-              .map(guardClass -> GuardBuilder.from(guardClass).build())
-              .toList();
+      Function<List<? extends GuardDescription>, List<Guard>> resolveGuards = (List<
+        ? extends GuardDescription
+      > guards) ->
+        guards
+          .stream()
+          .map(guardClass -> GuardBuilder.from(guardClass).build())
+          .toList();
 
       // Resolve actions
-      Function<List<? extends ActionDescription>, List<Action>> resolveActions = (List<? extends ActionDescription> actions) ->
-          actions.stream()
-              .map(actionClass -> ActionBuilder.from(actionClass).build())
-              .toList();
+      Function<List<? extends ActionDescription>, List<Action>> resolveActions = (List<
+        ? extends ActionDescription
+      > actions) ->
+        actions
+          .stream()
+          .map(actionClass -> ActionBuilder.from(actionClass).build())
+          .toList();
 
       // Create the appropriate transitionClass
       switch (transitionDescription) {
         case OnTransitionDescription onTransitionClass -> {
           return new OnTransitionClass(
-              onTransitionClass.getTarget(),
-              transitionDescription.getElse(),
-              resolveGuards.apply(onTransitionClass.getGuards()),
-              resolveActions.apply(onTransitionClass.getActions()),
-              onTransitionClass.getEvent()
+            onTransitionClass.getTarget(),
+            transitionDescription.getElse(),
+            resolveGuards.apply(onTransitionClass.getGuards()),
+            resolveActions.apply(onTransitionClass.getActions()),
+            onTransitionClass.getEvent()
           );
         }
         default -> {
           return new TransitionClass(
-              transitionDescription.getTarget(),
-              transitionDescription.getElse(),
-              resolveGuards.apply(transitionDescription.getGuards()),
-              resolveActions.apply(transitionDescription.getActions())
+            transitionDescription.getTarget(),
+            transitionDescription.getElse(),
+            resolveGuards.apply(transitionDescription.getGuards()),
+            resolveActions.apply(transitionDescription.getActions())
           );
         }
       }

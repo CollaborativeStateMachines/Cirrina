@@ -57,10 +57,13 @@ public final class ActionBuilder {
    * @param contextVariableDescriptions Variable classes.
    * @return Variables.
    */
-  private static List<ContextVariable> buildVariableList(List<ContextVariableDescription> contextVariableDescriptions) {
-    return contextVariableDescriptions.stream()
-        .map(c -> ContextVariableBuilder.from(c).build())
-        .toList();
+  private static List<ContextVariable> buildVariableList(
+    List<ContextVariableDescription> contextVariableDescriptions
+  ) {
+    return contextVariableDescriptions
+      .stream()
+      .map(c -> ContextVariableBuilder.from(c).build())
+      .toList();
   }
 
   /**
@@ -70,9 +73,10 @@ public final class ActionBuilder {
    * @return Events.
    */
   private static List<Event> buildEvents(List<EventDescription> eventDescriptions) {
-    return eventDescriptions.stream()
-        .map(e -> EventBuilder.from(e).build())
-        .toList();
+    return eventDescriptions
+      .stream()
+      .map(e -> EventBuilder.from(e).build())
+      .toList();
   }
 
   /**
@@ -86,7 +90,10 @@ public final class ActionBuilder {
     final Map<Expression, Action> ret = new HashMap<>();
 
     for (final var casee : cases) {
-      ret.put(ExpressionBuilder.from(casee.getCase()).build(), ActionBuilder.from(casee.getAction()).build());
+      ret.put(
+        ExpressionBuilder.from(casee.getCase()).build(),
+        ActionBuilder.from(casee.getAction()).build()
+      );
     }
 
     return ret;
@@ -106,9 +113,7 @@ public final class ActionBuilder {
         final var contextVariable = ContextVariableBuilder.from(assign.getVariable()).build();
 
         // Construct parameters
-        final var parameters = new AssignAction.Parameters(
-            contextVariable
-        );
+        final var parameters = new AssignAction.Parameters(contextVariable);
 
         // Construct the assign action
         return new AssignAction(parameters);
@@ -118,8 +123,8 @@ public final class ActionBuilder {
 
         // Construct parameters
         final var parameters = new CreateAction.Parameters(
-            contextVariable,
-            create.isIsPersistent()
+          contextVariable,
+          create.isIsPersistent()
         );
 
         // Construct the create action
@@ -134,11 +139,11 @@ public final class ActionBuilder {
 
         // Construct parameters
         final var parameters = new InvokeAction.Parameters(
-            invoke.getServiceType(),
-            invoke.isIsLocal(),
-            input,
-            done,
-            invoke.getOutput()
+          invoke.getServiceType(),
+          invoke.isIsLocal(),
+          input,
+          done,
+          invoke.getOutput()
         );
 
         // Construct the invoke action
@@ -152,10 +157,7 @@ public final class ActionBuilder {
         final var cases = buildCases(match.getCases());
 
         // Construct parameters
-        final var parameters = new MatchAction.Parameters(
-            valueExpression,
-            cases
-        );
+        final var parameters = new MatchAction.Parameters(valueExpression, cases);
 
         // Construct the match action
         return new MatchAction(parameters);
@@ -165,17 +167,16 @@ public final class ActionBuilder {
         final var event = EventBuilder.from(raise.getEvent()).build();
 
         // Construct parameters
-        final var parameters = new RaiseAction.Parameters(
-            event
-        );
+        final var parameters = new RaiseAction.Parameters(event);
 
         // Construct the raise action
         return new RaiseAction(parameters);
       }
       case TimeoutActionDescription timeout -> {
         // Acquire the action name, for timeout actions, the name is always required
-        final var name = Optional.ofNullable(timeout.getName()).orElseThrow(
-            () -> new IllegalArgumentException("Timeout action name is not provided"));
+        final var name = Optional.ofNullable(timeout.getName()).orElseThrow(() ->
+          new IllegalArgumentException("Timeout action name is not provided")
+        );
 
         // Acquire the delay expression
         final var delayExpression = ExpressionBuilder.from(timeout.getDelay()).build();
@@ -184,25 +185,21 @@ public final class ActionBuilder {
         final var timeoutAction = ActionBuilder.from(timeout.getAction()).build();
 
         // Construct parameters
-        final var parameters = new TimeoutAction.Parameters(
-            name,
-            delayExpression,
-            timeoutAction
-        );
+        final var parameters = new TimeoutAction.Parameters(name, delayExpression, timeoutAction);
 
         // Construct the timeout action
         return new TimeoutAction(parameters);
       }
       case TimeoutResetActionDescription timeoutReset -> {
         // Construct parameters
-        final var parameters = new TimeoutResetAction.Parameters(
-            timeoutReset.getAction()
-        );
+        final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getAction());
 
         // Construct the timeout reset action
         return new TimeoutResetAction(parameters);
       }
-      default -> throw new UnsupportedOperationException("Action type '%s' is not known".formatted(actionDescription.getType()));
+      default -> throw new UnsupportedOperationException(
+        "Action type '%s' is not known".formatted(actionDescription.getType())
+      );
     }
   }
 }

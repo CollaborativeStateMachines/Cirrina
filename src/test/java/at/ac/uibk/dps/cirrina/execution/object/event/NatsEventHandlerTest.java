@@ -26,7 +26,6 @@ class NatsEventHandlerTest {
     var latch = new CountDownLatch(5);
 
     var eventListener = new EventListener() {
-
       public final List<Event> events = new ArrayList<>();
 
       @Override
@@ -56,7 +55,10 @@ class NatsEventHandlerTest {
 
     assertDoesNotThrow(() -> {
       for (int i = 0; i < 5; ++i) {
-        natsEventHandler.sendEvent(Event.ensureHasEvaluatedData(e1, new Extent(localContext)), "source");
+        natsEventHandler.sendEvent(
+          Event.ensureHasEvaluatedData(e1, new Extent(localContext)),
+          "source"
+        );
       }
     });
 
@@ -82,7 +84,10 @@ class NatsEventHandlerTest {
 
     assertDoesNotThrow(() -> {
       for (int i = 0; i < 5; ++i) {
-        natsEventHandler.sendEvent(Event.ensureHasEvaluatedData(e1, new Extent(localContext)), "source");
+        natsEventHandler.sendEvent(
+          Event.ensureHasEvaluatedData(e1, new Extent(localContext)),
+          "source"
+        );
       }
     });
 
@@ -102,7 +107,6 @@ class NatsEventHandlerTest {
     var latch = new CountDownLatch(5);
 
     var eventListener = new EventListener() {
-
       public final List<Event> events = new ArrayList<>();
 
       @Override
@@ -123,7 +127,11 @@ class NatsEventHandlerTest {
 
     var contextVariableClass = new ContextVariableDescription("varName", expressionClass);
 
-    var eventClass = new EventDescription("e1", EventChannel.EXTERNAL, List.of(contextVariableClass));
+    var eventClass = new EventDescription(
+      "e1",
+      EventChannel.EXTERNAL,
+      List.of(contextVariableClass)
+    );
 
     var e1 = EventBuilder.from(eventClass).build();
 
@@ -132,7 +140,10 @@ class NatsEventHandlerTest {
 
     assertDoesNotThrow(() -> {
       for (int i = 0; i < 5; ++i) {
-        natsEventHandler.sendEvent(Event.ensureHasEvaluatedData(e1, new Extent(localContext)), "source");
+        natsEventHandler.sendEvent(
+          Event.ensureHasEvaluatedData(e1, new Extent(localContext)),
+          "source"
+        );
       }
     });
 
@@ -158,7 +169,10 @@ class NatsEventHandlerTest {
 
     assertDoesNotThrow(() -> {
       for (int i = 0; i < 5; ++i) {
-        natsEventHandler.sendEvent(Event.ensureHasEvaluatedData(e1, new Extent(localContext)), "source");
+        natsEventHandler.sendEvent(
+          Event.ensureHasEvaluatedData(e1, new Extent(localContext)),
+          "source"
+        );
       }
     });
 

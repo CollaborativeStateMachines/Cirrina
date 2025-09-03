@@ -27,14 +27,13 @@ public final class OnTransitionClass extends TransitionClass implements Exportab
    * @param eventName
    */
   OnTransitionClass(
-      String targetStateName,
-      @Nullable String elseTargetStateName,
-      List<Guard> guards,
-      List<Action> actions,
-      String eventName
+    String targetStateName,
+    @Nullable String elseTargetStateName,
+    List<Guard> guards,
+    List<Action> actions,
+    String eventName
   ) {
     super(targetStateName, elseTargetStateName, guards, actions);
-
     this.eventName = eventName;
   }
 

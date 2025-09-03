@@ -80,7 +80,13 @@ public final class Event {
    * @param channel     Event channel.
    * @param data        Event data.
    */
-  public Event(double createdTime, String id, String name, EventChannel channel, List<ContextVariable> data) {
+  public Event(
+    double createdTime,
+    String id,
+    String name,
+    EventChannel channel,
+    List<ContextVariable> data
+  ) {
     this.createdTime = createdTime;
     this.id = id;
     this.name = name;
@@ -96,15 +102,18 @@ public final class Event {
    * @return Event with evaluated event data.
    * @throws UnsupportedOperationException If a event data variable could not be evaluated.
    */
-  public static Event ensureHasEvaluatedData(Event event, Extent extent) throws UnsupportedOperationException {
+  public static Event ensureHasEvaluatedData(Event event, Extent extent)
+    throws UnsupportedOperationException {
     var data = new ArrayList<ContextVariable>();
 
     for (var variable : event.getData()) {
       try {
         data.add(variable.evaluate(extent));
       } catch (UnsupportedOperationException e) {
-        throw new UnsupportedOperationException("The event data variable '%s' could not be evaluated".formatted(
-            variable.name()), e);
+        throw new UnsupportedOperationException(
+          "The event data variable '%s' could not be evaluated".formatted(variable.name()),
+          e
+        );
       }
     }
 

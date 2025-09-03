@@ -97,20 +97,25 @@ public abstract class ContextTest {
 
       try (var executorService = Executors.newFixedThreadPool(threadCount)) {
         for (int i = 0; i < threadCount; ++i) {
-          executorService.submit(() -> assertDoesNotThrow(() -> {
-            for (int j = 0; j < iterationsPerThread; ++j) {
-              var variableName = Thread.currentThread().threadId() + "_" + j;
+          executorService.submit(() ->
+            assertDoesNotThrow(() -> {
+              for (int j = 0; j < iterationsPerThread; ++j) {
+                var variableName = Thread.currentThread().threadId() + "_" + j;
 
-              context.create(variableName, j);
-              context.get(variableName);
-            }
-          }));
+                context.create(variableName, j);
+                context.get(variableName);
+              }
+            })
+          );
         }
       }
 
       var allVariables = assertDoesNotThrow(context::getAll);
-      assertEquals(threadCount * iterationsPerThread, allVariables.size(),
-          "Incorrect number of variables in the context");
+      assertEquals(
+        threadCount * iterationsPerThread,
+        allVariables.size(),
+        "Incorrect number of variables in the context"
+      );
     }
   }
 
@@ -126,17 +131,22 @@ public abstract class ContextTest {
 
       try (var executorService = Executors.newFixedThreadPool(threadCount)) {
         for (int i = 0; i < threadCount; ++i) {
-          executorService.submit(() -> assertDoesNotThrow(() -> {
-            for (int j = 0; j < iterationsPerThread; ++j) {
-              context.assign(variableName, j);
-            }
-          }));
+          executorService.submit(() ->
+            assertDoesNotThrow(() -> {
+              for (int j = 0; j < iterationsPerThread; ++j) {
+                context.assign(variableName, j);
+              }
+            })
+          );
         }
       }
 
       var v = assertDoesNotThrow(() -> (int) context.get(variableName));
-      assertEquals(iterationsPerThread - 1, v,
-          "Incorrect final value after multi-threaded setValue");
+      assertEquals(
+        iterationsPerThread - 1,
+        v,
+        "Incorrect final value after multi-threaded setValue"
+      );
     }
   }
 }

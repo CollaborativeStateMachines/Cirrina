@@ -182,5 +182,6 @@ fabric.properties
 # PlantUML
 *.puml
 
-/docs/resources/nomad-configuration/.vagrant/
-/docs/resources/kubernetes-configuration/.vagrant/
+/package.json
+/package-lock.json
+/node_modules/

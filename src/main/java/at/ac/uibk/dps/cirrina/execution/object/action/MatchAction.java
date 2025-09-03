@@ -2,7 +2,6 @@ package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import java.util.Map;
-import java.util.Optional;
 
 public final class MatchAction extends Action {
 
@@ -23,10 +22,5 @@ public final class MatchAction extends Action {
     return casee;
   }
 
-  public record Parameters(
-      Expression value,
-      Map<Expression, Action> casee
-  ) {
-
-  }
+  public record Parameters(Expression value, Map<Expression, Action> casee) {}
 }

@@ -56,33 +56,42 @@ public class OfflineRuntime extends Runtime {
    * @return OpenTelemtry.
    */
   private static OpenTelemetry getOpenTelemetry() {
-    final var resource = Resource.getDefault().toBuilder()
-        .put(ResourceAttributes.SERVICE_NAME, SERVICE_NAME)
-        .put(ResourceAttributes.SERVICE_VERSION, BuildVersion.getBuildVersion())
-        .build();
+    final var resource = Resource.getDefault()
+      .toBuilder()
+      .put(ResourceAttributes.SERVICE_NAME, SERVICE_NAME)
+      .put(ResourceAttributes.SERVICE_VERSION, BuildVersion.getBuildVersion())
+      .build();
 
     final var sdkTracerProvider = SdkTracerProvider.builder()
-        .addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
-        .setResource(resource)
-        .build();
+      .addSpanProcessor(SimpleSpanProcessor.create(LoggingSpanExporter.create()))
+      .setResource(resource)
+      .build();
 
     final var sdkMeterProvider = SdkMeterProvider.builder()
-        .registerMetricReader(PeriodicMetricReader.builder(LoggingMetricExporter.create()).build())
-        .setResource(resource)
-        .build();
+      .registerMetricReader(PeriodicMetricReader.builder(LoggingMetricExporter.create()).build())
+      .setResource(resource)
+      .build();
 
     final var sdkLoggerProvider = SdkLoggerProvider.builder()
-        .addLogRecordProcessor(BatchLogRecordProcessor.builder(SystemOutLogRecordExporter.create()).build())
-        .setResource(resource)
-        .build();
+      .addLogRecordProcessor(
+        BatchLogRecordProcessor.builder(SystemOutLogRecordExporter.create()).build()
+      )
+      .setResource(resource)
+      .build();
 
     return OpenTelemetrySdk.builder()
-        .setTracerProvider(sdkTracerProvider)
-        .setMeterProvider(sdkMeterProvider)
-        .setLoggerProvider(sdkLoggerProvider)
-        .setPropagators(ContextPropagators.create(
-            TextMapPropagator.composite(W3CTraceContextPropagator.getInstance(), W3CBaggagePropagator.getInstance())))
-        .build();
+      .setTracerProvider(sdkTracerProvider)
+      .setMeterProvider(sdkMeterProvider)
+      .setLoggerProvider(sdkLoggerProvider)
+      .setPropagators(
+        ContextPropagators.create(
+          TextMapPropagator.composite(
+            W3CTraceContextPropagator.getInstance(),
+            W3CBaggagePropagator.getInstance()
+          )
+        )
+      )
+      .build();
   }
 
   /**
@@ -97,8 +106,8 @@ public class OfflineRuntime extends Runtime {
    * @throws UnsupportedOperationException If a state machine could not be instantiated.
    */
   public List<Id> newInstance(
-      CollaborativeStateMachineClass collaborativeStateMachineClass,
-      ServiceImplementationSelector serviceImplementationSelector
+    CollaborativeStateMachineClass collaborativeStateMachineClass,
+    ServiceImplementationSelector serviceImplementationSelector
   ) throws UnsupportedOperationException {
     return super.newInstance(collaborativeStateMachineClass, serviceImplementationSelector, -1.0);
   }

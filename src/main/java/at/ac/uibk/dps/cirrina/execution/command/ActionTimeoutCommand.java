@@ -9,7 +9,6 @@ public final class ActionTimeoutCommand extends ActionCommand {
 
   ActionTimeoutCommand(ExecutionContext executionContext, TimeoutAction timeoutAction) {
     super(executionContext);
-
     this.timeoutAction = timeoutAction;
   }
 

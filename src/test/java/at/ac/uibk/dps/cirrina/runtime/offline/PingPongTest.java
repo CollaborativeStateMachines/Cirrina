@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-
 public class PingPongTest {
 
   private static CollaborativeStateMachineClass collaborativeStateMachineClass;
@@ -29,9 +28,13 @@ public class PingPongTest {
   public static void setUp() {
     var json = DefaultDescriptions.pingPong;
 
-    var parser = new DescriptionParser<CollaborativeStateMachineDescription>(CollaborativeStateMachineDescription.class);
+    var parser = new DescriptionParser<CollaborativeStateMachineDescription>(
+      CollaborativeStateMachineDescription.class
+    );
     Assertions.assertDoesNotThrow(() -> {
-      collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(parser.parse(json)).build();
+      collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
+        parser.parse(json)
+      ).build();
     });
   }
 
@@ -63,11 +66,8 @@ public class PingPongTest {
   void testPingPongExecute() {
     Assertions.assertDoesNotThrow(() -> {
       final var mockEventHandler = new EventHandler() {
-
         @Override
-        public void close() throws Exception {
-
-        }
+        public void close() throws Exception {}
 
         @Override
         public void sendEvent(Event event, String source) {
@@ -75,32 +75,29 @@ public class PingPongTest {
         }
 
         @Override
-        public void subscribe(String topic) {
-
-        }
+        public void subscribe(String topic) {}
 
         @Override
-        public void unsubscribe(String topic) {
-
-        }
+        public void unsubscribe(String topic) {}
 
         @Override
-        public void subscribe(String source, String subject) {
-
-        }
+        public void subscribe(String source, String subject) {}
 
         @Override
-        public void unsubscribe(String source, String subject) {
-
-        }
+        public void unsubscribe(String source, String subject) {}
       };
 
       final var mockPersistentContext = getMockPersistentContext();
 
       final var runtime = new OfflineRuntime("runtime", mockEventHandler, mockPersistentContext);
-      final var serviceImplementationSelector = new OptimalServiceImplementationSelector(ArrayListMultimap.create());
+      final var serviceImplementationSelector = new OptimalServiceImplementationSelector(
+        ArrayListMultimap.create()
+      );
 
-      final var instances = runtime.newInstance(collaborativeStateMachineClass, serviceImplementationSelector);
+      final var instances = runtime.newInstance(
+        collaborativeStateMachineClass,
+        serviceImplementationSelector
+      );
 
       assertEquals(2, instances.size());
 

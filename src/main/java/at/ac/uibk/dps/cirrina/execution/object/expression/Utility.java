@@ -12,5 +12,4 @@ public final class Utility {
 
     return new byte[selectedSize];
   }
-
 }

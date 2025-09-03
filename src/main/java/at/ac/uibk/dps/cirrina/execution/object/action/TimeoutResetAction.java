@@ -1,7 +1,5 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
-import java.util.Optional;
-
 /**
  * Timeout reset action object.
  */
@@ -30,9 +28,5 @@ public final class TimeoutResetAction extends Action {
     return action;
   }
 
-  public record Parameters(
-      String action
-  ) {
-
-  }
+  public record Parameters(String action) {}
 }

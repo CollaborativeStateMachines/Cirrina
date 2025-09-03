@@ -14,7 +14,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
-
 /**
  * CirrinaRuntime, is the entry-point to the runtime system.
  */
@@ -36,8 +35,10 @@ public class CirrinaRuntime extends Cirrina {
       eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*");
 
       // Connect to persistent context system and ZooKeeper
-      try (final var persistentContext = newPersistentContext()
-          ; final var curatorFramework = newCuratorFramework()) {
+      try (
+        final var persistentContext = newPersistentContext();
+        final var curatorFramework = newCuratorFramework()
+      ) {
         // Connect to ZooKeeper
         curatorFramework.start();
 
@@ -49,12 +50,13 @@ public class CirrinaRuntime extends Cirrina {
 
         // Create the shared runtime
         final var runtime = new OnlineRuntime(
-            name,
-            eventHandler,
-            persistentContext,
-            openTelemetry,
-            curatorFramework,
-            EnvironmentVariables.INSTANCE.getDeleteJob().get());
+          name,
+          eventHandler,
+          persistentContext,
+          openTelemetry,
+          curatorFramework,
+          EnvironmentVariables.INSTANCE.getDeleteJob().get()
+        );
 
         logger.info("Starting runtime: {}", name);
 
@@ -86,7 +88,9 @@ public class CirrinaRuntime extends Cirrina {
       }
     }
 
-    throw new IllegalArgumentException("Unknown event handler '%s'".formatted(EnvironmentVariables.INSTANCE.getEventProvider().get()));
+    throw new IllegalArgumentException(
+      "Unknown event handler '%s'".formatted(EnvironmentVariables.INSTANCE.getEventProvider().get())
+    );
   }
 
   /**
@@ -113,7 +117,11 @@ public class CirrinaRuntime extends Cirrina {
       }
     }
 
-    throw new IllegalArgumentException("Unknown persistent context '%s'".formatted(EnvironmentVariables.INSTANCE.getPersistentContextProvider().get()));
+    throw new IllegalArgumentException(
+      "Unknown persistent context '%s'".formatted(
+        EnvironmentVariables.INSTANCE.getPersistentContextProvider().get()
+      )
+    );
   }
 
   /**
@@ -123,8 +131,11 @@ public class CirrinaRuntime extends Cirrina {
    * @throws IOException If the persistent context could not be constructed.
    */
   private NatsContext newNatsPersistentContext() throws IOException {
-    return new NatsContext(false, EnvironmentVariables.INSTANCE.getNatsPersistentContextUrl().get(),
-        EnvironmentVariables.INSTANCE.getNatsPersistentContextBucket().get());
+    return new NatsContext(
+      false,
+      EnvironmentVariables.INSTANCE.getNatsPersistentContextUrl().get(),
+      EnvironmentVariables.INSTANCE.getNatsPersistentContextBucket().get()
+    );
   }
 
   /**
@@ -134,11 +145,11 @@ public class CirrinaRuntime extends Cirrina {
    */
   public CuratorFramework newCuratorFramework() {
     return CuratorFrameworkFactory.builder()
-        .connectString(EnvironmentVariables.INSTANCE.getZookeeperUrl().get())
-        .retryPolicy(new ExponentialBackoffRetry(1000, 3))
-        .connectionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperTimeout().get())
-        .sessionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperSessionTimeout().get())
-        .build();
+      .connectString(EnvironmentVariables.INSTANCE.getZookeeperUrl().get())
+      .retryPolicy(new ExponentialBackoffRetry(1000, 3))
+      .connectionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperTimeout().get())
+      .sessionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperSessionTimeout().get())
+      .build();
   }
 
   /**
@@ -147,7 +158,6 @@ public class CirrinaRuntime extends Cirrina {
    * @return OpenTelemetry SDK.
    */
   protected OpenTelemetry getOpenTelemetry() {
-    return AutoConfiguredOpenTelemetrySdk.initialize()
-        .getOpenTelemetrySdk();
+    return AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
   }
 }

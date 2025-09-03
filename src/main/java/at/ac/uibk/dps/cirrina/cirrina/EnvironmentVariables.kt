@@ -8,12 +8,9 @@ enum class PersistentContextProvider {
     NATS
 }
 
-data class EnvironmentVariable<T>(
-    val name: String,
-    val required: Boolean = false,
-    val default: T? = null,
-    val mapper: (String) -> T = { it as T }
-) {
+data class EnvironmentVariable<T>(val name: String, val required: Boolean = false, val default: T? = null, val mapper: (String) -> T = {
+    it as T
+}) {
     fun get(): T? {
         val value = System.getenv(name)
         return when {
@@ -35,33 +32,37 @@ object EnvironmentVariables {
 
     // Zookeeper-specific environment variables
     val zookeeperUrl = EnvironmentVariable<String>("ZOOKEEPER_URL", default = "localhost:2181")
-    val zookeeperTimeout = EnvironmentVariable<Int>("ZOOKEEPER_TIMEOUT", default = 3000) { it.toInt() }
-    val zookeeperSessionTimeout = EnvironmentVariable<Int>("ZOOKEEPER_SESSION_TIMEOUT", default = 3000) { it.toInt() }
+    val zookeeperTimeout = EnvironmentVariable<Int>("ZOOKEEPER_TIMEOUT", default = 3000) {
+        it.toInt()
+    }
+    val zookeeperSessionTimeout = EnvironmentVariable<Int>("ZOOKEEPER_SESSION_TIMEOUT", default = 3000) {
+        it.toInt()
+    }
 
     // General environment variables
-    val eventProvider = EnvironmentVariable<EventProvider>(
-        name = "EVENT_PROVIDER",
-        required = true,
-        mapper = { value ->
-            try {
-                EventProvider.valueOf(value.uppercase())
-            } catch (e: IllegalArgumentException) {
-                throw IllegalStateException("Invalid EVENT_PROVIDER: '$value'. Allowed: ${EventProvider.entries}")
-            }
+    val eventProvider = EnvironmentVariable<EventProvider>(name = "EVENT_PROVIDER", required = true, mapper = { value ->
+        try {
+            EventProvider.valueOf(value.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalStateException("Invalid EVENT_PROVIDER: '$value'. Allowed: ${EventProvider.entries}")
         }
-    )
-    val persistentContextProvider = EnvironmentVariable<PersistentContextProvider>(
-        name = "PERSISTENT_CONTEXT_PROVIDER",
-        required = true,
-        mapper = { value ->
-            try {
-                PersistentContextProvider.valueOf(value.uppercase())
-            } catch (e: IllegalArgumentException) {
-                throw IllegalStateException("Invalid PERSISTENT_CONTEXT_PROVIDER: '$value'. Allowed: ${PersistentContextProvider.entries}")
-            }
+    })
+    val persistentContextProvider = EnvironmentVariable<PersistentContextProvider>(name = "PERSISTENT_CONTEXT_PROVIDER", required = true, mapper = { value ->
+        try {
+            PersistentContextProvider.valueOf(value.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalStateException("Invalid PERSISTENT_CONTEXT_PROVIDER: '$value'. Allowed: ${PersistentContextProvider.entries}")
         }
-    )
-    val deleteJob = EnvironmentVariable<Boolean>("DELETE_JOB", default = true) { it.toBooleanStrict() }
-    val healthPort = EnvironmentVariable<Int>("HEALTH_PORT", default = 0xCAFE) { it.toInt() }
-    val manager = EnvironmentVariable<Boolean>("MANAGER", default = false) { it.toBooleanStrict() }
+    })
+    val deleteJob = EnvironmentVariable<Boolean>("DELETE_JOB", default = true) {
+        it.toBooleanStrict()
+    }
+    val healthPort = EnvironmentVariable<Int>("HEALTH_PORT", default = 0xCAFE) {
+        it.toInt()
+    }
+    val manager = EnvironmentVariable<Boolean>("MANAGER", default = false) {
+        it.toBooleanStrict()
+    }
 }
+
+

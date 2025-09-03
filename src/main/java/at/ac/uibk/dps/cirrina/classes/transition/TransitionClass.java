@@ -54,7 +54,12 @@ public class TransitionClass extends DefaultEdge implements Exportable {
    * @param guards              List of guards.
    * @param actions             List of actions.
    */
-  TransitionClass(@Nullable String targetStateName, @Nullable String elseTargetStateName, List<Guard> guards, List<Action> actions) {
+  TransitionClass(
+    @Nullable String targetStateName,
+    @Nullable String elseTargetStateName,
+    List<Guard> guards,
+    List<Action> actions
+  ) {
     this.targetStateName = targetStateName;
     this.guards = guards;
     this.elseTargetStateName = elseTargetStateName;
@@ -159,8 +164,8 @@ public class TransitionClass extends DefaultEdge implements Exportable {
    */
   public <T> List<T> getActionsOfType(Class<T> type) {
     return Stream.of(actionGraph)
-        .map(actionGraph -> actionGraph.getActionsOfType(type))
-        .flatMap(Collection::stream)
-        .toList();
+      .map(actionGraph -> actionGraph.getActionsOfType(type))
+      .flatMap(Collection::stream)
+      .toList();
   }
 }

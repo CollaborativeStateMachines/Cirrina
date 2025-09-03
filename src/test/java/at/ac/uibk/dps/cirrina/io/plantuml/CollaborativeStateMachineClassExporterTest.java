@@ -21,9 +21,13 @@ class CollaborativeStateMachineClassExporterTest {
   static void setUp() {
     var json = DefaultDescriptions.completeNested;
 
-    var parser = new DescriptionParser<CollaborativeStateMachineDescription>(CollaborativeStateMachineDescription.class);
+    var parser = new DescriptionParser<CollaborativeStateMachineDescription>(
+      CollaborativeStateMachineDescription.class
+    );
     var csm = assertDoesNotThrow(() -> parser.parse(json));
-    completeNestedCsm = assertDoesNotThrow(() -> CollaborativeStateMachineClassBuilder.from(csm).build());
+    completeNestedCsm = assertDoesNotThrow(() ->
+      CollaborativeStateMachineClassBuilder.from(csm).build()
+    );
   }
 
   @Test
@@ -47,7 +51,10 @@ class CollaborativeStateMachineClassExporterTest {
     var out = new StringWriter();
 
     assertDoesNotThrow(() -> {
-      CollaborativeStateMachineExporter.export(out, completeNestedCsm.getStateMachineClasses().getFirst());
+      CollaborativeStateMachineExporter.export(
+        out,
+        completeNestedCsm.getStateMachineClasses().getFirst()
+      );
 
       var file = new File("test_complete_nested_sm.puml");
       assertDoesNotThrow(() -> {

@@ -2,7 +2,6 @@ package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.io.plantuml.Exportable;
 import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlVisitor;
-import java.util.Optional;
 
 /**
  * Base action, can represent any action.

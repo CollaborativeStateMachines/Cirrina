@@ -54,13 +54,17 @@ public class NatsEventHandler extends EventHandler {
       // * is used as a wildcard, for more information, refer to the NATS documentation:
       // https://docs.nats.io/using-nats/developer/receiving/wildcards
       var subject = Stream.of(event.getChannel())
-          .map(channel -> switch (channel) {
+        .map(channel ->
+          switch (channel) {
             case EXTERNAL -> String.format("%s.%s", source, event.getName());
             case GLOBAL -> String.format("%s.%s", GLOBAL_SOURCE, event.getName());
-            default -> throw new IllegalArgumentException(String.format("Unsupported channel '%s'", channel));
-          })
-          .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException("No channel specified for the event"));
+            default -> throw new IllegalArgumentException(
+              String.format("Unsupported channel '%s'", channel)
+            );
+          }
+        )
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("No channel specified for the event"));
 
       connection.publish(subject, data);
     } catch (IllegalArgumentException | IllegalStateException e) {

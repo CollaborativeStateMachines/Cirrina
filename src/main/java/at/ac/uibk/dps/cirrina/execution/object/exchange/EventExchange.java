@@ -57,9 +57,11 @@ public class EventExchange {
       final var id = proto.getId();
       final var name = proto.getName();
       final var channel = EventChannel.valueOf(proto.getChannel().name());
-      final var data = proto.getDataList().stream()
-          .map(ContextVariableExchange::fromProto)
-          .toList();
+      final var data = proto
+        .getDataList()
+        .stream()
+        .map(ContextVariableExchange::fromProto)
+        .toList();
 
       return new Event(createdTime, id, name, channel, data);
     } catch (IllegalArgumentException e) {
@@ -77,7 +79,9 @@ public class EventExchange {
    */
   public byte[] toBytes() throws IllegalStateException {
     if (event.getData().stream().anyMatch(ContextVariable::isLazy)) {
-      throw new IllegalStateException("Event '%s' has unevaluated event data".formatted(event.getName()));
+      throw new IllegalStateException(
+        "Event '%s' has unevaluated event data".formatted(event.getName())
+      );
     }
 
     return toProto().toByteArray();
@@ -95,20 +99,25 @@ public class EventExchange {
     try {
       channel = EventProtos.Event.Channel.valueOf(event.getChannel().name());
     } catch (IllegalArgumentException e) {
-      throw new UnsupportedOperationException("Event '%s' has an unrecognized channel".formatted(event.getName()), e);
+      throw new UnsupportedOperationException(
+        "Event '%s' has an unrecognized channel".formatted(event.getName()),
+        e
+      );
     }
 
-    final var dataProtos = event.getData().stream()
-        .map(event -> new ContextVariableExchange(event).toProto())
-        .toList();
+    final var dataProtos = event
+      .getData()
+      .stream()
+      .map(event -> new ContextVariableExchange(event).toProto())
+      .toList();
 
     return EventProtos.Event.newBuilder()
-        .setCreatedTime(event.getCreatedTime())
-        .setId(event.getId())
-        .setName(event.getName())
-        .setChannel(channel)
-        .addAllData(dataProtos)
-        .build();
+      .setCreatedTime(event.getCreatedTime())
+      .setId(event.getId())
+      .setName(event.getName())
+      .setChannel(channel)
+      .addAllData(dataProtos)
+      .build();
   }
 
   /**

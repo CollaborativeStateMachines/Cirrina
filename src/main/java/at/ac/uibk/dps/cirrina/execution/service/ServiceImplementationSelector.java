@@ -12,7 +12,9 @@ public abstract class ServiceImplementationSelector {
    *
    * @param serviceImplementations Known service implementations.
    */
-  public ServiceImplementationSelector(Multimap<String, ServiceImplementation> serviceImplementations) {
+  public ServiceImplementationSelector(
+    Multimap<String, ServiceImplementation> serviceImplementations
+  ) {
     this.serviceImplementations = serviceImplementations;
   }
 

@@ -19,7 +19,6 @@ public final class ActionAssignCommand extends ActionCommand {
 
   ActionAssignCommand(ExecutionContext executionContext, AssignAction assignAction) {
     super(executionContext);
-
     this.assignAction = assignAction;
   }
 
@@ -55,13 +54,16 @@ public final class ActionAssignCommand extends ActionCommand {
 
       final var gauges = executionContext.gauges();
 
-      gauges.getGauge(GAUGE_ACTION_DATA_LATENCY).set(delta,
+      gauges
+        .getGauge(GAUGE_ACTION_DATA_LATENCY)
+        .set(
+          delta,
           gauges.attributesForData(
-              "assign",
-              result.context().isLocal() ? "local" : "persistent",
-              result.size()
-          ));
-
+            "assign",
+            result.context().isLocal() ? "local" : "persistent",
+            result.size()
+          )
+        );
     } catch (IOException e) {
       logger.error("Data assignment failed: {}", e.getMessage());
     }

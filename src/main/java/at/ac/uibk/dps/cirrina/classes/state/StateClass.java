@@ -103,10 +103,22 @@ public final class StateClass implements Exportable {
     this.initial = childParameters.initial || baseState.initial;
     this.terminal = childParameters.terminal || baseState.terminal;
 
-    this.entryActionGraph = ActionGraphBuilder.extend(new ActionGraph(baseState.entryActionGraph), childParameters.entryActions).build();
-    this.exitActionGraph = ActionGraphBuilder.extend(new ActionGraph(baseState.exitActionGraph), childParameters.exitActions).build();
-    this.whileActionGraph = ActionGraphBuilder.extend(new ActionGraph(baseState.whileActionGraph), childParameters.whileActions).build();
-    this.afterActionGraph = ActionGraphBuilder.extend(new ActionGraph(baseState.afterActionGraph), childParameters.afterActions).build();
+    this.entryActionGraph = ActionGraphBuilder.extend(
+      new ActionGraph(baseState.entryActionGraph),
+      childParameters.entryActions
+    ).build();
+    this.exitActionGraph = ActionGraphBuilder.extend(
+      new ActionGraph(baseState.exitActionGraph),
+      childParameters.exitActions
+    ).build();
+    this.whileActionGraph = ActionGraphBuilder.extend(
+      new ActionGraph(baseState.whileActionGraph),
+      childParameters.whileActions
+    ).build();
+    this.afterActionGraph = ActionGraphBuilder.extend(
+      new ActionGraph(baseState.afterActionGraph),
+      childParameters.afterActions
+    ).build();
   }
 
   /**
@@ -219,9 +231,9 @@ public final class StateClass implements Exportable {
    */
   public <T> List<T> getActionsOfType(Class<T> type) {
     return Stream.of(entryActionGraph, exitActionGraph, whileActionGraph, afterActionGraph)
-        .map(actionGraph -> actionGraph.getActionsOfType(type))
-        .flatMap(Collection::stream)
-        .toList();
+      .map(actionGraph -> actionGraph.getActionsOfType(type))
+      .flatMap(Collection::stream)
+      .toList();
   }
 
   /**
@@ -238,18 +250,16 @@ public final class StateClass implements Exportable {
    * @param afterActions         After actions.
    */
   record BaseParameters(
-      UUID parentStateMachineId,
-      String name,
-      @Nullable ContextDescription localContextClass,
-      boolean initial,
-      boolean terminal,
-      List<Action> entryActions,
-      List<Action> exitActions,
-      List<Action> whileActions,
-      List<Action> afterActions
-  ) {
-
-  }
+    UUID parentStateMachineId,
+    String name,
+    @Nullable ContextDescription localContextClass,
+    boolean initial,
+    boolean terminal,
+    List<Action> entryActions,
+    List<Action> exitActions,
+    List<Action> whileActions,
+    List<Action> afterActions
+  ) {}
 
   /**
    * Child state parameters.
@@ -264,14 +274,13 @@ public final class StateClass implements Exportable {
    * @param baseStateClass       Base state class.
    */
   record ChildParameters(
-      UUID parentStateMachineId,
-      boolean initial,
-      boolean terminal,
-      List<Action> entryActions,
-      List<Action> exitActions,
-      List<Action> whileActions,
-      List<Action> afterActions,
-      StateClass baseStateClass) {
-
-  }
+    UUID parentStateMachineId,
+    boolean initial,
+    boolean terminal,
+    List<Action> entryActions,
+    List<Action> exitActions,
+    List<Action> whileActions,
+    List<Action> afterActions,
+    StateClass baseStateClass
+  ) {}
 }

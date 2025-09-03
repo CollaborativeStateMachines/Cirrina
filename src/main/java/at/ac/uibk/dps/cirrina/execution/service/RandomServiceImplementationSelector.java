@@ -13,7 +13,9 @@ public class RandomServiceImplementationSelector extends ServiceImplementationSe
    *
    * @param serviceImplementations Known service implementations.
    */
-  public RandomServiceImplementationSelector(Multimap<String, ServiceImplementation> serviceImplementations) {
+  public RandomServiceImplementationSelector(
+    Multimap<String, ServiceImplementation> serviceImplementations
+  ) {
     super(serviceImplementations);
   }
 
@@ -26,16 +28,19 @@ public class RandomServiceImplementationSelector extends ServiceImplementationSe
    */
   @Override
   public Optional<ServiceImplementation> select(String name, boolean local) {
-    final var serviceImplementationsWithName = new ArrayList<ServiceImplementation>(local ?
-        Multimaps.filterValues(serviceImplementations, ServiceImplementation::isLocal).get(name) :
-        serviceImplementations.get(name));
+    final var serviceImplementationsWithName = new ArrayList<ServiceImplementation>(
+      local
+        ? Multimaps.filterValues(serviceImplementations, ServiceImplementation::isLocal).get(name)
+        : serviceImplementations.get(name)
+    );
 
     if (serviceImplementationsWithName.isEmpty()) {
       return Optional.empty();
     }
 
     ServiceImplementation randomImplementation = serviceImplementationsWithName.get(
-        new Random().nextInt(serviceImplementationsWithName.size()));
+      new Random().nextInt(serviceImplementationsWithName.size())
+    );
 
     return Optional.of(randomImplementation);
   }

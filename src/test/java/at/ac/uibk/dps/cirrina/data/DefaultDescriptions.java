@@ -21,7 +21,11 @@ public class DefaultDescriptions {
   public static final String jobDescription = loadResource("jobDescription.pkl");
 
   private static String loadResource(String fileName) {
-    try (InputStream inputStream = DefaultDescriptions.class.getResourceAsStream("/at/ac/uibk/dps/cirrina/data/" + fileName)) {
+    try (
+      InputStream inputStream = DefaultDescriptions.class.getResourceAsStream(
+        "/at/ac/uibk/dps/cirrina/data/" + fileName
+      )
+    ) {
       if (inputStream == null) {
         throw new IOException("Resource not found: " + fileName);
       }
@@ -31,7 +35,6 @@ public class DefaultDescriptions {
       throw new RuntimeException("Failed to load resource: " + fileName, e);
     }
   }
-
 
   @Test
   void testLoadResource() {

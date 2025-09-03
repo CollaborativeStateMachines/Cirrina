@@ -24,20 +24,17 @@ public class Counters {
 
   public Attributes attributesForEvent(String eventChannel) {
     return Attributes.builder()
-        .put(COUNTER_ATTR_EVENT_CHANNEL, eventChannel)
-        .put(ATTR_STATE_MACHINE_ID, stateMachineId)
-        .build();
+      .put(COUNTER_ATTR_EVENT_CHANNEL, eventChannel)
+      .put(ATTR_STATE_MACHINE_ID, stateMachineId)
+      .build();
   }
 
   public Attributes attributesForInvocation() {
-    return Attributes.builder()
-        .put(ATTR_STATE_MACHINE_ID, stateMachineId)
-        .build();
+    return Attributes.builder().put(ATTR_STATE_MACHINE_ID, stateMachineId).build();
   }
 
   public Attributes attributesForInstances() {
-    return Attributes.builder()
-        .build();
+    return Attributes.builder().build();
   }
 
   public void addCounter(String name) {

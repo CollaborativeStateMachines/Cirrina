@@ -30,11 +30,13 @@ public class JexlExpression extends Expression {
    */
   JexlExpression(String source) throws UnsupportedOperationException {
     super(source);
-
     try {
       this.jexlScript = JEXL_ENGINE.createScript(source);
     } catch (Exception e) {
-      throw new UnsupportedOperationException("The JEXL expression '%s' could not be parsed".formatted(source), e);
+      throw new UnsupportedOperationException(
+        "The JEXL expression '%s' could not be parsed".formatted(source),
+        e
+      );
     }
   }
 
@@ -49,16 +51,14 @@ public class JexlExpression extends Expression {
     namespaces.put("math", Math.class); // Enable math methods, e.g. math:sin(x), math:min(x, y), math:random()
     namespaces.put("utility", Utility.class);
 
-    var features = new JexlFeatures()
-        .sideEffectGlobal(false)
-        .sideEffect(true);
+    var features = new JexlFeatures().sideEffectGlobal(false).sideEffect(true);
 
     return new JexlBuilder()
-        .features(features)
-        .cache(CACHE_SIZE)
-        .namespaces(namespaces)
-        .permissions(JexlPermissions.UNRESTRICTED)
-        .create();
+      .features(features)
+      .cache(CACHE_SIZE)
+      .namespaces(namespaces)
+      .permissions(JexlPermissions.UNRESTRICTED)
+      .create();
   }
 
   /**
@@ -74,7 +74,9 @@ public class JexlExpression extends Expression {
       return jexlScript.execute(new ExtentJexlContext(extent));
     } catch (Exception e) {
       throw new UnsupportedOperationException(
-          "The JEXL expression '%s' could not be executed".formatted(jexlScript.getSourceText()), e);
+        "The JEXL expression '%s' could not be executed".formatted(jexlScript.getSourceText()),
+        e
+      );
     }
   }
 
@@ -84,16 +86,17 @@ public class JexlExpression extends Expression {
    * @see Extent
    */
   private record ExtentJexlContext(Extent extent) implements JexlContext {
-
     @Override
     public Object get(String key) {
-      return extent.resolve(key)
-          .orElseThrow(() -> new NoSuchElementException(String.format("Variable not found: %s", key)));
+      return extent
+        .resolve(key)
+        .orElseThrow(() ->
+          new NoSuchElementException(String.format("Variable not found: %s", key))
+        );
     }
 
     @Override
-    public void set(String key, Object value) {
-    }
+    public void set(String key, Object value) {}
 
     @Override
     public boolean has(String key) {

@@ -41,7 +41,6 @@ public final class NatsContext extends Context implements AutoCloseable {
    */
   public NatsContext(boolean isLocal, String natsUrl, String bucketName) throws IOException {
     super(isLocal);
-
     // Attempt to connect to the NATS server
     try {
       connection = Nats.connect(natsUrl);
@@ -65,7 +64,9 @@ public final class NatsContext extends Context implements AutoCloseable {
       // Retrieve the bucket
       keyValue = connection.keyValue(bucketName);
     } catch (IOException | JetStreamApiException e) {
-      throw new IOException("Failed to create the persistent context bucket: %s".formatted(e.getMessage()));
+      throw new IOException(
+        "Failed to create the persistent context bucket: %s".formatted(e.getMessage())
+      );
     }
   }
 

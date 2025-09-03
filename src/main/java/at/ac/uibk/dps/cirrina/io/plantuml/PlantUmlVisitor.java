@@ -31,29 +31,36 @@ public class PlantUmlVisitor {
   public void visit(StateMachineClass stateMachineClass) {
     plantUml.append("state ").append(stateMachineClass.getName()).append(" {\n");
 
-    stateMachineClass.vertexSet().forEach(
-        s -> {
-          plantUml.append("    ");
-          s.accept(this);
-          plantUml.append("\n");
-        });
-    stateMachineClass.edgeSet().forEach(t -> {
-      plantUml.append("    ");
-      t.accept(this);
-      plantUml.append(transitionBuilder);
-      plantUml.append("\n");
-    });
+    stateMachineClass
+      .vertexSet()
+      .forEach(s -> {
+        plantUml.append("    ");
+        s.accept(this);
+        plantUml.append("\n");
+      });
+    stateMachineClass
+      .edgeSet()
+      .forEach(t -> {
+        plantUml.append("    ");
+        t.accept(this);
+        plantUml.append(transitionBuilder);
+        plantUml.append("\n");
+      });
 
-    stateMachineClass.getNestedStateMachineClasses().forEach(sm -> {
-      sm.accept(this);
-      plantUml.append("\n");
-    });
+    stateMachineClass
+      .getNestedStateMachineClasses()
+      .forEach(sm -> {
+        sm.accept(this);
+        plantUml.append("\n");
+      });
 
     plantUml.append("}\n");
   }
 
   public void visit(StateClass stateClass) {
-    plantUml.append(String.format("state \"%s\" as %s%n    ", stateClass.getName(), getStateId(stateClass)));
+    plantUml.append(
+      String.format("state \"%s\" as %s%n    ", stateClass.getName(), getStateId(stateClass))
+    );
 
     if (stateClass.isInitial()) {
       plantUml.append(String.format("[*] --> %s%n    ", getStateId(stateClass)));
@@ -63,22 +70,40 @@ public class PlantUmlVisitor {
     }
     if (!stateClass.getEntryActionGraph().getActions().isEmpty()) {
       actionBuilder = new StringBuilder();
-      stateClass.getEntryActionGraph().getActions().forEach(action -> {
-        action.accept(this);
-        actionBuilder.append("; ");
-      });
+      stateClass
+        .getEntryActionGraph()
+        .getActions()
+        .forEach(action -> {
+          action.accept(this);
+          actionBuilder.append("; ");
+        });
       plantUml.append(
-          String.format("state \"%s\" as %s : entry / %s%n    ", stateClass.getName(), getStateId(stateClass), actionBuilder));
+        String.format(
+          "state \"%s\" as %s : entry / %s%n    ",
+          stateClass.getName(),
+          getStateId(stateClass),
+          actionBuilder
+        )
+      );
     }
 
     if (!stateClass.getExitActionGraph().getActions().isEmpty()) {
       actionBuilder = new StringBuilder();
-      stateClass.getExitActionGraph().getActions().forEach(action -> {
-        action.accept(this);
-        actionBuilder.append("; ");
-      });
+      stateClass
+        .getExitActionGraph()
+        .getActions()
+        .forEach(action -> {
+          action.accept(this);
+          actionBuilder.append("; ");
+        });
       plantUml.append(
-          String.format("state \"%s\" as %s : exit / %s%n    ", stateClass.getName(), getStateId(stateClass), actionBuilder));
+        String.format(
+          "state \"%s\" as %s : exit / %s%n    ",
+          stateClass.getName(),
+          getStateId(stateClass),
+          actionBuilder
+        )
+      );
     }
 
     if (!stateClass.getWhileActionGraph().getActions().isEmpty()) {
@@ -89,26 +114,60 @@ public class PlantUmlVisitor {
         actionBuilder.append("; ");
       });
       plantUml.append(
-          String.format("state \"%s\" as %s : while / %s%n    ", stateClass.getName(), getStateId(stateClass), actionBuilder));
+        String.format(
+          "state \"%s\" as %s : while / %s%n    ",
+          stateClass.getName(),
+          getStateId(stateClass),
+          actionBuilder
+        )
+      );
     }
   }
 
   public void visit(Action action) {
     switch (action) {
-      case AssignAction a -> actionBuilder.append(String.format("<color:%s>%s{%s = %s}()</color>", ActionColors.getActionColor(a),
-          "Assign", a.getVariable().name(), a.getVariable().value()));
-      case CreateAction a -> actionBuilder.append(String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a),
-          "Create"));
-      case InvokeAction a -> actionBuilder.append(String.format("<color:%s>%s{%s}(%s)</color>", ActionColors.getActionColor(a),
-          "Invoke", a.getServiceType(), a.getInput()));
-      case MatchAction a -> actionBuilder.append(String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a),
-          "Match"));
-      case RaiseAction a -> actionBuilder.append(String.format("<color:%s>%s{%s}()</color>", ActionColors.getActionColor(a),
-          "Raise", a.getEvent()));
-      case TimeoutAction a -> actionBuilder.append(String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a),
-          "Timeout{%s}".formatted(a.getName())));
-      case TimeoutResetAction a -> actionBuilder.append(String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a),
-          "TimeoutReset"));
+      case AssignAction a -> actionBuilder.append(
+        String.format(
+          "<color:%s>%s{%s = %s}()</color>",
+          ActionColors.getActionColor(a),
+          "Assign",
+          a.getVariable().name(),
+          a.getVariable().value()
+        )
+      );
+      case CreateAction a -> actionBuilder.append(
+        String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a), "Create")
+      );
+      case InvokeAction a -> actionBuilder.append(
+        String.format(
+          "<color:%s>%s{%s}(%s)</color>",
+          ActionColors.getActionColor(a),
+          "Invoke",
+          a.getServiceType(),
+          a.getInput()
+        )
+      );
+      case MatchAction a -> actionBuilder.append(
+        String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a), "Match")
+      );
+      case RaiseAction a -> actionBuilder.append(
+        String.format(
+          "<color:%s>%s{%s}()</color>",
+          ActionColors.getActionColor(a),
+          "Raise",
+          a.getEvent()
+        )
+      );
+      case TimeoutAction a -> actionBuilder.append(
+        String.format(
+          "<color:%s>%s()</color>",
+          ActionColors.getActionColor(a),
+          "Timeout{%s}".formatted(a.getName())
+        )
+      );
+      case TimeoutResetAction a -> actionBuilder.append(
+        String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a), "TimeoutReset")
+      );
       default -> throw new IllegalStateException("Unexpected action");
     }
   }
@@ -122,7 +181,10 @@ public class PlantUmlVisitor {
     }
   }
 
-  protected StringBuilder buildPlantUml(TransitionClass transitionClass, Optional<String> eventName) {
+  protected StringBuilder buildPlantUml(
+    TransitionClass transitionClass,
+    Optional<String> eventName
+  ) {
     var descriptionBuilder = new StringBuilder();
 
     var guardBuilder = new StringBuilder();
@@ -137,10 +199,13 @@ public class PlantUmlVisitor {
     actionBuilder = new StringBuilder();
     if (!transitionClass.getActionGraph().getActions().isEmpty()) {
       actionBuilder.append("\\n/ ");
-      transitionClass.getActionGraph().getActions().forEach(action -> {
-        visit(action);
-        actionBuilder.append("; ");
-      });
+      transitionClass
+        .getActionGraph()
+        .getActions()
+        .forEach(action -> {
+          visit(action);
+          actionBuilder.append("; ");
+        });
     }
 
     var eventNameBuilder = new StringBuilder();
@@ -152,10 +217,18 @@ public class PlantUmlVisitor {
     var sourceStateId = getStateId(transitionClass.getSource());
     var targetStateId = getStateId(transitionClass.getTarget());
 
-    descriptionBuilder.append(sourceStateId).append(getArrow(transitionClass)).append(targetStateId);
+    descriptionBuilder
+      .append(sourceStateId)
+      .append(getArrow(transitionClass))
+      .append(targetStateId);
     if (!guardBuilder.isEmpty()) {
-      descriptionBuilder.append(" : ").append(eventNameBuilder).append("\\n[").append(guardBuilder).append("]")
-          .append(actionBuilder);
+      descriptionBuilder
+        .append(" : ")
+        .append(eventNameBuilder)
+        .append("\\n[")
+        .append(guardBuilder)
+        .append("]")
+        .append(actionBuilder);
     } else if (!eventNameBuilder.isEmpty() || !actionBuilder.isEmpty()) {
       descriptionBuilder.append(" : ").append(eventNameBuilder).append(actionBuilder);
     }
@@ -174,6 +247,10 @@ public class PlantUmlVisitor {
   }
 
   private String getStateId(StateClass stateClass) {
-    return stateClass.getParentStateMachineClassId().toString().replace("-", "_") + "_" + stateClass.getName();
+    return (
+      stateClass.getParentStateMachineClassId().toString().replace("-", "_") +
+      "_" +
+      stateClass.getName()
+    );
   }
 }

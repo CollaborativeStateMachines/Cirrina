@@ -33,8 +33,8 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * HTTP client.
    */
   private final HttpClient httpClient = HttpClient.newBuilder()
-      .executor(Executors.newCachedThreadPool())
-      .build();
+    .executor(Executors.newCachedThreadPool())
+    .build();
 
   /**
    * Handle executor.
@@ -73,7 +73,6 @@ public class HttpServiceImplementation extends ServiceImplementation {
    */
   public HttpServiceImplementation(Parameters parameters) {
     super(parameters.name, parameters.cost, parameters.local);
-
     this.scheme = parameters.scheme;
     this.host = parameters.host;
     this.port = (int) parameters.port;
@@ -107,12 +106,14 @@ public class HttpServiceImplementation extends ServiceImplementation {
 
       // Otherwise we expect a serialized collection of context variables
       return ContextVariableProtos.ContextVariables.parseFrom(payload)
-          .getDataList().stream()
-          .map(ContextVariableExchange::fromProto)
-          .toList();
+        .getDataList()
+        .stream()
+        .map(ContextVariableExchange::fromProto)
+        .toList();
     } catch (InvalidProtocolBufferException e) {
       throw new CompletionException(
-          new IOException("Unexpected HTTP service invocation value type"));
+        new IOException("Unexpected HTTP service invocation value type")
+      );
     }
   }
 
@@ -128,15 +129,22 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * @throws UnsupportedOperationException If the invocation failed.
    */
   @Override
-  public CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id) throws UnsupportedOperationException {
+  public CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id)
+    throws UnsupportedOperationException {
     try {
       if (input.stream().anyMatch(ContextVariable::isLazy)) {
-        throw new UnsupportedOperationException("All variables need to be evaluated before service input can be converted to bytes");
+        throw new UnsupportedOperationException(
+          "All variables need to be evaluated before service input can be converted to bytes"
+        );
       }
 
       // Serialize the data
-      final byte[] payload = input.isEmpty() ? new byte[0] : ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(input.stream()
+      final byte[] payload = input.isEmpty()
+        ? new byte[0]
+        : ContextVariableProtos.ContextVariables.newBuilder()
+          .addAllData(
+            input
+              .stream()
               .map(contextVariable -> new ContextVariableExchange(contextVariable).toProto())
               .toList()
           )
@@ -147,14 +155,15 @@ public class HttpServiceImplementation extends ServiceImplementation {
       final var uri = new URI(scheme, null, host, port, endPoint, null, null);
 
       final var request = HttpRequest.newBuilder()
-          .version(Version.HTTP_1_1)
-          .header("Cirrina-Sender-ID", id)
-          .method(method.toString(), BodyPublishers.ofByteArray(payload))
-          .uri(uri)
-          .build();
+        .version(Version.HTTP_1_1)
+        .header("Cirrina-Sender-ID", id)
+        .method(method.toString(), BodyPublishers.ofByteArray(payload))
+        .uri(uri)
+        .build();
 
-      return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
-          .thenApplyAsync(HttpServiceImplementation::handleResponse, handleExecutor);
+      return httpClient
+        .sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
+        .thenApplyAsync(HttpServiceImplementation::handleResponse, handleExecutor);
     } catch (URISyntaxException | UnsupportedOperationException e) {
       throw new UnsupportedOperationException("Failed to perform HTTP service invocation", e);
     }
@@ -187,15 +196,13 @@ public class HttpServiceImplementation extends ServiceImplementation {
   }
 
   public record Parameters(
-      String name,
-      double cost,
-      boolean local,
-      String scheme,
-      String host,
-      long port,
-      String endPoint,
-      Method method
-  ) {
-
-  }
+    String name,
+    double cost,
+    boolean local,
+    String scheme,
+    String host,
+    long port,
+    String endPoint,
+    Method method
+  ) {}
 }
