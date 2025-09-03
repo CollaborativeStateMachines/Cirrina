@@ -4,7 +4,6 @@ Cirrina makes use of the following dependencies:
 
 | **Name**                     | **License**                                                                                                    | **URL**                                                  |
 |------------------------------|----------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
-| JCommander                   | [Apache License 2.0](https://github.com/cbeust/jcommander?tab=Apache-2.0-1-ov-file#readme)                     | https://github.com/cbeust/jcommander                     |
 | consul-api                   | [Apache License 2.0](https://github.com/Ecwid/consul-api?tab=Apache-2.0-1-ov-file#readme)                      | https://github.com/Ecwid/consul-api                      |
 | Jackson                      | [Apache License 2.0](https://github.com/FasterXML/jackson-core/wiki)                                           | https://github.com/FasterXML/jackson                     |
 | Guava                        | [Apache License 2.0](https://github.com/google/guava?tab=Apache-2.0-1-ov-file#readme)                          | https://github.com/google/guava                          |
