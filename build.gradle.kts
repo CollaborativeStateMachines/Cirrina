@@ -72,7 +72,7 @@ dependencies {
 
     implementation("com.google.guava:guava:33.0.0-jre")
 
-    implementation("com.google.protobuf:protobuf-java:4.27.5")
+    implementation("com.google.protobuf:protobuf-java:4.32.0")
 
     implementation("info.schnatterer.moby-names-generator:moby-names-generator:20.10.1-r0")
 
