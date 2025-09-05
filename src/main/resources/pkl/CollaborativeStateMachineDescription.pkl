@@ -237,7 +237,7 @@ abstract class ActionDescription {
     type: Type
 }
 
-typealias Type = "invoke" | "create" | "assign" | "lock" | "unlock" | "raise" | "timeout" | "timeoutReset" | "match"
+typealias Type = "invoke" | "create" | "assign" | "lock" | "unlock" | "raise" | "timeout" | "timeoutReset" | "match" | "spawn"
 
 /// Assign action construct. Represents an assignment of a value to a context variable.
 class AssignActionDescription extends ActionDescription {
@@ -291,6 +291,13 @@ class RaiseActionDescription extends ActionDescription {
     type: Type = "raise"
     /// The event to be raised.
     event: EventDescription
+}
+
+/// Spawn action construct. Represents the creation of a state machine.
+class SpawnActionDescription extends ActionDescription {
+    type: Type = "spawn"
+    /// The state machine to be spawned.
+    stateMachine: StateMachineDescription
 }
 
 /// Timeout action construct. Represents a timeout action.

@@ -14,6 +14,8 @@ public class ContextBuilder {
 
   private Context context;
 
+  private Extent extent;
+
   /**
    * Initializes this context builder object.
    */
@@ -78,6 +80,11 @@ public class ContextBuilder {
     return this;
   }
 
+  public ContextBuilder withExtent(Extent extent) {
+    this.extent = extent;
+    return this;
+  }
+
   /**
    * Builds the current context.
    *
@@ -97,9 +104,9 @@ public class ContextBuilder {
         var name = contextVariable.getName();
 
         // Acquire the variable value
-        // We pass an empty extent here, I don't think that it makes too much sense to provide anything other than an empty extent here,
-        // because I currently don't see a use case for looking up variables in scope while constructing a context
-        var value = expression.execute(new Extent());
+        // We pass the provided extent which will often be null
+        // It may not be null, if this new context belongs to a state machine that gets created by a SpawnAction command
+        var value = expression.execute(extent);
 
         // Create the variable
         context.create(name, value);

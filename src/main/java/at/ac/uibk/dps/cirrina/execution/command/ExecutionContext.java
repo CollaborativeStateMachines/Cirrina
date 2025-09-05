@@ -4,6 +4,7 @@ import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachineEventHandler;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector;
+import at.ac.uibk.dps.cirrina.runtime.Runtime;
 import at.ac.uibk.dps.cirrina.tracing.Counters;
 import at.ac.uibk.dps.cirrina.tracing.Gauges;
 import jakarta.annotation.Nullable;
@@ -17,7 +18,8 @@ public record ExecutionContext(
   EventListener eventListener,
   Gauges gauges,
   Counters counters,
-  boolean isWhile
+  boolean isWhile,
+  Runtime runtime
 ) {
   public ExecutionContext {
     Objects.requireNonNull(scope, "Scope cannot be null");
@@ -40,7 +42,8 @@ public record ExecutionContext(
       eventListener,
       gauges,
       counters,
-      isWhile
+      isWhile,
+      runtime
     );
   }
 
@@ -53,7 +56,8 @@ public record ExecutionContext(
       eventListener,
       gauges,
       counters,
-      isWhile
+      isWhile,
+      runtime
     );
   }
 }

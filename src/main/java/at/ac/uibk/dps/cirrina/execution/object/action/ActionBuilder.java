@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
+import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ActionDescription;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.AssignActionDescription;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextVariableDescription;
@@ -9,6 +10,7 @@ import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescript
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.MatchActionDescription;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.MatchCaseDescription;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.RaiseActionDescription;
+import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.SpawnActionDescription;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.TimeoutActionDescription;
 import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.TimeoutResetActionDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
@@ -196,6 +198,13 @@ public final class ActionBuilder {
 
         // Construct the timeout reset action
         return new TimeoutResetAction(parameters);
+      }
+      case SpawnActionDescription spawn -> {
+        final var stateMachine = StateMachineClassBuilder.from(spawn.getStateMachine()).build();
+        // Construct parameters
+        final var parameters = new SpawnAction.Parameters(stateMachine);
+
+        return new SpawnAction(parameters);
       }
       default -> throw new UnsupportedOperationException(
         "Action type '%s' is not known".formatted(actionDescription.getType())

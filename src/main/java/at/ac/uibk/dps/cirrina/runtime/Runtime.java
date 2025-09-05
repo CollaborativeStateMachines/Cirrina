@@ -129,6 +129,13 @@ public abstract class Runtime implements EventListener {
       .findFirst();
   }
 
+  public Optional<StateMachine> findInstance(String stateMachineId) {
+    return stateMachines
+      .stream()
+      .filter(stateMachineInstance -> stateMachineInstance.getId().equals(stateMachineId))
+      .findFirst();
+  }
+
   /**
    * Instantiates all state machines of a collaborative state machine.
    * <p>
@@ -150,7 +157,8 @@ public abstract class Runtime implements EventListener {
       collaborativeStateMachineClass.getStateMachineClasses(),
       serviceImplementationSelector,
       null,
-      endTime
+      endTime,
+      null
     );
   }
 
@@ -164,11 +172,12 @@ public abstract class Runtime implements EventListener {
    * @return Instance IDs.
    * @throws UnsupportedOperationException If a state machine could not be instantiated.
    */
-  protected List<Id> newInstances(
+  public List<Id> newInstances(
     List<StateMachineClass> stateMachineClasses,
     ServiceImplementationSelector serviceImplementationSelector,
     @Nullable Id parentInstanceId,
-    double endTime
+    double endTime,
+    @Nullable Extent extent
   ) throws UnsupportedOperationException {
     var instanceIds = new ArrayList<Id>();
 
@@ -180,7 +189,8 @@ public abstract class Runtime implements EventListener {
           stateMachine,
           serviceImplementationSelector,
           parentInstanceId,
-          endTime
+          endTime,
+          extent
         );
         instanceIds.add(instanceId);
 
@@ -193,7 +203,8 @@ public abstract class Runtime implements EventListener {
               stateMachine.getNestedStateMachineClasses(),
               serviceImplementationSelector,
               instanceId,
-              endTime
+              endTime,
+              extent
             )
           );
         }
@@ -228,7 +239,8 @@ public abstract class Runtime implements EventListener {
     StateMachineClass stateMachineClass,
     ServiceImplementationSelector serviceImplementationSelector,
     @Nullable Id parentInstanceId,
-    double endTime
+    double endTime,
+    @Nullable Extent extent
   ) throws UnsupportedOperationException {
     if (stateMachineInstanceExecutorService.isShutdown()) {
       throw new UnsupportedOperationException("Runtime is shut down");
@@ -263,7 +275,8 @@ public abstract class Runtime implements EventListener {
       serviceImplementationSelector,
       openTelemetry,
       parentInstance,
-      endTime
+      endTime,
+      extent
     );
 
     // Add event listener to the event handler

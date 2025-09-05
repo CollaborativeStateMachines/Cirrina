@@ -3,6 +3,7 @@ package at.ac.uibk.dps.cirrina.runtime;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
 import at.ac.uibk.dps.cirrina.csml.description.JobDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.Context;
+import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventHandler;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector;
@@ -172,7 +173,8 @@ public class OnlineRuntime extends Runtime implements JobListener {
       List.of(stateMachine),
       serviceImplementationSelector,
       null,
-      jobDescription.getEndTime()
+      jobDescription.getEndTime(),
+      new Extent()
     );
 
     // Assign local data from the job description if the job description contains any local data. Assign to the parent and nested state machines

@@ -138,7 +138,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     ServiceImplementationSelector serviceImplementationSelector,
     OpenTelemetry openTelemetry,
     @Nullable StateMachine parentStateMachine,
-    double endTimeInMs
+    double endTimeInMs,
+    @Nullable Extent extent
   ) {
     this.parentRuntime = parentRuntime;
     this.stateMachineClass = stateMachineClass;
@@ -158,6 +159,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         .map(ContextBuilder::from)
         .orElseGet(ContextBuilder::from)
         .inMemoryContext(true)
+        .withExtent(extent != null ? extent : new Extent())
         .build();
     } catch (IOException ignored) {
       throw new IllegalStateException(); // This should not happen
@@ -281,7 +283,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         this, // Event listener
         gauges, // Gauges
         counters, // Counters
-        false // Is while?
+        false, // Is while?
+        parentRuntime // Runtime
       )
     );
   }
@@ -308,7 +311,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         this, // Event listener
         gauges, // Gauges
         counters, // Counters
-        false // Is while?
+        false, // Is while?
+        parentRuntime // Runtime
       )
     );
   }

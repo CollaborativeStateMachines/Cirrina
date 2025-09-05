@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.execution.object.action.CreateAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
+import at.ac.uibk.dps.cirrina.execution.object.action.SpawnAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
 
 public class CommandFactory {
@@ -35,6 +36,9 @@ public class CommandFactory {
       }
       case TimeoutAction timeoutAction -> {
         return new ActionTimeoutCommand(executionContext, timeoutAction);
+      }
+      case SpawnAction spawnAction -> {
+        return new ActionSpawnCommand(executionContext, spawnAction);
       }
       default -> throw new IllegalArgumentException("Unexpected action");
     }
