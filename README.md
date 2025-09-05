@@ -3,6 +3,7 @@
 <div align="center">
     <img src="logo.svg" alt="Logo" width="500"/>
 </div>
+<br>
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.md) [![Build](https://github.com/UIBK-DPS-DC/Cirrina/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/UIBK-DPS-DC/Cirrina/actions/workflows/build.yml?event=push)
 
