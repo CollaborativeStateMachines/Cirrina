@@ -7,11 +7,11 @@ import org.junit.jupiter.api.Test;
 
 public class DefaultDescriptions {
 
-  public static final String empty = "";
+  public static final String empty = "{}";
 
-  public static final String complete = ""; // TODO: Fix me
+  public static final String complete = loadResource("complete.pkl"); // TODO: Fix me
 
-  public static final String completeNested = ""; // TODO: Fix me
+  public static final String completeNested = loadResource("completeNested.pkl"); // TODO: Fix me
 
   public static final String invoke = loadResource("invoke.pkl");
 
