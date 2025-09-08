@@ -1,1 +1,92 @@
-import "modulepath:/pkl/CollaborativeStateMachineDescription.pkl" as Csml
+amends "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/Csml.pkl"
+
+name = "complete"
+version = "3.0"
+stateMachines {
+  new {
+    name = "stateMachine1"
+    states {
+      new {
+        name = "state1"
+        initial = true
+        entry {
+          action1
+          new Csml.RaiseActionDescription {
+            event {
+              name = "e1"
+              channel = "internal"
+            }
+          }
+          new Csml.InvokeActionDescription {
+            serviceType = "serviceTypeName"
+            isLocal = true
+            input {
+              new {
+                name = "inV1"
+                value = "5"
+              }
+              new {
+                name = "inV2"
+                value = "6"
+              }
+            }
+            done {
+              new {
+                name = "e1"
+                channel = "internal"
+              }
+              new {
+                name = "e2"
+                channel = "internal"
+              }
+            }
+          }
+        }
+        on {
+          new Csml.OnTransitionDescription {
+            target = "state2"
+            event = "e1"
+          }
+        }
+      }
+      new {
+        name = "state2"
+        entry {
+          new Csml.AssignActionDescription {
+            variable {
+              name = "v"
+              value = "v+1"
+            }
+          }
+          new Csml.AssignActionDescription {
+            variable {
+              name = "v"
+              value = "v+1"
+            }
+          }
+          new Csml.RaiseActionDescription {
+            event {
+              name = "e2"
+              channel = "internal"
+            }
+          }
+        }
+        on {
+          new Csml.OnTransitionDescription {
+            target = "state2"
+            event = "e2"
+          }
+        }
+      }
+    }
+  }
+}
+
+local action1: Csml.CreateActionDescription = new {
+  type = "create"
+  variable {
+    name = "v"
+    value = "5"
+  }
+}
