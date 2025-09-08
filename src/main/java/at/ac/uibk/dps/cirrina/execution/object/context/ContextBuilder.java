@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.context;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextDescription;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 import jakarta.annotation.Nullable;
 import java.io.IOException;

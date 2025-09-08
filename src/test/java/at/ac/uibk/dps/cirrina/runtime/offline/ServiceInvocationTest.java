@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription;
-import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription;
-import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription.Method;
-import at.ac.uibk.dps.cirrina.csml.description.ServiceImplementationDescription;
-import at.ac.uibk.dps.cirrina.csml.description.ServiceImplementationDescription.ServiceImplementationType;
+import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription;
+import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
+import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription;
+import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription.Type;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
@@ -151,7 +151,7 @@ public class ServiceInvocationTest {
           "increment",
           1.0,
           true,
-          ServiceImplementationType.HTTP,
+          Type.HTTP,
           "http",
           "localhost",
           8000,

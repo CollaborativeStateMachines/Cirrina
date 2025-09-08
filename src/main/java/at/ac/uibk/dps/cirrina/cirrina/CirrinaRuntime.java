@@ -61,7 +61,7 @@ public class CirrinaRuntime extends Cirrina {
         logger.info("Starting runtime: {}", name);
 
         // Run, will return when finished
-        runtime.run();
+        //runtime.run();
 
         logger.info("Done running");
       }

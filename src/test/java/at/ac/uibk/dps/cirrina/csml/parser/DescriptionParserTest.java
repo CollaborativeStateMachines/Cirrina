@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.csml.parser;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
 import org.junit.jupiter.api.Test;

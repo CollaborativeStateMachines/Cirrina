@@ -18,7 +18,6 @@ public class DefaultDescriptions {
   public static final String timeout = loadResource("timeout.pkl");
 
   public static final String pingPong = loadResource("pingPong.pkl");
-  public static final String jobDescription = loadResource("jobDescription.pkl");
 
   private static String loadResource(String fileName) {
     try (
