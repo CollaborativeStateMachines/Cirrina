@@ -1,0 +1,9 @@
+@ModuleInfo { minPklVersion = "0.29.0" }
+abstract module csm.ServiceImplementation
+
+typealias Type = "HTTP" | "Other"
+
+name: String
+type: Type
+cost: Float
+`local`: Boolean
