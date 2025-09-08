@@ -3,7 +3,7 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
 import "modulepath:/pkl/csm/Csml.pkl"
 
-name = "complete-nested"
+name = "completeNested"
 version = "3.0"
 stateMachines {
   stateMachine1

@@ -10,7 +10,6 @@ import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescripti
 import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
 import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription;
 import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription.Type;
-import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
@@ -20,7 +19,7 @@ import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
 import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder;
-import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
+import at.ac.uibk.dps.cirrina.io.description.CsmlParser;
 import at.ac.uibk.dps.cirrina.runtime.OfflineRuntime;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -86,10 +85,9 @@ public class ServiceInvocationTest {
 
     final var json = DefaultDescriptions.invoke;
 
-    final var parser = new DescriptionParser<>(Csml.class);
     Assertions.assertDoesNotThrow(() -> {
       collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
-        parser.parse(json)
+        CsmlParser.parse(json)
       ).build();
     });
   }
