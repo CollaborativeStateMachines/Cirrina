@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
 import java.util.List;

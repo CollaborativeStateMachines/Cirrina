@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.runtime.online;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.NatsContext;
 import at.ac.uibk.dps.cirrina.execution.object.event.NatsEventHandler;
@@ -72,7 +72,7 @@ public class PingPongTest {
             curatorFramework,
             false
           );
-          runtime.run();
+          //runtime.run();
 
           curatorFramework.close();
         }

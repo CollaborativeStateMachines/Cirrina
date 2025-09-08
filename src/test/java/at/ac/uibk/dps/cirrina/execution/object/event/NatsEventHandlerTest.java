@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventChannel;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
 import java.util.ArrayList;

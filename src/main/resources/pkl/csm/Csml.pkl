@@ -4,123 +4,143 @@ module at.ac.uibk.dps.cirrina.csml.description.Csml
 typealias Version = "3.0"
 typealias Expression = String
 
-open class CollaborativeStateMachine {
+open class CollaborativeStateMachineDescription {
   name: String
   version: Version
-  stateMachines: Listing<StateMachine>
-  localContext: Context?
-  persistentContext: Context?
+  stateMachines: Listing<StateMachineDescription>
+  localContext: ContextDescription?
+  persistentContext: ContextDescription?
 }
 
-open class StateMachine {
+open class StateMachineDescription {
   name: String
-  states: Listing<State>
-  stateMachines: Listing<StateMachine>
-  localContext: Context?
-  persistentContext: Context?
+  states: Listing<StateDescription>
+  stateMachines: Listing<StateMachineDescription>
+  localContext: ContextDescription?
+  persistentContext: ContextDescription?
 }
 
-open class State {
+open class StateDescription {
   name: String
   initial: Boolean = false
   terminal: Boolean = false
-  entry: Listing<Action>
-  exit: Listing<Action>
-  while: Listing<Action>
-  after: Listing<Action>
-  on: Listing<OnTransition>
-  always: Listing<Transition>
-  localContext: Context
-  persistentContext: Context
-  staticContext: Context
+  entry: Listing<ActionDescription>
+  exit: Listing<ActionDescription>
+  while: Listing<ActionDescription>
+  after: Listing<ActionDescription>
+  on: Listing<OnTransitionDescription>
+  always: Listing<TransitionDescription>
+  localContext: ContextDescription
+  persistentContext: ContextDescription
+  staticContext: ContextDescription
 }
 
-open class Transition {
+open class TransitionDescription {
   target: String?
-  guards: Listing<Guard>
-  actions: Listing<Action>
+  guards: Listing<GuardDescription>
+  actions: Listing<ActionDescription>
   `else`: String?
 }
 
-open class Guard {
-  expression: Expression
-}
-
-class OnTransition extends Transition {
+class OnTransitionDescription extends TransitionDescription {
   event: String
 }
 
-abstract class Action {
+open class GuardDescription {
+  expression: Expression
+}
+
+abstract class ActionDescription {
   type: Type
 }
 
 typealias Type = "invoke" | "create" | "assign" | "lock" | "unlock" | "raise" | "timeout" | "timeoutReset" | "match"
 
-class AssignAction extends Action {
+class AssignActionDescription extends ActionDescription {
   type: Type = "assign"
-  variable: ContextVariable
+  variable: ContextVariableDescription
 }
 
-class CreateAction extends Action {
+class CreateActionDescription extends ActionDescription {
   type: Type = "create"
-  variable: ContextVariable
+  variable: ContextVariableDescription
   isPersistent: Boolean = false
 }
 
-class InvokeAction extends Action {
+class InvokeActionDescription extends ActionDescription {
   type: Type = "invoke"
   serviceType: String
   isLocal: Boolean = false
-  input: Listing<ContextVariable>
-  done: Listing<Event>
-  output: Listing<ContextVariableReference>
+  input: Listing<ContextVariableDescription>
+  done: Listing<EventDescription>
+  output: Listing<ContextVariableReferenceDescription>
 }
 
-class MatchAction extends Action {
+class MatchCaseDescription {
+  `case`: Expression
+  action: ActionDescription
+}
+
+class MatchActionDescription extends ActionDescription {
   type: Type = "match"
   value: Expression
-  cases: Listing<MatchCase>
+  cases: Listing<MatchCaseDescription>
 }
 
-class MatchCase {
-  `case`: Expression
-  action: Action
-}
-
-class RaiseAction extends Action {
+class RaiseActionDescription extends ActionDescription {
   type: Type = "raise"
-  event: Event
+  event: EventDescription
 }
 
-class TimeoutAction extends Action {
+class TimeoutActionDescription extends ActionDescription {
   type: Type = "timeout"
   name: String
   delay: Expression
-  action: Action
+  action: ActionDescription
 }
 
-class TimeoutResetAction extends Action {
+class TimeoutResetActionDescription extends ActionDescription {
   type: Type = "timeoutReset"
   action: String
 }
 
-class Event {
-  name: String
-  channel: EventChannel
-  data: Listing<ContextVariable>
-}
-
 typealias EventChannel = "internal" | "external" | "global" | "peripheral"
 
-class ContextVariableReference {
-  reference: String
+class EventDescription {
+  name: String
+  channel: EventChannel
+  data: Listing<ContextVariableDescription>
 }
 
-class Context {
-  variables: Listing<ContextVariable>
+class ContextDescription {
+  variables: Listing<ContextVariableDescription>
 }
 
-class ContextVariable {
+class ContextVariableDescription {
   name: String
   value: Expression
 }
+
+class ContextVariableReferenceDescription {
+  reference: String
+}
+
+typealias CollaborativeStateMachine = CollaborativeStateMachineDescription
+typealias StateMachine = StateMachineDescription
+typealias State = StateDescription
+typealias Transition = TransitionDescription
+typealias OnTransition = OnTransitionDescription
+typealias Guard = GuardDescription
+typealias Action = ActionDescription
+typealias AssignAction = AssignActionDescription
+typealias CreateAction = CreateActionDescription
+typealias InvokeAction = InvokeActionDescription
+typealias MatchCase = MatchCaseDescription
+typealias MatchAction = MatchActionDescription
+typealias RaiseAction = RaiseActionDescription
+typealias TimeoutAction = TimeoutActionDescription
+typealias TimeoutResetAction = TimeoutResetActionDescription
+typealias Event = EventDescription
+typealias Context = ContextDescription
+typealias ContextVariable = ContextVariableDescription
+typealias ContextVariableReference = ContextVariableReferenceDescription

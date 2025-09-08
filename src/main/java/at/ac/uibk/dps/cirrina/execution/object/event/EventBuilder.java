@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.object.event;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import java.util.List;

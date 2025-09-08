@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription.Method;
+import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;

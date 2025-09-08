@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.object.event;
 
 import static at.ac.uibk.dps.cirrina.utils.Uuid.insecureUuid;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventChannel;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.utils.Time;
