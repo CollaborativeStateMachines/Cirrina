@@ -1,0 +1,12 @@
+FROM alpine:3.22.1
+
+RUN apk add --no-cache wget libc6-compat && \
+    wget -O /usr/bin/pkl https://github.com/apple/pkl/releases/download/0.29.1/pkl-linux-amd64 && \
+    chmod +x /usr/bin/pkl && \
+    pkl --version
+
+COPY src/main/resources/pkl/csm/ /usr/src/csm
+
+WORKDIR /usr/src/csm
+
+RUN pkl project package --output-path /usr/src/csm/out

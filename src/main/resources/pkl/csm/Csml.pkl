@@ -1,0 +1,126 @@
+@ModuleInfo { minPklVersion = "0.29.0" }
+module csm.Csml
+
+typealias Version = "3.0"
+typealias Expression = String
+
+open class CollaborativeStateMachine {
+  name: String
+  version: Version
+  stateMachines: Listing<StateMachine>
+  localContext: Context?
+  persistentContext: Context?
+}
+
+open class StateMachine {
+  name: String
+  states: Listing<State>
+  stateMachines: Listing<StateMachine>
+  localContext: Context?
+  persistentContext: Context?
+}
+
+open class State {
+  name: String
+  initial: Boolean = false
+  terminal: Boolean = false
+  entry: Listing<Action>
+  exit: Listing<Action>
+  while: Listing<Action>
+  after: Listing<Action>
+  on: Listing<OnTransition>
+  always: Listing<Transition>
+  localContext: Context
+  persistentContext: Context
+  staticContext: Context
+}
+
+open class Transition {
+  target: String?
+  guards: Listing<Guard>
+  actions: Listing<Action>
+  `else`: String?
+}
+
+open class Guard {
+  expression: Expression
+}
+
+class OnTransition extends Transition {
+  event: String
+}
+
+abstract class Action {
+  type: Type
+}
+
+typealias Type = "invoke" | "create" | "assign" | "lock" | "unlock" | "raise" | "timeout" | "timeoutReset" | "match"
+
+class AssignAction extends Action {
+  type: Type = "assign"
+  variable: ContextVariable
+}
+
+class CreateAction extends Action {
+  type: Type = "create"
+  variable: ContextVariable
+  isPersistent: Boolean = false
+}
+
+class InvokeAction extends Action {
+  type: Type = "invoke"
+  serviceType: String
+  isLocal: Boolean = false
+  input: Listing<ContextVariable>
+  done: Listing<Event>
+  output: Listing<ContextVariableReference>
+}
+
+class MatchAction extends Action {
+  type: Type = "match"
+  value: Expression
+  cases: Listing<MatchCase>
+}
+
+class MatchCase {
+  `case`: Expression
+  action: Action
+}
+
+class RaiseAction extends Action {
+  type: Type = "raise"
+  event: Event
+}
+
+class TimeoutAction extends Action {
+  type: Type = "timeout"
+  name: String
+  delay: Expression
+  action: Action
+}
+
+class TimeoutResetAction extends Action {
+  type: Type = "timeoutReset"
+  action: String
+}
+
+class Event {
+  name: String
+  channel: EventChannel
+  data: Listing<ContextVariable>
+}
+
+typealias EventChannel = "internal" | "external" | "global" | "peripheral"
+
+class ContextVariableReference {
+  reference: String
+}
+
+class Context {
+  variables: Listing<ContextVariable>
+}
+
+class ContextVariable {
+  name: String
+  value: Expression
+}
