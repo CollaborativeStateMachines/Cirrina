@@ -65,7 +65,7 @@ public class TimeoutTest {
     Assertions.assertDoesNotThrow(() -> {
       final var mockEventHandler = new EventHandler() {
         @Override
-        public void close() throws Exception {}
+        public void close() {}
 
         @Override
         public void sendEvent(Event event, String source) {

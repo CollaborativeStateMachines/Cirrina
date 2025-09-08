@@ -104,7 +104,7 @@ public class ServiceInvocationTest {
     Assertions.assertDoesNotThrow(() -> {
       final var mockEventHandler = new EventHandler() {
         @Override
-        public void close() throws Exception {}
+        public void close() {}
 
         @Override
         public void sendEvent(Event event, String source) {
@@ -128,7 +128,7 @@ public class ServiceInvocationTest {
       var mockPersistentContext = new InMemoryContext(true) {
         @Override
         public int assign(String name, Object value) throws IOException {
-          // Don't expect any variables assigned except for v
+          // Don't expect any variables assigned except for v and e
           assertTrue(name.equals("v") || name.equals("e"));
 
           // Which is an integer
@@ -171,8 +171,6 @@ public class ServiceInvocationTest {
       );
 
       assertEquals(1, instances.size());
-
-      final var instance = runtime.findInstance(instances.getFirst()).get();
 
       assertTrue(runtime.waitForCompletion(10000));
 
