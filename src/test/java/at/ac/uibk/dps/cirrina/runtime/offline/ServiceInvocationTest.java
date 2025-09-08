@@ -10,7 +10,7 @@ import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescripti
 import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
 import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription;
 import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription.Type;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
@@ -86,7 +86,7 @@ public class ServiceInvocationTest {
 
     final var json = DefaultDescriptions.invoke;
 
-    final var parser = new DescriptionParser<>(CollaborativeStateMachineDescription.class);
+    final var parser = new DescriptionParser<>(Csml.class);
     Assertions.assertDoesNotThrow(() -> {
       collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
         parser.parse(json)

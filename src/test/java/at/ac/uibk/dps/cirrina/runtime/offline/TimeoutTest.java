@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
@@ -28,7 +28,7 @@ public class TimeoutTest {
   public static void setUp() {
     final var json = DefaultDescriptions.timeout;
 
-    final var parser = new DescriptionParser<>(CollaborativeStateMachineDescription.class);
+    final var parser = new DescriptionParser<>(Csml.class);
     Assertions.assertDoesNotThrow(() -> {
       collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
         parser.parse(json)

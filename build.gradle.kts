@@ -95,8 +95,8 @@ dependencies {
 
     implementation("org.jgrapht:jgrapht-core:1.5.2")
 
-    implementation("org.pkl-lang:pkl-config-java:0.26.2")
-    implementation("org.pkl-lang:pkl-codegen-java:0.26.2")
+    implementation("org.pkl-lang:pkl-config-java:0.29.0")
+    implementation("org.pkl-lang:pkl-codegen-java:0.29.0")
 
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
