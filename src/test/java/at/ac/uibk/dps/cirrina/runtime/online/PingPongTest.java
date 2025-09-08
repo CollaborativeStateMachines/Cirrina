@@ -2,11 +2,10 @@ package at.ac.uibk.dps.cirrina.runtime.online;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.NatsContext;
 import at.ac.uibk.dps.cirrina.execution.object.event.NatsEventHandler;
-import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
+import at.ac.uibk.dps.cirrina.io.description.CsmlParser;
 import at.ac.uibk.dps.cirrina.runtime.OnlineRuntime;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import org.apache.curator.framework.CuratorFramework;
@@ -37,10 +36,9 @@ public class PingPongTest {
   public static void setUp() {
     var json = DefaultDescriptions.pingPong;
 
-    var parser = new DescriptionParser<>(Csml.class);
     Assertions.assertDoesNotThrow(() -> {
       collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
-        parser.parse(json)
+        CsmlParser.parse(json)
       ).build();
     });
   }

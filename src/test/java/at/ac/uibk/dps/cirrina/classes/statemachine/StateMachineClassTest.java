@@ -6,9 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
-import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
+import at.ac.uibk.dps.cirrina.io.description.CsmlParser;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -21,10 +20,9 @@ public class StateMachineClassTest {
   public static void setUp() {
     var json = DefaultDescriptions.complete;
 
-    var parser = new DescriptionParser<>(Csml.class);
     assertDoesNotThrow(() -> {
       var collaborativeStateMachine = CollaborativeStateMachineClassBuilder.from(
-        parser.parse(json)
+        CsmlParser.parse(json)
       ).build();
 
       stateMachineClass = collaborativeStateMachine
