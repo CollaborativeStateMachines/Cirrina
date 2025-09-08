@@ -15,7 +15,7 @@ public class DefaultDescriptions {
 
   public static final String invoke = loadResource("invoke.pkl");
 
-  public static final String timeout = ""; // TODO: Fix me
+  public static final String timeout = loadResource("timeout.pkl");
 
   public static final String pingPong = loadResource("pingPong.pkl");
 
