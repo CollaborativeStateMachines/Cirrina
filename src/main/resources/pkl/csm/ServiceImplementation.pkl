@@ -1,5 +1,5 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
-abstract module csm.ServiceImplementation
+abstract module at.ac.uibk.dps.cirrina.csm.description.ServiceImplementation
 
 typealias Type = "HTTP" | "Other"
 

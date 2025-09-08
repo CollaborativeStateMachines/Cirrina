@@ -1,5 +1,5 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
-module csm.HttpServiceImplementation
+module at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementation
 
 extends "ServiceImplementation.pkl"
 
