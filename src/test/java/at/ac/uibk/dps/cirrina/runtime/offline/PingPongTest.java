@@ -65,7 +65,7 @@ public class PingPongTest {
     Assertions.assertDoesNotThrow(() -> {
       final var mockEventHandler = new EventHandler() {
         @Override
-        public void close() throws Exception {}
+        public void close() {}
 
         @Override
         public void sendEvent(Event event, String source) {
@@ -98,8 +98,6 @@ public class PingPongTest {
       );
 
       assertEquals(2, instances.size());
-
-      final var instance = runtime.findInstance(instances.getFirst()).get();
 
       assertTrue(runtime.waitForCompletion(10000));
 
