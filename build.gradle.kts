@@ -2,11 +2,11 @@ import com.google.protobuf.gradle.id
 
 plugins {
     application
-
     jacoco
 
     id("com.google.protobuf") version "0.9.4"
-    id("org.pkl-lang") version "0.26.3"
+    id("org.pkl-lang") version "0.29.0"
+
     kotlin("jvm")
 }
 
@@ -28,21 +28,12 @@ jacoco {
 }
 
 pkl {
-    project {
-        packagers {
-            register("pklMakePackages") {
-                projectDirectories.from(file("src/main/resources/pkl/"))
-                skipPublishCheck = true
-            }
-        }
-    }
     javaCodeGenerators {
         register("pklGenJava") {
             sourceModules.addAll(
-                "src/main/resources/pkl/CollaborativeStateMachineDescription.pkl",
-                "src/main/resources/pkl/HttpServiceImplementationDescription.pkl",
-                "src/main/resources/pkl/JobDescription.pkl",
-                "src/main/resources/pkl/ServiceImplementationDescription.pkl"
+                "src/main/resources/pkl/csm/Csml.pkl",
+                "src/main/resources/pkl/csm/HttpServiceImplementation.pkl",
+                "src/main/resources/pkl/csm/ServiceImplementation.pkl"
             )
             generateGetters.set(true)
             generateJavadoc.set(true)

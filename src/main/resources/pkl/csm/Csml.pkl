@@ -1,5 +1,5 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
-module csm.Csml
+module at.ac.uibk.dps.cirrina.csml.description.Csml
 
 typealias Version = "3.0"
 typealias Expression = String
