@@ -4,13 +4,11 @@ module at.ac.uibk.dps.cirrina.csml.description.Csml
 typealias Version = "3.0"
 typealias Expression = String
 
-open class CollaborativeStateMachineDescription {
-  name: String
-  version: Version
-  stateMachines: Listing<StateMachineDescription>
-  localContext: ContextDescription?
-  persistentContext: ContextDescription?
-}
+name: String
+version: Version
+stateMachines: Listing<StateMachineDescription>
+localContext: ContextDescription?
+persistentContext: ContextDescription?
 
 open class StateMachineDescription {
   name: String
@@ -125,7 +123,6 @@ class ContextVariableReferenceDescription {
   reference: String
 }
 
-typealias CollaborativeStateMachine = CollaborativeStateMachineDescription
 typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
 typealias Transition = TransitionDescription

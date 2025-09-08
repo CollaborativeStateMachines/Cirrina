@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.runtime.online;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.execution.object.context.NatsContext;
 import at.ac.uibk.dps.cirrina.execution.object.event.NatsEventHandler;
@@ -37,7 +37,7 @@ public class PingPongTest {
   public static void setUp() {
     var json = DefaultDescriptions.pingPong;
 
-    var parser = new DescriptionParser<>(CollaborativeStateMachineDescription.class);
+    var parser = new DescriptionParser<>(Csml.class);
     Assertions.assertDoesNotThrow(() -> {
       collaborativeStateMachineClass = CollaborativeStateMachineClassBuilder.from(
         parser.parse(json)

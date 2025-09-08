@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.classes.collaborativestatemachine;
 
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.context.Context;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextBuilder;
@@ -21,29 +21,25 @@ public final class CollaborativeStateMachineClassBuilder {
   /**
    * The collaborative state machine description.
    */
-  private final CollaborativeStateMachineDescription collaborativeStateMachineDescription;
+  private final Csml csml;
 
   /**
    * Initializes this collaborative state machine builder instance.
    *
-   * @param collaborativeStateMachineDescription The collaborative state machine description.
+   * @param csml The collaborative state machine description.
    */
-  private CollaborativeStateMachineClassBuilder(
-    CollaborativeStateMachineDescription collaborativeStateMachineDescription
-  ) {
-    this.collaborativeStateMachineDescription = collaborativeStateMachineDescription;
+  private CollaborativeStateMachineClassBuilder(Csml csml) {
+    this.csml = csml;
   }
 
   /**
    * Construct a collaborative state machine builder from a description.
    *
-   * @param collaborativeStateMachineDescription Collaborative state machine description.
+   * @param csml Collaborative state machine description.
    * @return Collaborative state machine builder.
    */
-  public static CollaborativeStateMachineClassBuilder from(
-    CollaborativeStateMachineDescription collaborativeStateMachineDescription
-  ) {
-    return new CollaborativeStateMachineClassBuilder(collaborativeStateMachineDescription);
+  public static CollaborativeStateMachineClassBuilder from(Csml csml) {
+    return new CollaborativeStateMachineClassBuilder(csml);
   }
 
   /**
@@ -52,7 +48,7 @@ public final class CollaborativeStateMachineClassBuilder {
    * @param collaborativeStateMachineClass The collaborative state machine class being built.
    */
   private void buildVertices(CollaborativeStateMachineClass collaborativeStateMachineClass) {
-    collaborativeStateMachineDescription
+    csml
       .getStateMachines()
       .stream()
       .map(stateMachineClass -> StateMachineClassBuilder.from(stateMachineClass).build())
@@ -172,9 +168,7 @@ public final class CollaborativeStateMachineClassBuilder {
     // Construct a local context from the persistent context description, such that we can easily acquire the context variables
     Context persistentContext;
     try {
-      persistentContext = ContextBuilder.from(
-        collaborativeStateMachineDescription.getPersistentContext()
-      )
+      persistentContext = ContextBuilder.from(csml.getPersistentContext())
         .inMemoryContext(true)
         .build();
     } catch (IOException ignored) {
@@ -183,7 +177,7 @@ public final class CollaborativeStateMachineClassBuilder {
 
     try {
       final var collaborativeStateMachine = new CollaborativeStateMachineClass(
-        collaborativeStateMachineDescription.getName(),
+        csml.getName(),
         persistentContext != null ? persistentContext.getAll() : List.of()
       );
 

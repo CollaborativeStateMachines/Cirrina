@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.CollaborativeStateMachineDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml;
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions;
 import at.ac.uibk.dps.cirrina.io.description.DescriptionParser;
 import java.io.File;
@@ -21,9 +21,7 @@ class CollaborativeStateMachineClassExporterTest {
   static void setUp() {
     var json = DefaultDescriptions.completeNested;
 
-    var parser = new DescriptionParser<CollaborativeStateMachineDescription>(
-      CollaborativeStateMachineDescription.class
-    );
+    var parser = new DescriptionParser<>(Csml.class);
     var csm = assertDoesNotThrow(() -> parser.parse(json));
     completeNestedCsm = assertDoesNotThrow(() ->
       CollaborativeStateMachineClassBuilder.from(csm).build()
