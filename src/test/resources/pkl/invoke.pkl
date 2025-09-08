@@ -1,1 +1,88 @@
-import "modulepath:/pkl/CollaborativeStateMachineDescription.pkl" as Csml
+amends "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/Csml.pkl"
+
+name = "invoke"
+version = "3.0"
+stateMachines {
+  new {
+    name = "stateMachine1"
+    states {
+      new {
+        name = "a"
+        initial = true
+        after {
+          new Csml.TimeoutActionDescription {
+            name = "timeout"
+            delay = "100"
+            action = new Csml.RaiseActionDescription {
+              event {
+                name = "update"
+                channel = "internal"
+              }
+            }
+          }
+        }
+        on {
+          new Csml.OnTransitionDescription {
+            event = "update"
+            target = "a"
+            actions {
+              new Csml.InvokeActionDescription {
+                serviceType = "increment"
+                isLocal = true
+                input {
+                  new {
+                    name = "v"
+                    value = "v"
+                  }
+                }
+                done {
+                  new {
+                    name = "tob"
+                    channel = "internal"
+                  }
+                }
+              }
+              new Csml.AssignActionDescription {
+                variable {
+                  name = "e"
+                  value = "e + 1"
+                }
+              }
+            }
+          }
+          new Csml.OnTransitionDescription {
+            event = "tob"
+            target = "b"
+          }
+        }
+      }
+      new {
+        name = "b"
+        entry {
+          new Csml.AssignActionDescription {
+            variable {
+              name = "v"
+              value = "$v"
+            }
+          }
+        }
+        always {
+          new Csml.TransitionDescription {
+            target = "a"
+            guards {
+              new Csml.GuardDescription {
+                expression = "v < 10"
+              }
+            }
+            `else` = "c"
+          }
+        }
+      }
+      new {
+        name = "c"
+        terminal = true
+      }
+    }
+  }
+}

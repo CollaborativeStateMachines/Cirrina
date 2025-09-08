@@ -13,7 +13,7 @@ public class DefaultDescriptions {
 
   public static final String completeNested = ""; // TODO: Fix me
 
-  public static final String invoke = ""; // TODO: Fix me
+  public static final String invoke = loadResource("invoke.pkl");
 
   public static final String timeout = ""; // TODO: Fix me
 
