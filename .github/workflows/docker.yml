@@ -1,9 +1,14 @@
 name: Publish Docker image
 on:
   release:
-    types: [ published ]
+    types: [published]
+  push:
+    branches:
+      - master
+      - develop
 jobs:
   push_to_registry:
+    if: github.repository == 'CollaborativeStateMachines/Cirrina'
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     permissions:
@@ -26,6 +31,15 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: marlonetheredgeuibk/cirrina
+          tags: |
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
+            type=raw,value=stable,enable=${{ github.event_name == 'release' }}
+
+            type=raw,value=nightly,enable=${{ github.ref == 'refs/heads/master' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/master' }}
+
+            type=raw,value=unstable,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=sha,enable=${{ github.ref == 'refs/heads/develop' }}
 
       - name: Build and push Docker image
         id: push

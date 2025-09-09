@@ -117,8 +117,6 @@ public class CompleteTest {
       var mockPersistentContext = new InMemoryContext(true) {
         @Override
         public int assign(String name, Object value) throws IOException {
-          System.out.println("Assigning " + name + " with value " + value);
-
           // Don't expect any variables assigned except for v
           assertTrue(name.equals("v"));
 

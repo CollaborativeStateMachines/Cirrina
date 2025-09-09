@@ -1,4 +1,4 @@
-import "package://localhost:10000/csm/csm@3.0.0#/Csml.pkl"
+import "modulepath:/pkl/csm/Csml.pkl"
 
 //                                           State Machine One                                           
 // ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
