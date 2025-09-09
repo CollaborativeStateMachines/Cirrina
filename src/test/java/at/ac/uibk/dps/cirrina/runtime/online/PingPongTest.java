@@ -49,8 +49,7 @@ public class PingPongTest {
             "runtime",
             eventHandler,
             persistentContext,
-            openTelemetry,
-            false
+            openTelemetry
           );
           //runtime.run();
         }
