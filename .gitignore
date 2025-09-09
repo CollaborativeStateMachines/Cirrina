@@ -187,3 +187,4 @@ fabric.properties
 /package.json
 /package-lock.json
 /node_modules/
+/.idea/material_theme_project_new.xml
