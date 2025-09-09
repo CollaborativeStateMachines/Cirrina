@@ -1,8 +1,8 @@
-amends "modulepath:/pkl/csm/Csml.pkl"
-import "modulepath:/pkl/csm/Csml.pkl"
+amends "package://localhost:10000/csm/csm@3.0.0#/Csml.pkl"
+import "package://localhost:10000/csm/csm@3.0.0#/Csml.pkl"
 
 name = "invoke"
-version = "3.0"
+version = "3.0.0"
 stateMachines {
   new {
     name = "stateMachine1"

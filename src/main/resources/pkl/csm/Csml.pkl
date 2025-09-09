@@ -1,7 +1,7 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
 module at.ac.uibk.dps.cirrina.csml.description.Csml
 
-typealias Version = "3.0"
+typealias Version = "3.0.0"
 typealias Expression = String
 
 name: String
@@ -52,7 +52,7 @@ abstract class ActionDescription {
   type: Type
 }
 
-typealias Type = "invoke" | "create" | "assign" | "lock" | "unlock" | "raise" | "timeout" | "timeoutReset" | "match"
+typealias Type = "invoke" | "create" | "assign" | "raise" | "timeout" | "timeoutReset" | "match"
 
 class AssignActionDescription extends ActionDescription {
   type: Type = "assign"

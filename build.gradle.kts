@@ -28,6 +28,14 @@ jacoco {
 }
 
 pkl {
+    project {
+        packagers {
+            register("pklMakePackages") {
+                projectDirectories.from(file("src/main/resources/pkl/csm/"))
+                outputPath.set(File("build/generated/pkl/packages/csm"))
+            }
+        }
+    }
     javaCodeGenerators {
         register("pklGenJava") {
             sourceModules.addAll(
@@ -111,6 +119,10 @@ repositories {
     maven(url = "https://repository.cloudera.com/artifactory/cloudera-repos/")
 }
 
+tasks.compileJava {
+    dependsOn("pklMakePackages")
+}
+
 tasks.distZip {
     archiveFileName.set("${project.name}.zip")
 }
@@ -119,6 +131,7 @@ tasks.test {
     useJUnitPlatform()
     finalizedBy(tasks.jacocoTestReport)
 }
+
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
     reports {

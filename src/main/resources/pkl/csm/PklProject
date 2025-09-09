@@ -2,7 +2,7 @@ amends "pkl:Project"
 
 package {
   name = "csm"
-  version = "2.0.0"
+  version = "3.0.0"
   baseUri = "package://collaborativestatemachines.github.io/files/cirrina/\(name)"
   packageZipUrl = "https://collaborativestatemachines.github.io/files/cirrina/\(name)/\(name)@\(version).zip"
 }
