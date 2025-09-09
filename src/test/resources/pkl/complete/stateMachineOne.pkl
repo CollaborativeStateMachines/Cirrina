@@ -1,0 +1,166 @@
+import "package://localhost:10000/csm/csm@3.0.0#/Csml.pkl"
+
+//                                           State Machine One                                           
+// ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// │                                                                                                     │
+// │                                  e1                                                                 │
+// │                        ┌────────────────────┐        e2                                             │
+// │                       ┌┴┐                  ┌▼┐ assign v=$v ┌─┐ v>=100 ┌─┐         create b=true     │
+// │            create v=0 │A│ invoke increment │B├─────────────►C├────────►D├───┐      after 10ms       │
+// │ after 10ms  raise e1  └─┘  done raise e2   └▲┘             └┬┘        └▲┘   │     assign v=v-1      │
+// │                                             └───────────────┘          │    │        match v        │
+// │                                                   v<100                └────┘ case 0: reset timeout │
+// │                                                                                                     │
+// └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+class StateMachine extends Csml.StateMachineDescription {
+  name = "stateMachine1"
+  states {
+    // State a
+    new Csml.StateDescription {
+      name = "a"
+      initial = true
+      // Create persistent variable v
+      entry {
+        new Csml.CreateActionDescription {
+          variable {
+            name = "v"
+            value = "0"
+          }
+          isPersistent = true
+        }
+      }
+      // After 10ms
+      after {
+        new Csml.TimeoutActionDescription {
+          name = "timeout"
+          delay = "10"
+          action = new Csml.RaiseActionDescription {
+            event {
+              name = "e1"
+              channel = "internal"
+            }
+          }
+        }
+      }
+      // Transition to b
+      on {
+        new Csml.OnTransitionDescription {
+          event = "e1"
+          target = "b"
+        }
+      }
+    }
+    // State b
+    new Csml.StateDescription {
+      name = "b"
+      // Increment v by service invocation and raise e2
+      entry {
+        new Csml.InvokeActionDescription {
+          serviceType = "increment"
+          isLocal = true
+          input {
+            new {
+              name = "v"
+              value = "v"
+            }
+          }
+          done {
+            new Csml.EventDescription {
+              name = "e2"
+              channel = "internal"
+            }
+          }
+        }
+      }
+      // Transition to c and update v based on event data ($v)
+      on {
+        new Csml.OnTransitionDescription {
+          event = "e2"
+          target = "c"
+          actions {
+            new Csml.AssignActionDescription {
+              variable = new {
+                name = "v"
+                value = "$v"
+              }
+            }
+          }
+        }
+      }
+    }
+    // State c
+    new Csml.StateDescription {
+      name = "c"
+      // Transition to d or b
+      always {
+        new Csml.TransitionDescription {
+          target = "d"
+          guards {
+            new Csml.GuardDescription {
+              expression = "v >= 100"
+            }
+          }
+        }
+        new Csml.TransitionDescription {
+          target = "b"
+          guards {
+            new Csml.GuardDescription {
+              expression = "v < 100"
+            }
+          }
+        }
+      }
+    }
+    // State d
+    new Csml.StateDescription {
+      name = "d"
+      entry {
+        new Csml.CreateActionDescription {
+          variable {
+            name = "b"
+            value = "true"
+          }
+          isPersistent = true
+        }
+      }
+      // After 10ms
+      after {
+        new Csml.TimeoutActionDescription {
+          name = "timeout"
+          delay = "10"
+          action = new Csml.RaiseActionDescription {
+            event {
+              name = "e3"
+              channel = "internal"
+            }
+          }
+        }
+      }
+      // Decrement v and reset timeout when reaching 0
+      on {
+        new Csml.OnTransitionDescription {
+          event = "e3"
+          actions {
+            new Csml.AssignActionDescription {
+              variable = new {
+                name = "v"
+                value = "v - 1"
+              }
+            }
+            new Csml.MatchActionDescription {
+              value = "v"
+              cases {
+                new Csml.MatchCaseDescription {
+                  `case` = "0"
+                  action = new Csml.TimeoutResetActionDescription {
+                    action = "timeout"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
