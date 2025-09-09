@@ -40,13 +40,7 @@ public class CirrinaRuntime extends Cirrina {
         final var name = MobyNamesGenerator.getRandomName();
 
         // Create the shared runtime
-        final var runtime = new OnlineRuntime(
-          name,
-          eventHandler,
-          persistentContext,
-          openTelemetry,
-          EnvironmentVariables.INSTANCE.getDeleteJob().get()
-        );
+        final var runtime = new OnlineRuntime(name, eventHandler, persistentContext, openTelemetry);
 
         logger.info("Starting runtime: {}", name);
 

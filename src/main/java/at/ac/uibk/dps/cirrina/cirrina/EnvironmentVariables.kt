@@ -30,15 +30,6 @@ object EnvironmentVariables {
     val natsPersistentContextUrl = EnvironmentVariable<String>("NATS_PERSISTENT_CONTEXT_URL", default = "nats://localhost:4222")
     val natsPersistentContextBucket = EnvironmentVariable<String>("NATS_PERSISTENT_CONTEXT_BUCKET", default = "persistent")
 
-    // Zookeeper-specific environment variables
-    val zookeeperUrl = EnvironmentVariable<String>("ZOOKEEPER_URL", default = "localhost:2181")
-    val zookeeperTimeout = EnvironmentVariable<Int>("ZOOKEEPER_TIMEOUT", default = 3000) {
-        it.toInt()
-    }
-    val zookeeperSessionTimeout = EnvironmentVariable<Int>("ZOOKEEPER_SESSION_TIMEOUT", default = 3000) {
-        it.toInt()
-    }
-
     // General environment variables
     val eventProvider = EnvironmentVariable<EventProvider>(name = "EVENT_PROVIDER", required = true, mapper = { value ->
         try {
@@ -54,14 +45,8 @@ object EnvironmentVariables {
             throw IllegalStateException("Invalid PERSISTENT_CONTEXT_PROVIDER: '$value'. Allowed: ${PersistentContextProvider.entries}")
         }
     })
-    val deleteJob = EnvironmentVariable<Boolean>("DELETE_JOB", default = true) {
-        it.toBooleanStrict()
-    }
     val healthPort = EnvironmentVariable<Int>("HEALTH_PORT", default = 0xCAFE) {
         it.toInt()
-    }
-    val manager = EnvironmentVariable<Boolean>("MANAGER", default = false) {
-        it.toBooleanStrict()
     }
 }
 

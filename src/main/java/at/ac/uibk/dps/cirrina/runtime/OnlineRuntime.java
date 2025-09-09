@@ -25,14 +25,12 @@ public class OnlineRuntime extends Runtime {
    * @param eventHandler      Event handler.
    * @param persistentContext Persistent context.
    * @param openTelemetry     OpenTelemetry.
-   * @param deleteJob         Delete job when consumed.
    */
   public OnlineRuntime(
     String name,
     EventHandler eventHandler,
     Context persistentContext,
-    OpenTelemetry openTelemetry,
-    boolean deleteJob
+    OpenTelemetry openTelemetry
   ) {
     super(name, eventHandler, persistentContext, openTelemetry);
   }
