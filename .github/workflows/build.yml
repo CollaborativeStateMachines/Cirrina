@@ -41,4 +41,4 @@ jobs:
         if: success() || failure()
         with:
           report_paths: 'build/test-results/test/TEST-*.xml'
-          token: {{ secrets.CI_PAT }}
+          token: ${{ secrets.CI_PAT }}
