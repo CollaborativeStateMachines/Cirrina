@@ -37,12 +37,7 @@ jobs:
         run: ./gradlew test
 
       - name: Publish Test Report
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v5
         if: success() || failure()
         with:
           report_paths: 'build/test-results/test/TEST-*.xml'
-          fail_on_failure: true
-          require_tests: true
-          include_passed: true
-          detailed_summary: true
-          token: ${{ secrets.GITHUB_TOKEN }}

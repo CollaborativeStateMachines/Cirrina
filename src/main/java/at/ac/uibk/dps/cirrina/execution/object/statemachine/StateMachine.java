@@ -16,6 +16,7 @@ import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
 import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand;
 import at.ac.uibk.dps.cirrina.execution.command.ActionRaiseCommand;
+import at.ac.uibk.dps.cirrina.execution.command.ActionTimeoutResetCommand;
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory;
 import at.ac.uibk.dps.cirrina.execution.command.ExecutionContext;
 import at.ac.uibk.dps.cirrina.execution.command.Scope;
@@ -413,6 +414,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       for (final var actionCommand : actionCommands) {
         // Execute and acquire new commands
         final var newCommands = actionCommand.execute();
+
+        // KLUDGE: There may be a nicer solution here, one suggestion would be to move the timeout action manager to the execution context
+        newCommands
+          .stream()
+          .filter(c -> c instanceof ActionTimeoutResetCommand)
+          .map(c -> (ActionTimeoutResetCommand) c)
+          .forEach(c -> stopTimeoutAction(c.getTimeoutResetAction().getAction()));
 
         // Execute any subsequent command
         execute(newCommands);
