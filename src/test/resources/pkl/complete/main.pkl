@@ -1,5 +1,5 @@
-amends "package://localhost:10000/csm/csm@3.0.0#/Csml.pkl"
-import "package://localhost:10000/csm/csm@3.0.0#/Csml.pkl"
+amends "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/Csml.pkl"
 
 import "stateMachineOne.pkl"
 
