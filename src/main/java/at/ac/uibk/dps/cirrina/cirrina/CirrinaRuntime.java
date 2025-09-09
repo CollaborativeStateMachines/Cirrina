@@ -10,9 +10,6 @@ import info.schnatterer.mobynamesgenerator.MobyNamesGenerator;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import java.io.IOException;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 
 /**
  * CirrinaRuntime, is the entry-point to the runtime system.
@@ -35,13 +32,7 @@ public class CirrinaRuntime extends Cirrina {
       eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*");
 
       // Connect to persistent context system and ZooKeeper
-      try (
-        final var persistentContext = newPersistentContext();
-        final var curatorFramework = newCuratorFramework()
-      ) {
-        // Connect to ZooKeeper
-        curatorFramework.start();
-
+      try (final var persistentContext = newPersistentContext()) {
         // Acquire OpenTelemetry instance
         final var openTelemetry = getOpenTelemetry();
 
@@ -54,7 +45,6 @@ public class CirrinaRuntime extends Cirrina {
           eventHandler,
           persistentContext,
           openTelemetry,
-          curatorFramework,
           EnvironmentVariables.INSTANCE.getDeleteJob().get()
         );
 
@@ -136,20 +126,6 @@ public class CirrinaRuntime extends Cirrina {
       EnvironmentVariables.INSTANCE.getNatsPersistentContextUrl().get(),
       EnvironmentVariables.INSTANCE.getNatsPersistentContextBucket().get()
     );
-  }
-
-  /**
-   * Constructs a new Curator framework according to the provided arguments.
-   *
-   * @return Curator framework.
-   */
-  public CuratorFramework newCuratorFramework() {
-    return CuratorFrameworkFactory.builder()
-      .connectString(EnvironmentVariables.INSTANCE.getZookeeperUrl().get())
-      .retryPolicy(new ExponentialBackoffRetry(1000, 3))
-      .connectionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperTimeout().get())
-      .sessionTimeoutMs(EnvironmentVariables.INSTANCE.getZookeeperSessionTimeout().get())
-      .build();
   }
 
   /**
