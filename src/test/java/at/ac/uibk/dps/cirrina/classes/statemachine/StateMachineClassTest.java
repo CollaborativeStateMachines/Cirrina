@@ -18,11 +18,9 @@ public class StateMachineClassTest {
 
   @BeforeAll
   public static void setUp() {
-    var json = DefaultDescriptions.complete;
-
     assertDoesNotThrow(() -> {
       var collaborativeStateMachine = CollaborativeStateMachineClassBuilder.from(
-        CsmlParser.parse(json)
+        CsmlParser.parse(DefaultDescriptions.complete)
       ).build();
 
       stateMachineClass = collaborativeStateMachine
@@ -39,15 +37,15 @@ public class StateMachineClassTest {
   @Test
   void testGetHandledEvents() {
     var handledEvents = stateMachineClass.getInputEvents();
-    var expectedHandledEvents = List.of("e1", "e2");
-    assertEquals(handledEvents, expectedHandledEvents);
+    var expectedHandledEvents = List.of("e1", "e2", "e3");
+    assertEquals(expectedHandledEvents, handledEvents);
   }
 
   @Test
   void testGetRaisedEvents() {
     var raisedEvents = stateMachineClass.getInputEvents();
-    var expectedRaisedEvents = List.of("e1", "e2");
-    assertEquals(raisedEvents, expectedRaisedEvents);
+    var expectedRaisedEvents = List.of("e1", "e2", "e3");
+    assertEquals(expectedRaisedEvents, raisedEvents);
   }
 
   @Test
@@ -68,7 +66,7 @@ public class StateMachineClassTest {
   @Test
   void testFindStateByName() {
     assertDoesNotThrow(() -> {
-      stateMachineClass.findStateClassByName("state1").get().getName().equals("state1");
+      stateMachineClass.findStateClassByName("a").get().getName().equals("a");
 
       assertFalse(stateMachineClass.findStateClassByName("nonExisting").isPresent());
     });
@@ -78,17 +76,17 @@ public class StateMachineClassTest {
   void testFindTransitionByEventName() {
     assertDoesNotThrow(() -> {
       var t = stateMachineClass.findOnTransitionsFromStateByEventName(
-        stateMachineClass.findStateClassByName("state1").get(),
+        stateMachineClass.findStateClassByName("a").get(),
         "e1"
       );
       assertEquals(1, t.size());
-      assertEquals("state2", t.getFirst().getTargetStateName().get());
+      assertEquals("b", t.getFirst().getTargetStateName().get());
 
       assertEquals(
         0,
         stateMachineClass
           .findOnTransitionsFromStateByEventName(
-            stateMachineClass.findStateClassByName("state1").get(),
+            stateMachineClass.findStateClassByName("a").get(),
             "nonExisting"
           )
           .size()
