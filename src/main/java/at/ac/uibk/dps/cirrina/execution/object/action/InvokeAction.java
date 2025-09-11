@@ -4,11 +4,12 @@ import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableReferenceDesc
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Invoke action, invokes a service type.
  */
-public final class InvokeAction extends Action {
+public final class InvokeAction extends Action implements EventRaisingAction {
 
   private final String serviceType;
 
@@ -46,6 +47,12 @@ public final class InvokeAction extends Action {
 
   public List<ContextVariableReferenceDescription> getOutput() {
     return output;
+  }
+
+  @Override
+  @NotNull
+  public List<Event> raises() {
+    return done;
   }
 
   public record Parameters(

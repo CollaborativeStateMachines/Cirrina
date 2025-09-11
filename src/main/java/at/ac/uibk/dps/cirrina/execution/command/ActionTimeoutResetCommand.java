@@ -17,7 +17,8 @@ public final class ActionTimeoutResetCommand extends ActionCommand {
 
   @Override
   public List<ActionCommand> execute() throws UnsupportedOperationException {
-    return List.of(this);
+    // Handled in StateMachine
+    return List.of();
   }
 
   public TimeoutResetAction getTimeoutResetAction() {
