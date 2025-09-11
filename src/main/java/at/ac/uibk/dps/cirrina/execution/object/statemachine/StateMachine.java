@@ -10,6 +10,7 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_RAI
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_EVENT_RESPONSE_TIME_EXCLUSIVE;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE;
 
+import at.ac.uibk.dps.cirrina.cirrina.Runtime;
 import at.ac.uibk.dps.cirrina.classes.state.StateClass;
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
@@ -30,7 +31,6 @@ import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.object.state.State;
 import at.ac.uibk.dps.cirrina.execution.object.transition.Transition;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector;
-import at.ac.uibk.dps.cirrina.runtime.Runtime;
 import at.ac.uibk.dps.cirrina.tracing.Counters;
 import at.ac.uibk.dps.cirrina.tracing.Gauges;
 import at.ac.uibk.dps.cirrina.utils.Id;
@@ -77,9 +77,9 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   private final Queue<Event> eventQueue = new ConcurrentLinkedQueue<>();
 
   /**
-   * Parent runtime.
+   * Runtime executing this state machine instance.
    */
-  private final Runtime parentRuntime;
+  private final Runtime runtime;
 
   /**
    * State machine class of this instance.
@@ -95,11 +95,6 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * Parent state machine instance or null in case this state machine instance is a parent.
    */
   private final @Nullable StateMachine parentStateMachine;
-
-  /**
-   * End time of this state machine in milliseconds since the start of the runtime.
-   */
-  private final double endTimeInMs;
 
   private final StateMachineEventHandler stateMachineEventHandler;
 
@@ -126,31 +121,25 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    * <p>
    * Additionally, a state machine instance may be parented in a state machine instance, forming a nested state machine instance.
    *
-   * @param parentRuntime                 Parent runtime.
+   * @param runtime                 Parent runtime.
    * @param stateMachineClass             StateClass machine object
    * @param serviceImplementationSelector Service implementation selector.
    * @param parentStateMachine            Parent state machine instance or null.
-   * @param endTimeInMs                   The end time of this state machine in milliseconds since the start of the runtime.
    * @thread Runtime.
    */
   public StateMachine(
-    Runtime parentRuntime,
+    Runtime runtime,
     StateMachineClass stateMachineClass,
     ServiceImplementationSelector serviceImplementationSelector,
     OpenTelemetry openTelemetry,
-    @Nullable StateMachine parentStateMachine,
-    double endTimeInMs
+    @Nullable StateMachine parentStateMachine
   ) {
-    this.parentRuntime = parentRuntime;
+    this.runtime = runtime;
     this.stateMachineClass = stateMachineClass;
     this.serviceImplementationSelector = serviceImplementationSelector;
     this.parentStateMachine = parentStateMachine;
-    this.endTimeInMs = endTimeInMs;
 
-    stateMachineEventHandler = new StateMachineEventHandler(
-      this,
-      this.parentRuntime.getEventHandler()
-    );
+    stateMachineEventHandler = new StateMachineEventHandler(this, this.runtime.getEventHandler());
 
     // Build the local context
     try {
@@ -221,13 +210,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     // Propagate internal events to nested state machines
     if (event.getChannel() == EventChannel.INTERNAL) {
       for (final var nestedStateMachineId : nestedStateMachineIds) {
-        final var nestedStateMachineInstance = parentRuntime
-          .findInstance(nestedStateMachineId)
-          .orElseThrow(() ->
-            new IllegalStateException(
-              "Nested state machine could not be found, could not propagate event"
-            )
-          );
+        final var nestedStateMachineInstance = Optional.ofNullable(
+          runtime.findInstance(nestedStateMachineId)
+        ).orElseThrow(() ->
+          new IllegalStateException(
+            "Nested state machine could not be found, could not propagate event"
+          )
+        );
 
         nestedStateMachineInstance.onReceiveEvent(event);
       }
@@ -249,13 +238,6 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
     // The state machine instance should be terminated if it is nested and its parent is terminated.
     if (parentStateMachine != null && parentStateMachine.isTerminated()) {
-      return true;
-    }
-
-    // The state machine instance should be terminated if its end time has passed
-    final var currentTime = Time.timeInMillisecondsSinceStart();
-
-    if (endTimeInMs > 0.0 && currentTime > endTimeInMs) {
       return true;
     }
 
@@ -416,11 +398,11 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         final var newCommands = actionCommand.execute();
 
         // KLUDGE: There may be a nicer solution here, one suggestion would be to move the timeout action manager to the execution context
-        newCommands
-          .stream()
-          .filter(c -> c instanceof ActionTimeoutResetCommand)
-          .map(c -> (ActionTimeoutResetCommand) c)
-          .forEach(c -> stopTimeoutAction(c.getTimeoutResetAction().getAction()));
+        if (actionCommand instanceof ActionTimeoutResetCommand) {
+          stopTimeoutAction(
+            ((ActionTimeoutResetCommand) actionCommand).getTimeoutResetAction().getAction()
+          );
+        }
 
         // Execute any subsequent command
         execute(newCommands);
@@ -805,9 +787,6 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
     // Decrement state machine instances counter
     counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(-1, counters.attributesForInstances());
-
-    // Remove the state machine instance from the runtime
-    parentRuntime.remove(this);
   }
 
   /**
@@ -819,7 +798,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   public Extent getExtent() {
     return Optional.ofNullable(parentStateMachine)
       .map(parent -> parent.getExtent().extend(localContext))
-      .orElseGet(() -> parentRuntime.getExtent().extend(localContext));
+      .orElseGet(() -> runtime.getExtent().extend(localContext));
   }
 
   @Override

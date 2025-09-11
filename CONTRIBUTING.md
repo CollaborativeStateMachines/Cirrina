@@ -37,3 +37,11 @@ Make sure that your both the commits in your pull request and the pull request t
 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. Commit linting is enforced by the CI. Squashed commits
 upon merging are also enforced by the CI and will receive the pull request title as the commit message. We use Conventional Commits to
 generate the changelogs.
+
+## Code Guidelines
+
+This project uses Java for the majority of the code. However, we only accept new contributions in Kotlin, and where possible, Java
+implementations should be reimplemented in Kotlin.
+
+Public functions and members should be properly documented using Javadoc or KDoc. Private functions and members should be commented in case
+they are not self-explanatory.

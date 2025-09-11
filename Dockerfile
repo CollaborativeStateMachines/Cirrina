@@ -17,4 +17,4 @@ FROM gcr.io/distroless/java21-debian12 AS runtime
 
 COPY --from=build /tmp/cirrina /opt/cirrina
 
-ENTRYPOINT ["java", "-cp", "/opt/cirrina/lib/*", "at.ac.uibk.dps.cirrina.cirrina.Cirrina"]
+ENTRYPOINT ["java", "-cp", "/opt/cirrina/lib/*", "at.ac.uibk.dps.cirrina.cirrina.CirrinaKt"]

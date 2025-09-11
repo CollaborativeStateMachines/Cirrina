@@ -3,6 +3,8 @@
     <ExternalSystemSettings>
       <option name="env">
         <map>
+          <entry key="APPLICATION_PATH" value="src/test/resources/pkl/complete/" />
+          <entry key="INSTANTIATE" value="stateMachine1" />
           <entry key="OTEL_METRIC_EXPORT_INTERVAL" value="1000" />
         </map>
       </option>
@@ -16,7 +18,6 @@
       <option name="taskNames">
         <list>
           <option value="run" />
-          <option value="--args=&quot;--name runtime --delete-job false&quot;" />
         </list>
       </option>
       <option name="vmOptions" value=" " />

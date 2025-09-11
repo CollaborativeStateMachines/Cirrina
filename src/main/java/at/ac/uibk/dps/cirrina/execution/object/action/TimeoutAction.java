@@ -1,11 +1,15 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
+import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
+import java.util.ArrayList;
+import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Timeout action object.
  */
-public final class TimeoutAction extends Action {
+public final class TimeoutAction extends Action implements EventRaisingAction {
 
   /**
    * The name of the timeout action.
@@ -60,6 +64,18 @@ public final class TimeoutAction extends Action {
    */
   public Action getAction() {
     return action;
+  }
+
+  @Override
+  @NotNull
+  public List<Event> raises() {
+    final var list = new ArrayList<Event>();
+
+    if (action instanceof RaiseAction) {
+      list.add(((RaiseAction) action).getEvent());
+    }
+
+    return list;
   }
 
   public record Parameters(String name, Expression delay, Action action) {}

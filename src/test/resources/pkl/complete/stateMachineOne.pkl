@@ -156,11 +156,29 @@ class StateMachine extends Csml.StateMachineDescription {
                     action = "timeout"
                   }
                 }
+                new Csml.MatchCaseDescription {
+                  `case` = "0"
+                  action = new Csml.RaiseActionDescription {
+                    event {
+                      name = "e4"
+                      channel = "internal"
+                    }
+                  }
+                }
               }
             }
           }
         }
+        new Csml.OnTransitionDescription {
+          event = "e4"
+          target = "e"
+        }
       }
+    }
+    // State e
+    new Csml.StateDescription {
+      name = "e"
+      terminal = true
     }
   }
 }
