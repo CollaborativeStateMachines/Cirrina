@@ -31,7 +31,9 @@ object TestUtils {
       )
       .setMeterProvider(
         SdkMeterProvider.builder()
-          .registerMetricReader(PeriodicMetricReader.builder(LoggingMetricExporter.create()).build())
+          .registerMetricReader(
+            PeriodicMetricReader.builder(LoggingMetricExporter.create()).build()
+          )
           .setResource(resource)
           .build()
       )
@@ -47,7 +49,7 @@ object TestUtils {
         ContextPropagators.create(
           TextMapPropagator.composite(
             W3CTraceContextPropagator.getInstance(),
-            W3CBaggagePropagator.getInstance()
+            W3CBaggagePropagator.getInstance(),
           )
         )
       )
@@ -56,15 +58,17 @@ object TestUtils {
 
   fun mockPersistentContext(
     createBlock: InMemoryContext.() -> Unit = {},
-    assignBlock: (superAssign: (String, Any) -> Int, name: String, value: Any) -> Int = { superAssign, name, value ->
-      superAssign(name, value)
-    }
+    assignBlock: (superAssign: (String, Any) -> Int, name: String, value: Any) -> Int =
+      { superAssign, name, value ->
+        superAssign(name, value)
+      },
   ): InMemoryContext {
-    val mockPersistentContext = object : InMemoryContext(true) {
-      override fun assign(name: String, value: Any): Int {
-        return assignBlock({ n, v -> super.assign(n, v) }, name, value)
+    val mockPersistentContext =
+      object : InMemoryContext(true) {
+        override fun assign(name: String, value: Any): Int {
+          return assignBlock({ n, v -> super.assign(n, v) }, name, value)
+        }
       }
-    }
     mockPersistentContext.createBlock()
     return mockPersistentContext
   }

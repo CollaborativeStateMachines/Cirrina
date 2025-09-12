@@ -53,8 +53,8 @@ stateMachines {
             }
           }
           new Csml.OnTransitionDescription {
-              event = "tob"
-              target = "b"
+            event = "tob"
+            target = "b"
           }
         }
       }
@@ -66,8 +66,8 @@ stateMachines {
     persistentContext {
       variables {
         new {
-            name = "v"
-            value = "0"
+          name = "v"
+          value = "0"
         }
       }
     }

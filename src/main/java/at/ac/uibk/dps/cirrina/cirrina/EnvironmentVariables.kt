@@ -12,9 +12,10 @@ enum class PersistentContextProvider {
 
 /** An environment variable, which can be converted from a string to the required type. */
 data class EnvironmentVariable<T>(
-  val name: String, val required: Boolean = false, val default: T? = null, val mapper: (String) -> T = {
-    it as T
-  }
+  val name: String,
+  val required: Boolean = false,
+  val default: T? = null,
+  val mapper: (String) -> T = { it as T },
 ) {
   /** Get the value of the environment variable. */
   fun get(): T {
@@ -22,8 +23,12 @@ data class EnvironmentVariable<T>(
     return when {
       value != null -> mapper(value)
       default != null -> default
-      required -> throw EnvironmentVariableError.Missing("Missing required environment variable: $name")
-      else -> throw EnvironmentVariableError.Missing("Environment variable '$name' is missing but not marked required")
+      required ->
+        throw EnvironmentVariableError.Missing("Missing required environment variable: $name")
+      else ->
+        throw EnvironmentVariableError.Missing(
+          "Environment variable '$name' is missing but not marked required"
+        )
     }
   }
 }
@@ -34,10 +39,12 @@ object EnvironmentVariables {
   val natsEventUrl = EnvironmentVariable("NATS_EVENT_URL", default = "nats://localhost:4222/")
 
   /** The NATS persistent context server URL. */
-  val natsPersistentContextUrl = EnvironmentVariable("NATS_PERSISTENT_CONTEXT_URL", default = "nats://localhost:4222")
+  val natsPersistentContextUrl =
+    EnvironmentVariable("NATS_PERSISTENT_CONTEXT_URL", default = "nats://localhost:4222")
 
   /** The NATS persistent context bucket. */
-  val natsPersistentContextBucket = EnvironmentVariable("NATS_PERSISTENT_CONTEXT_BUCKET", default = "persistent")
+  val natsPersistentContextBucket =
+    EnvironmentVariable("NATS_PERSISTENT_CONTEXT_BUCKET", default = "persistent")
 
   /** The path to the CSML application. */
   val applicationPath = EnvironmentVariable<String>("APPLICATION_PATH", required = true)
@@ -60,7 +67,9 @@ object EnvironmentVariables {
           EventProvider.valueOf(value.uppercase())
         } catch (_: IllegalArgumentException) {
           throw EnvironmentVariableError.Invalid(
-            "EVENT_PROVIDER", value, EventProvider.entries.toString()
+            "EVENT_PROVIDER",
+            value,
+            EventProvider.entries.toString(),
           )
         }
       },
@@ -76,7 +85,9 @@ object EnvironmentVariables {
           PersistentContextProvider.valueOf(value.uppercase())
         } catch (_: IllegalArgumentException) {
           throw EnvironmentVariableError.Invalid(
-            "PERSISTENT_CONTEXT_PROVIDER", value, PersistentContextProvider.entries.toString()
+            "PERSISTENT_CONTEXT_PROVIDER",
+            value,
+            PersistentContextProvider.entries.toString(),
           )
         }
       },
@@ -85,5 +96,3 @@ object EnvironmentVariables {
   /** The port to use for the health server. */
   val healthPort = EnvironmentVariable("HEALTH_PORT", default = 0xCAFE) { it.toInt() }
 }
-
-

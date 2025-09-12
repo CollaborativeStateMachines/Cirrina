@@ -21,12 +21,13 @@ To install Prettier Java, you can use the following command:
 
 ```bash
 npm install prettier-plugin-java --save-dev
-npm install prettier-plugin-kotlin --save-dev
 ```
 
-Subsequently, IntelliJ IDEA can be configurated to use Prettier for formatting Java and Kotlin files. For this, you can use the 
-[File Watchers](https://plugins.jetbrains.com/plugin/7177-file-watchers) plugin inside IntelliJ IDEA. After installing the plugin, you can add a new file watcher for Prettier or import the
-provided `watchers.xml` file. File Watchers can be configured to run on save inside the _Tools → Actions on Save_ menu.
+Subsequently, IntelliJ IDEA can be configured to use Prettier for formatting Java files. For this, you can use the [File Watchers](https://plugins.jetbrains.com/plugin/7177-file-watchers) 
+plugin inside IntelliJ IDEA. After installing the plugin, you can add a new file watcher for Prettier or import the provided `watchers.xml`
+file. File Watchers can be configured to run on save inside the _Tools → Actions on Save_ menu.
+
+For Kotlin formatting, we use [ktfmt](https://github.com/cortinico/ktfmt-gradle) and the Google style. Formatting is checked by the CI.
 
 ## Pull Requests
 

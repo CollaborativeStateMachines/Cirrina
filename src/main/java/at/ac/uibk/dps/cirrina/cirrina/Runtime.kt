@@ -13,15 +13,15 @@ import at.ac.uibk.dps.cirrina.io.description.CsmlParser
 import at.ac.uibk.dps.cirrina.utils.Id
 import com.google.common.collect.ArrayListMultimap
 import io.opentelemetry.api.OpenTelemetry
+import java.io.IOException
+import kotlin.io.path.Path
+import kotlin.io.path.pathString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import java.io.IOException
-import kotlin.io.path.Path
-import kotlin.io.path.pathString
 
 /**
  * Runtime for executing state machines defined in a Cirrina CSML project.
@@ -66,9 +66,10 @@ class Runtime(
   fun run(path: String, stateMachineNames: List<String>) {
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(
-        // A main.pkl file is required in the CSML project
-        CsmlParser.parse(Path(path, "main.pkl").pathString)
-      ).build()
+          // A main.pkl file is required in the CSML project
+          CsmlParser.parse(Path(path, "main.pkl").pathString)
+        )
+        .build()
 
     // Initialize persistent context variables
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
@@ -78,26 +79,26 @@ class Runtime(
       } catch (_: IOException) {
         logger.info(
           "Did not create persistent context variable '{}', does it already exist?",
-          variable.name()
+          variable.name(),
         )
       }
     }
 
     runBlocking {
       newInstances(
-        stateMachineNames.map { name ->
-          collaborativeStateMachineClass.findStateMachineClassByName(name).orElseThrow {
-            IllegalArgumentException("No state machine found with name: $name")
-          }
-        },
-        // TODO: Provide the correct service implementation selector
-        RandomServiceImplementationSelector(
-          ArrayListMultimap.create<String?, ServiceImplementation?>()
-        ),
-        null // Top-level state machine has no parent
-      ).map { callable ->
-        async(Dispatchers.Default) { callable() }
-      }.awaitAll()
+          stateMachineNames.map { name ->
+            collaborativeStateMachineClass.findStateMachineClassByName(name).orElseThrow {
+              IllegalArgumentException("No state machine found with name: $name")
+            }
+          },
+          // TODO: Provide the correct service implementation selector
+          RandomServiceImplementationSelector(
+            ArrayListMultimap.create<String?, ServiceImplementation?>()
+          ),
+          null, // Top-level state machine has no parent
+        )
+        .map { callable -> async(Dispatchers.Default) { callable() } }
+        .awaitAll()
     }
   }
 
@@ -105,7 +106,7 @@ class Runtime(
   private fun newInstances(
     stateMachineClasses: List<StateMachineClass>,
     serviceImplementationSelector: ServiceImplementationSelector,
-    parentInstanceId: Id?
+    parentInstanceId: Id?,
   ): List<() -> Id> =
     stateMachineClasses.map { stateMachineClass ->
       {
@@ -114,11 +115,13 @@ class Runtime(
           stateMachine(stateMachineClass, serviceImplementationSelector, parentInstanceId)()
 
         // Create the nested state machines, run them, and store their instance IDs
-        val nestedStateMachineIds = newInstances(
-          stateMachineClass.nestedStateMachineClasses,
-          serviceImplementationSelector,
-          parentStateMachineInstanceId
-        ).map { it() }
+        val nestedStateMachineIds =
+          newInstances(
+              stateMachineClass.nestedStateMachineClasses,
+              serviceImplementationSelector,
+              parentStateMachineInstanceId,
+            )
+            .map { it() }
 
         // Associate the nested state machines with the parent state machine
         findInstance(parentStateMachineInstanceId)?.setNestedStateMachineIds(nestedStateMachineIds)
@@ -131,22 +134,26 @@ class Runtime(
   private fun stateMachine(
     stateMachineClass: StateMachineClass,
     serviceImplementationSelector: ServiceImplementationSelector?,
-    parentInstanceId: Id?
+    parentInstanceId: Id?,
   ): () -> Id = {
     // Attempt to find the parent state machine instance
-    val parentInstance = parentInstanceId?.let { findInstance(it) }
-      ?: if (parentInstanceId != null) throw UnsupportedOperationException(
-        "Parent state machine instance with ID '$parentInstanceId' not found"
-      ) else null
+    val parentInstance =
+      parentInstanceId?.let { findInstance(it) }
+        ?: if (parentInstanceId != null)
+          throw UnsupportedOperationException(
+            "Parent state machine instance with ID '$parentInstanceId' not found"
+          )
+        else null
 
     // Create the state machine instance
-    val stateMachineInstance = StateMachine(
-      this,
-      stateMachineClass,
-      serviceImplementationSelector,
-      openTelemetry, // TODO: Switching to dependency injection would clean this up
-      parentInstance
-    )
+    val stateMachineInstance =
+      StateMachine(
+        this,
+        stateMachineClass,
+        serviceImplementationSelector,
+        openTelemetry, // TODO: Switching to dependency injection would clean this up
+        parentInstance,
+      )
 
     // Add the state machine as an event listener
     eventHandler.addListener(stateMachineInstance)
