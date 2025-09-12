@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
-import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription.Method;
+import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;

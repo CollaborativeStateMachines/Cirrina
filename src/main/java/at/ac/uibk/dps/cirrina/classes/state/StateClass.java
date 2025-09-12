@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.classes.state;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionGraph;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionGraphBuilder;

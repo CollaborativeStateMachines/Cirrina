@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
-import at.ac.uibk.dps.cirrina.csml.description.HttpServiceImplementationDescription;
-import at.ac.uibk.dps.cirrina.csml.description.ServiceImplementationDescription;
+import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription;
+import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription;
 import at.ac.uibk.dps.cirrina.execution.service.HttpServiceImplementation.Parameters;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;

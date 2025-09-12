@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.guard;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.GuardDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.GuardDescription;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 
 /**

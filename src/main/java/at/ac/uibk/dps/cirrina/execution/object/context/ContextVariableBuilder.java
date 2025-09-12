@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.context;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableDescription;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 import java.util.Optional;
 

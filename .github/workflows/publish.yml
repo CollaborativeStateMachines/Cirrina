@@ -1,0 +1,50 @@
+name: Publish Artifacts
+on:
+  release:
+    types: [published]
+  push:
+    branches:
+      - develop
+      - master
+jobs:
+  Publish:
+    if: github.repository == 'CollaborativeStateMachines/Cirrina'
+    name: Publish Artifacts to GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+
+      - name: Build
+        run: ./gradlew build
+
+      - name: Build distribution ZIP
+        if: github.event_name == 'release'
+        run: ./gradlew distZip
+
+      - name: Upload unstable/nightly Pkl packages
+        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          path: build/generated/pkl/packages/csm/*
+
+      - name: Upload release artifacts to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/generated/pkl/packages/csm/*
+            build/distributions/*.zip
+            ATTRIBUTIONS.md
+            LICENSE
+          token: ${{ secrets.GITHUB_TOKEN }}
+

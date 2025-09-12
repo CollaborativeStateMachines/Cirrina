@@ -1,32 +1,20 @@
-# Stage 1: Build Stage
 FROM gradle:8.7.0-jdk21-alpine AS build
 
 ARG GRADLE_OPTS
 
-# Install protoc
-RUN apk add protoc
+RUN apk add --no-cache protoc unzip
 
-# Copy application source code into the container
 COPY --chown=gradle:gradle . /usr/src/cirrina
-
-# Set working directory
 WORKDIR /usr/src/cirrina
 
-# Build the application distribution ZIP
 RUN gradle distZip
 
-# Stage 2: Runtime Stage
-FROM openjdk:21-bookworm
+# Unpack distribution and normalize path
+RUN unzip build/distributions/cirrina.zip -d /tmp \
+    && chmod +x /tmp/cirrina/bin/cirrina
 
-# Copy the application distribution ZIP from the build stage
-COPY --from=build /usr/src/cirrina/build/distributions/cirrina.zip /tmp/cirrina.zip
+FROM gcr.io/distroless/java21-debian12 AS runtime
 
-# Unzip the application distribution to /usr/bin
-RUN unzip /tmp/cirrina.zip -d /usr/bin \
-    && chmod +x /usr/bin/cirrina/bin/cirrina
+COPY --from=build /tmp/cirrina /opt/cirrina
 
-# Set the working directory for the application
-WORKDIR /usr/bin/cirrina
-
-# Use shell form ENTRYPOINT to execute the application
-ENTRYPOINT ["/usr/bin/cirrina/bin/cirrina"]
+ENTRYPOINT ["java", "-cp", "/opt/cirrina/lib/*", "at.ac.uibk.dps.cirrina.cirrina.CirrinaKt"]

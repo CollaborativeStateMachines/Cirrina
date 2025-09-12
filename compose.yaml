@@ -1,0 +1,30 @@
+version: '3.7'
+configs:
+  telegraf_config:
+    file: ./telegraf.conf
+services:
+  influxdb:
+    image: "influxdb:2"
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminadmin
+      - DOCKER_INFLUXDB_INIT_ORG=org
+      - DOCKER_INFLUXDB_INIT_BUCKET=bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x
+  telegraf:
+    image: "telegraf:latest"
+    ports:
+      - "4317:4317"
+    configs:
+      - source: telegraf_config
+        target: /etc/telegraf/telegraf.conf
+  nats:
+    image: "nats:latest"
+    command:
+      - "-js"
+    ports:
+      - "4222:4222"
+      - "6222:6222"

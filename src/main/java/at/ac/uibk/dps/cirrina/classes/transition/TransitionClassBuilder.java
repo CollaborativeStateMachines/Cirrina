@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.classes.transition;
 
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.GuardDescription;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.OnTransitionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.TransitionDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ActionDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.GuardDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.OnTransitionDescription;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.TransitionDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.guard.Guard;

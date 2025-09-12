@@ -3,9 +3,8 @@ package at.ac.uibk.dps.cirrina.classes.statemachine;
 import at.ac.uibk.dps.cirrina.classes.state.StateClass;
 import at.ac.uibk.dps.cirrina.classes.transition.OnTransitionClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.ContextDescription;
-import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextDescription;
+import at.ac.uibk.dps.cirrina.execution.object.action.EventRaisingAction;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.io.plantuml.Exportable;
 import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlVisitor;
@@ -192,31 +191,21 @@ public final class StateMachineClass
   }
 
   /**
-   * Returns the events that may be raised from this state.
+   * Returns the events that may be raised from this state machine.
    *
    * @return Output events.
    */
   public List<Event> getOutputEvents() {
     return Stream.concat(
-      // Raise action events
-      Stream.concat(
-        vertexSet()
-          .stream()
-          .flatMap(v -> v.getActionsOfType(RaiseAction.class).stream()),
-        edgeSet()
-          .stream()
-          .flatMap(e -> e.getActionsOfType(RaiseAction.class).stream())
-      ).map(RaiseAction::getEvent),
-      // Invoke action events
-      Stream.concat(
-        vertexSet()
-          .stream()
-          .flatMap(v -> v.getActionsOfType(InvokeAction.class).stream()),
-        edgeSet()
-          .stream()
-          .flatMap(e -> e.getActionsOfType(InvokeAction.class).stream())
-      ).flatMap(invokeAction -> invokeAction.getDone().stream())
-    ).toList();
+      vertexSet()
+        .stream()
+        .flatMap(v -> v.getActionsOfType(EventRaisingAction.class).stream()),
+      edgeSet()
+        .stream()
+        .flatMap(e -> e.getActionsOfType(EventRaisingAction.class).stream())
+    )
+      .flatMap(action -> action.raises().stream())
+      .toList();
   }
 
   /**

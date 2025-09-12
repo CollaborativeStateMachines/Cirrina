@@ -1,0 +1,12 @@
+amends "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/Csml.pkl"
+
+import "stateMachineOne.pkl"
+import "stateMachineTwo.pkl"
+
+name = "pingPong"
+version = "3.0.0"
+stateMachines {
+  new stateMachineOne.StateMachine {}
+  new stateMachineTwo.StateMachine {}
+}

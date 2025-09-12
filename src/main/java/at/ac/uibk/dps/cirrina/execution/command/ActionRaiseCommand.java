@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
-import at.ac.uibk.dps.cirrina.csml.description.CollaborativeStateMachineDescription.EventChannel;
+import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import java.io.IOException;

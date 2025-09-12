@@ -1,0 +1,74 @@
+import "modulepath:/pkl/csm/Csml.pkl"
+
+//             State Machine Two
+// ┌──────────────────────────────────────────┐
+// │                                          │
+// │                 e1                       │
+// │           ┌────────────┐                 │
+// │          ┌┴┐          ┌▼┐  v >= 100  ┌─┐ │
+// │ raise e4 │A│ raise e2 │B├────────────►C│ │
+// │          └▲┘  v += 1  └┬┘            └─┘ │
+// │           └────────────┘                 │
+// │                 e3                       │
+// │                                          │
+// └──────────────────────────────────────────┘
+class StateMachine extends Csml.StateMachineDescription {
+  name = "stateMachine2"
+  states {
+    new {
+      name = "a"
+      initial = true
+      entry {
+        new Csml.RaiseActionDescription {
+          event {
+            name = "e4"
+            channel = "global"
+          }
+        }
+      }
+      on {
+        new Csml.OnTransitionDescription {
+          event = "e1"
+          target = "b"
+        }
+      }
+    }
+    new {
+      name = "b"
+      entry {
+        new Csml.AssignActionDescription {
+          variable {
+            name = "v"
+            value = "v + 1"
+          }
+        }
+        new Csml.RaiseActionDescription {
+          event {
+            name = "e2"
+            channel = "global"
+          }
+        }
+      }
+      on {
+        new Csml.OnTransitionDescription {
+          event = "e3"
+          target = "a"
+        }
+      }
+      always {
+        new Csml.TransitionDescription {
+          target = "c"
+          guards {
+            new Csml.GuardDescription {
+              expression = "v >= 100"
+            }
+          }
+        }
+      }
+    }
+    new {
+      name = "c"
+      terminal = true
+    }
+  }
+}
