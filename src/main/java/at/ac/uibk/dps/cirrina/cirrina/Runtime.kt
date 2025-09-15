@@ -10,15 +10,15 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.description.CsmlParser
 import at.ac.uibk.dps.cirrina.utils.Id
 import io.opentelemetry.api.OpenTelemetry
+import java.io.IOException
+import kotlin.io.path.Path
+import kotlin.io.path.pathString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import java.io.IOException
-import kotlin.io.path.Path
-import kotlin.io.path.pathString
 
 /**
  * Runtime for executing state machines defined in a Cirrina CSML project.
