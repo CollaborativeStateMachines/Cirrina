@@ -109,8 +109,6 @@ open class SpawnActionDescription extends ActionDescription {
 
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 
-typealias EventChannel = "internal" | "external" | "global" | "peripheral"
-
 class EventDescription {
   name: String
   channel: EventChannel

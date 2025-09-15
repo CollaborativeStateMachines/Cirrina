@@ -100,6 +100,7 @@ class Runtime(
             }
           },
           null, // Top-level state machine has no parent
+          null
         )
         .map { callable -> async(Dispatchers.Default) { callable() } }
         .awaitAll()

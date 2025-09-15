@@ -39,7 +39,6 @@ public class ActionSpawnCommand extends ActionCommand {
 
     final var instanceId = runtime.newInstances(
       List.of(stateMachine),
-      executionContext.serviceImplementationSelector(),
       parentId,
       executionContext.scope().getExtent()
     );
