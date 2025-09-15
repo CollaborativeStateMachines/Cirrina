@@ -4,6 +4,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.NatsContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
+import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import org.apache.logging.log4j.Level
@@ -53,7 +55,12 @@ class Cirrina {
         newPersistentContext().use { persistentContext ->
           val openTelemetry = getOpenTelemetry()
 
-          val runtime = Runtime(openTelemetry, eventHandler, persistentContext)
+          val services = ServiceImplementationBuilder.from(listOf()).build()
+          val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
+
+          val runtime =
+            Runtime(openTelemetry, serviceImplementationSelector, eventHandler, persistentContext)
+
           runtime.run(
             EnvironmentVariables.applicationPath.get(),
             EnvironmentVariables.instantiate.get(),

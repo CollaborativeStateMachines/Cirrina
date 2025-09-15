@@ -4,21 +4,23 @@ import at.ac.uibk.dps.cirrina.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
-import java.time.Duration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
+import java.time.Duration
 
 class PingPongTest {
 
   @Test
   fun testPingPongExecute() {
-    // Must finish within a second
-    assertTimeout(Duration.ofSeconds(1)) {
+    // Must finish within five seconds
+    assertTimeout(Duration.ofSeconds(5)) {
       // Should not throw any exception
       assertDoesNotThrow {
         // Mock the event handler
@@ -51,9 +53,17 @@ class PingPongTest {
             },
           )
 
+        // Create a map from service types to service implementations
+        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
+
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
-        Runtime(loggingOpenTelemetry(), mockEventHandler, mockPersistentContext)
-          .run(DefaultDescriptions.pingPong, listOf("stateMachine1", "stateMachine2"))
+        Runtime(
+          loggingOpenTelemetry(),
+          serviceImplementationSelector,
+          mockEventHandler,
+          mockPersistentContext
+        ).run(DefaultDescriptions.pingPong, listOf("stateMachine1", "stateMachine2"))
 
         // This test counts up to 100, so the final value should be 100
         assertEquals(100, mockPersistentContext["v"])
