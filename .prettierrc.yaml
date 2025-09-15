@@ -1,11 +1,9 @@
 # Prettier configuration
 plugins:
   - prettier-plugin-java
-  - prettier-plugin-kotlin
 overrides:
   - files:
       - "*.java"
-      - "*.kt"
     options:
       printWidth: 100
       tabWidth: 2

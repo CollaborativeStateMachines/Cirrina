@@ -44,7 +44,7 @@ class OnTransitionDescription extends TransitionDescription {
   event: String
 }
 
-open class GuardDescription {
+class GuardDescription {
   expression: Expression
 }
 
@@ -52,20 +52,20 @@ abstract class ActionDescription {
   type: Type
 }
 
-typealias Type = "invoke" | "create" | "assign" | "raise" | "timeout" | "timeoutReset" | "match" | "spawn"
+typealias Type = "invoke"|"create"|"assign"|"raise"|"timeout"|"timeoutReset"|"match"|"spawn"
 
-class AssignActionDescription extends ActionDescription {
+open class AssignActionDescription extends ActionDescription {
   type: Type = "assign"
   variable: ContextVariableDescription
 }
 
-class CreateActionDescription extends ActionDescription {
+open class CreateActionDescription extends ActionDescription {
   type: Type = "create"
   variable: ContextVariableDescription
   isPersistent: Boolean = false
 }
 
-class InvokeActionDescription extends ActionDescription {
+open class InvokeActionDescription extends ActionDescription {
   type: Type = "invoke"
   serviceType: String
   isLocal: Boolean = false
@@ -79,33 +79,35 @@ class MatchCaseDescription {
   action: ActionDescription
 }
 
-class MatchActionDescription extends ActionDescription {
+open class MatchActionDescription extends ActionDescription {
   type: Type = "match"
   value: Expression
   cases: Listing<MatchCaseDescription>
 }
 
-class RaiseActionDescription extends ActionDescription {
+open class RaiseActionDescription extends ActionDescription {
   type: Type = "raise"
   event: EventDescription
 }
 
-class TimeoutActionDescription extends ActionDescription {
+open class TimeoutActionDescription extends ActionDescription {
   type: Type = "timeout"
   name: String
   delay: Expression
   action: ActionDescription
 }
 
-class TimeoutResetActionDescription extends ActionDescription {
+open class TimeoutResetActionDescription extends ActionDescription {
   type: Type = "timeoutReset"
   action: String
 }
 
-class SpawnActionDescription extends ActionDescription {
+open class SpawnActionDescription extends ActionDescription {
     type: Type = "spawn"
     stateMachine: StateMachineDescription
 }
+
+typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 
 typealias EventChannel = "internal" | "external" | "global" | "peripheral"
 
