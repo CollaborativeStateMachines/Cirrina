@@ -1,16 +1,12 @@
 package at.ac.uibk.dps.cirrina.runtime
 
 import at.ac.uibk.dps.cirrina.cirrina.Runtime
-import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription
-import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,12 +15,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
 
-class CompleteTest {
+class TimeoutTest {
 
   @Test
-  fun testCompleteExecute() {
-    // Must finish within ten seconds
-    assertTimeout(Duration.ofSeconds(10)) {
+  fun testTimeoutExecute() {
+    // Must finish within five seconds
+    assertTimeout(Duration.ofSeconds(5)) {
       // Should not throw any exception
       assertDoesNotThrow {
         // Mock the event handler
@@ -46,52 +42,30 @@ class CompleteTest {
         // Mock the persistent context
         val mockPersistentContext =
           mockPersistentContext(
+            createBlock = { create("v", 0) },
             assignBlock = { superAssign, name, value ->
               assertEquals("v", name)
               assertTrue(value is Int)
 
               superAssign(name, value)
-            }
+            },
           )
-
-        // Mock the HTTP server
-        val server = mockHttpServer { input ->
-          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
-
-          listOf(ContextVariable("v", (v.value as Int) + 1))
-        }
 
         // Create a map from service types to service implementations
-        val service =
-          HttpServiceImplementationDescription(
-            "increment",
-            1.0,
-            true,
-            ServiceImplementationDescription.Type.HTTP,
-            "http",
-            "localhost",
-            8000,
-            "/increment",
-            HttpServiceImplementationDescription.Method.GET,
-          )
-
-        val services = ServiceImplementationBuilder.from(listOf(service)).build()
+        val services = ServiceImplementationBuilder.from(listOf()).build()
         val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
 
-        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
+        // Create and run the runtime using one state machine (stateMachine1)
         Runtime(
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.complete, listOf("stateMachine1"))
+          .run(DefaultDescriptions.timeout, listOf("stateMachine1"))
 
-        // This test counts up to 100, and down to 0, so the final value should be 0
-        assertEquals(0, mockPersistentContext["v"])
-        assertEquals(true, mockPersistentContext["b"])
-
-        server.stop(1)
+        // This test counts up to 10, so the final value should be 10
+        assertEquals(10, mockPersistentContext["v"])
       }
     }
   }

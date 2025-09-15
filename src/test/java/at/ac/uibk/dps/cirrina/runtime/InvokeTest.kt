@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
 
-class CompleteTest {
+class InvokeTest {
 
   @Test
-  fun testCompleteExecute() {
+  fun testInvokeExecute() {
     // Must finish within ten seconds
     assertTimeout(Duration.ofSeconds(10)) {
       // Should not throw any exception
@@ -46,12 +46,16 @@ class CompleteTest {
         // Mock the persistent context
         val mockPersistentContext =
           mockPersistentContext(
+            createBlock = {
+              create("v", 0)
+              create("e", 0)
+            },
             assignBlock = { superAssign, name, value ->
-              assertEquals("v", name)
+              assertTrue(name.equals("v") || name.equals("e"))
               assertTrue(value is Int)
 
               superAssign(name, value)
-            }
+            },
           )
 
         // Mock the HTTP server
@@ -85,11 +89,10 @@ class CompleteTest {
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.complete, listOf("stateMachine1"))
+          .run(DefaultDescriptions.invoke, listOf("stateMachine1"))
 
-        // This test counts up to 100, and down to 0, so the final value should be 0
-        assertEquals(0, mockPersistentContext["v"])
-        assertEquals(true, mockPersistentContext["b"])
+        // This test counts up to 10, so the final value should be 10
+        assertEquals(10, mockPersistentContext["v"])
 
         server.stop(1)
       }
