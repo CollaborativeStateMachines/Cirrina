@@ -1,6 +1,4 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
-import "modulepath:/pkl/csm/Csml.pkl"
-
 import "stateMachineOne.pkl"
 
 name = "complete"

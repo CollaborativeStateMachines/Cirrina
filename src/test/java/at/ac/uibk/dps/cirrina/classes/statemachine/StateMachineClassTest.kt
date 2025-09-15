@@ -3,13 +3,13 @@ package at.ac.uibk.dps.cirrina.classes.statemachine
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.io.description.CsmlParser
+import kotlin.io.path.Path
+import kotlin.io.path.pathString
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertDoesNotThrow
-import kotlin.io.path.Path
-import kotlin.io.path.pathString
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StateMachineClassTest {
@@ -19,11 +19,13 @@ class StateMachineClassTest {
   @BeforeAll
   fun setUp() {
     assertDoesNotThrow {
-      stateMachineClass = CollaborativeStateMachineClassBuilder.from(
-        CsmlParser.parse(Path(DefaultDescriptions.complete, "main.pkl").pathString)
-      ).build()
-        .findStateMachineClassByName("stateMachine1")
-        .get()
+      stateMachineClass =
+        CollaborativeStateMachineClassBuilder.from(
+            CsmlParser.parse(Path(DefaultDescriptions.complete, "main.pkl").pathString)
+          )
+          .build()
+          .findStateMachineClassByName("stateMachine1")
+          .get()
     }
   }
 
@@ -72,7 +74,10 @@ class StateMachineClassTest {
       assertEquals(1, transitions.size)
       assertEquals("b", transitions.first().targetStateName.get())
 
-      assertEquals(0, stateMachineClass.findOnTransitionsFromStateByEventName(stateA, "nonExisting").size)
+      assertEquals(
+        0,
+        stateMachineClass.findOnTransitionsFromStateByEventName(stateA, "nonExisting").size,
+      )
     }
   }
 

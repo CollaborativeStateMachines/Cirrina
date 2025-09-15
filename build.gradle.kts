@@ -6,26 +6,22 @@ plugins {
 
   id("com.google.protobuf") version "0.9.4"
   id("org.pkl-lang") version "0.29.0"
+  id("com.ncorti.ktfmt.gradle") version "0.24.0"
 
   kotlin("jvm")
 }
 
 group = "ac.at.uibk.dps.cirrina"
+
 version = rootProject.file("version.txt").readText().trim()
 
-application {
-  mainClass = "at.ac.uibk.dps.cirrina.cirrina.CirrinaKt"
-}
+application { mainClass = "at.ac.uibk.dps.cirrina.cirrina.CirrinaKt" }
 
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(21)
-  }
-}
+ktfmt { googleStyle() }
 
-jacoco {
-  toolVersion = "0.8.11"
-}
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+jacoco { toolVersion = "0.8.11" }
 
 pkl {
   project {
@@ -41,7 +37,7 @@ pkl {
       sourceModules.addAll(
         "src/main/resources/pkl/csm/Csml.pkl",
         "src/main/resources/pkl/csm/HttpServiceImplementationDescription.pkl",
-        "src/main/resources/pkl/csm/ServiceImplementationDescription.pkl"
+        "src/main/resources/pkl/csm/ServiceImplementationDescription.pkl",
       )
       generateGetters.set(true)
       generateJavadoc.set(true)
@@ -75,13 +71,13 @@ dependencies {
 
   implementation("io.nats:jnats:2.17.3")
 
-  implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"));
-  implementation("io.opentelemetry:opentelemetry-api");
-  implementation("io.opentelemetry:opentelemetry-sdk");
-  implementation("io.opentelemetry:opentelemetry-exporter-logging");
-  implementation("io.opentelemetry:opentelemetry-exporter-otlp");
-  implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha");
-  implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure");
+  implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"))
+  implementation("io.opentelemetry:opentelemetry-api")
+  implementation("io.opentelemetry:opentelemetry-sdk")
+  implementation("io.opentelemetry:opentelemetry-exporter-logging")
+  implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+  implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha")
+  implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
 
   implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 
@@ -116,13 +112,9 @@ repositories {
   maven(url = "https://repository.cloudera.com/artifactory/cloudera-repos/")
 }
 
-tasks.compileJava {
-  dependsOn("pklMakePackages")
-}
+tasks.compileJava { dependsOn("pklMakePackages") }
 
-tasks.distZip {
-  archiveFileName.set("${project.name}.zip")
-}
+tasks.distZip { archiveFileName.set("${project.name}.zip") }
 
 tasks.test {
   useJUnitPlatform()

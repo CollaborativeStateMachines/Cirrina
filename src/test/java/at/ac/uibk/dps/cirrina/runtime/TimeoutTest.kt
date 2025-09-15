@@ -15,10 +15,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
 
-class PingPongTest {
+class TimeoutTest {
 
   @Test
-  fun testPingPongExecute() {
+  fun testTimeoutExecute() {
     // Must finish within five seconds
     assertTimeout(Duration.ofSeconds(5)) {
       // Should not throw any exception
@@ -55,19 +55,17 @@ class PingPongTest {
         val services = ServiceImplementationBuilder.from(listOf()).build()
         val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
 
-        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2).
-        // The order is 2-1, as state machine 1 sends and event to state machine 2, if state machine
-        // 2 is not yet created, it will not receive the event as the event mocking is very simple
+        // Create and run the runtime using one state machine (stateMachine1)
         Runtime(
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.pingPong, listOf("stateMachine2", "stateMachine1"))
+          .run(DefaultDescriptions.timeout, listOf("stateMachine1"))
 
-        // This test counts up to 100, so the final value should be 100
-        assertEquals(100, mockPersistentContext["v"])
+        // This test counts up to 10, so the final value should be 10
+        assertEquals(10, mockPersistentContext["v"])
       }
     }
   }

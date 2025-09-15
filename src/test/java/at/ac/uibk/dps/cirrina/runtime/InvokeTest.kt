@@ -1,12 +1,16 @@
 package at.ac.uibk.dps.cirrina.runtime
 
 import at.ac.uibk.dps.cirrina.cirrina.Runtime
+import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription
+import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
+import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -15,12 +19,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
 
-class PingPongTest {
+class InvokeTest {
 
   @Test
-  fun testPingPongExecute() {
-    // Must finish within five seconds
-    assertTimeout(Duration.ofSeconds(5)) {
+  fun testInvokeExecute() {
+    // Must finish within ten seconds
+    assertTimeout(Duration.ofSeconds(10)) {
       // Should not throw any exception
       assertDoesNotThrow {
         // Mock the event handler
@@ -42,32 +46,55 @@ class PingPongTest {
         // Mock the persistent context
         val mockPersistentContext =
           mockPersistentContext(
-            createBlock = { create("v", 0) },
+            createBlock = {
+              create("v", 0)
+              create("e", 0)
+            },
             assignBlock = { superAssign, name, value ->
-              assertEquals("v", name)
+              assertTrue(name.equals("v") || name.equals("e"))
               assertTrue(value is Int)
 
               superAssign(name, value)
             },
           )
 
+        // Mock the HTTP server
+        val server = mockHttpServer { input ->
+          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+
+          listOf(ContextVariable("v", (v.value as Int) + 1))
+        }
+
         // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val service =
+          HttpServiceImplementationDescription(
+            "increment",
+            1.0,
+            true,
+            ServiceImplementationDescription.Type.HTTP,
+            "http",
+            "localhost",
+            8000,
+            "/increment",
+            HttpServiceImplementationDescription.Method.GET,
+          )
+
+        val services = ServiceImplementationBuilder.from(listOf(service)).build()
         val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
 
-        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2).
-        // The order is 2-1, as state machine 1 sends and event to state machine 2, if state machine
-        // 2 is not yet created, it will not receive the event as the event mocking is very simple
+        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
         Runtime(
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.pingPong, listOf("stateMachine2", "stateMachine1"))
+          .run(DefaultDescriptions.invoke, listOf("stateMachine1"))
 
-        // This test counts up to 100, so the final value should be 100
-        assertEquals(100, mockPersistentContext["v"])
+        // This test counts up to 10, so the final value should be 10
+        assertEquals(10, mockPersistentContext["v"])
+
+        server.stop(1)
       }
     }
   }
