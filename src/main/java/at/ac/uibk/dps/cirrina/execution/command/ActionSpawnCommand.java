@@ -1,8 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
+import at.ac.uibk.dps.cirrina.cirrina.Runtime;
 import at.ac.uibk.dps.cirrina.execution.object.action.SpawnAction;
 import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachine;
-import at.ac.uibk.dps.cirrina.runtime.Runtime;
 import at.ac.uibk.dps.cirrina.utils.Id;
 import java.util.List;
 import java.util.Optional;
@@ -25,23 +25,22 @@ public class ActionSpawnCommand extends ActionCommand {
     final var stateMachine = spawnAction.getStateMachine();
     final Runtime runtime = executionContext.runtime();
 
-    // Retrieve the parent runtime
-    final var parentInstanceId = executionContext.scope().getId();
-    final Optional<StateMachine> parentInstance = runtime.findInstance(parentInstanceId);
+    // Retrieve the parent state machine
+    final String parentStateMachineId = executionContext.scope().getId();
+    final StateMachine parentStateMachine = runtime.findInstance(parentStateMachineId);
 
     // A parent instance needs to exist for spawning a new state machine instance
-    if (parentInstance.isEmpty()) {
-      logger.error("Parent instance with ID {} not found", parentInstanceId);
+    if (parentStateMachine == null) {
+      logger.error("Parent instance with ID {} not found", parentStateMachineId);
       return List.of();
     }
 
-    final Id parentId = parentInstance.get().getStateMachineInstanceId();
+    final Id parentId = parentStateMachine.getStateMachineInstanceId();
 
     final var instanceId = runtime.newInstances(
       List.of(stateMachine),
       executionContext.serviceImplementationSelector(),
       parentId,
-      0,
       executionContext.scope().getExtent()
     );
 

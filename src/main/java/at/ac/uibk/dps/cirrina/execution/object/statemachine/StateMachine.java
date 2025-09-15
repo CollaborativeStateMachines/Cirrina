@@ -132,7 +132,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     StateMachineClass stateMachineClass,
     ServiceImplementationSelector serviceImplementationSelector,
     OpenTelemetry openTelemetry,
-    @Nullable StateMachine parentStateMachine
+    @Nullable StateMachine parentStateMachine,
     @Nullable Extent extent
   ) {
     this.runtime = runtime;

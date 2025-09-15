@@ -52,7 +52,7 @@ abstract class ActionDescription {
   type: Type
 }
 
-typealias Type = "invoke" | "create" | "assign" | "raise" | "timeout" | "timeoutReset" | "match"
+typealias Type = "invoke" | "create" | "assign" | "raise" | "timeout" | "timeoutReset" | "match" | "spawn"
 
 class AssignActionDescription extends ActionDescription {
   type: Type = "assign"
@@ -100,6 +100,11 @@ class TimeoutActionDescription extends ActionDescription {
 class TimeoutResetActionDescription extends ActionDescription {
   type: Type = "timeoutReset"
   action: String
+}
+
+class SpawnActionDescription extends ActionDescription {
+    type: Type = "spawn"
+    stateMachine: StateMachineDescription
 }
 
 typealias EventChannel = "internal" | "external" | "global" | "peripheral"

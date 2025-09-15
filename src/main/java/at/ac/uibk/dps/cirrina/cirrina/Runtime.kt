@@ -56,6 +56,15 @@ class Runtime(
     stateMachines.firstOrNull { it.stateMachineInstanceId == stateMachineId }
 
   /**
+   * Find a state machine instance by its ID.
+   * @param stateMachineId The ID of the state machine instance as a string.
+   * @return The state machine instance, or null if not found.
+   */
+  fun findInstance(stateMachineId: String): StateMachine? =
+      stateMachines.firstOrNull { it.stateMachineInstanceId.toString() == stateMachineId }
+
+
+  /**
    * Run the specified state machines defined in a CSML project.
    *
    * The CSML project is specified by the path to the folder containing a main.pkl file.
@@ -94,7 +103,8 @@ class Runtime(
         RandomServiceImplementationSelector(
           ArrayListMultimap.create<String?, ServiceImplementation?>()
         ),
-        null // Top-level state machine has no parent
+        null, // Top-level state machine has no parent
+          null // Top-level state machine has no creation extent as it cannot be created by an action
       ).map { callable ->
         async(Dispatchers.Default) { callable() }
       }.awaitAll()
@@ -102,10 +112,11 @@ class Runtime(
   }
 
   // Creates new state machine instances, including nested state machines.
-  private fun newInstances(
+  fun newInstances(
     stateMachineClasses: List<StateMachineClass>,
     serviceImplementationSelector: ServiceImplementationSelector,
-    parentInstanceId: Id?
+    parentInstanceId: Id?,
+    creationExtent: Extent?
   ): List<() -> Id> =
     stateMachineClasses.map { stateMachineClass ->
       {
@@ -117,7 +128,8 @@ class Runtime(
         val nestedStateMachineIds = newInstances(
           stateMachineClass.nestedStateMachineClasses,
           serviceImplementationSelector,
-          parentStateMachineInstanceId
+          parentStateMachineInstanceId,
+          creationExtent
         ).map { it() }
 
         // Associate the nested state machines with the parent state machine
@@ -145,7 +157,8 @@ class Runtime(
       stateMachineClass,
       serviceImplementationSelector,
       openTelemetry, // TODO: Switching to dependency injection would clean this up
-      parentInstance
+      parentInstance,
+      null
     )
 
     // Add the state machine as an event listener
