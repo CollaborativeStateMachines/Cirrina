@@ -1,4 +1,4 @@
-amends "modulepath:/pkl/csm/Csml.pkl"
+amends "csm:Csml"
 import "stateMachineOne.pkl"
 import "stateMachineTwo.pkl"
 

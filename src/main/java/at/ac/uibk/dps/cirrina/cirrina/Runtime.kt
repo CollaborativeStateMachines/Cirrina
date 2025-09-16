@@ -75,7 +75,7 @@ class Runtime(
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(
           // A main.pkl file is required in the CSML project
-          CsmlParser.parse(Path(path, "main.pkl").pathString)
+          CsmlParser.parse(Path(path).pathString)
         )
         .build()
 
