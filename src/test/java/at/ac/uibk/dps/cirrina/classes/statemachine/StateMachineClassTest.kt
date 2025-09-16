@@ -21,7 +21,7 @@ class StateMachineClassTest {
     assertDoesNotThrow {
       stateMachineClass =
         CollaborativeStateMachineClassBuilder.from(
-            CsmlParser.parse(Path(DefaultDescriptions.complete, "main.pkl").pathString)
+            CsmlParser.parse(Path(DefaultDescriptions.complete).pathString)
           )
           .build()
           .findStateMachineClassByName("stateMachine1")

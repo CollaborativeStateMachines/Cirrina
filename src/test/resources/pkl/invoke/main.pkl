@@ -1,5 +1,5 @@
-amends "modulepath:/pkl/csm/Csml.pkl"
-import "modulepath:/pkl/csm/Csml.pkl"
+amends "csm:Csml"
+import "csm:Csml"
 
 name = "invoke"
 version = "3.0.0"
