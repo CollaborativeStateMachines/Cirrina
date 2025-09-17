@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
+import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import org.apache.logging.log4j.Level
@@ -55,16 +56,24 @@ class Cirrina {
         newPersistentContext().use { persistentContext ->
           val openTelemetry = getOpenTelemetry()
 
-          val services = ServiceImplementationBuilder.from(listOf()).build()
-          val serviceImplementationSelector = RandomServiceImplementationSelector(services)
+          // Create a service implementation selector based on the parsed service implementation
+          // bindings
+          val serviceImplementationSelector =
+            RandomServiceImplementationSelector(
+              ServiceImplementationBuilder.from(
+                  CsmParser.parseServiceImplementationBindings(
+                      EnvironmentVariables.serviceBindingsPath.get()
+                    )
+                    .bindings
+                )
+                .build()
+            )
 
+          // Create and run the runtime
           val runtime =
             Runtime(openTelemetry, serviceImplementationSelector, eventHandler, persistentContext)
 
-          runtime.run(
-            EnvironmentVariables.applicationPath.get(),
-            EnvironmentVariables.instantiate.get(),
-          )
+          runtime.run(EnvironmentVariables.appPath.get(), EnvironmentVariables.instantiate.get())
 
           logger.info("Done running")
         }
@@ -93,12 +102,12 @@ class Cirrina {
 
   // Construct a new persistent context based as configured.
   private fun newPersistentContext(): Context =
-    when (EnvironmentVariables.persistentContextProvider.get()) {
+    when (EnvironmentVariables.contextProvider.get()) {
       PersistentContextProvider.NATS -> newNatsPersistentContext()
       else ->
         throw ConfigurationError.Unknown(
           "persistent context",
-          EnvironmentVariables.persistentContextProvider.get(),
+          EnvironmentVariables.contextProvider.get(),
         )
     }
 
@@ -106,8 +115,8 @@ class Cirrina {
   private fun newNatsPersistentContext(): NatsContext =
     NatsContext(
       false,
-      EnvironmentVariables.natsPersistentContextUrl.get(),
-      EnvironmentVariables.natsPersistentContextBucket.get(),
+      EnvironmentVariables.natsContextUrl.get(),
+      EnvironmentVariables.natsContextBucket.get(),
     )
 
   // Construct a new OpenTelemetry instance as configured.
