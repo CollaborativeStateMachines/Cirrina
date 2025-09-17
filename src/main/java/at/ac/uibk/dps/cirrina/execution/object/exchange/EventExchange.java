@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.exchange;
 
-import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import com.google.protobuf.InvalidProtocolBufferException;

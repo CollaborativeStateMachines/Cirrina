@@ -1,13 +1,12 @@
 package at.ac.uibk.dps.cirrina.runtime
 
 import at.ac.uibk.dps.cirrina.cirrina.Runtime
-import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription
-import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
-import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
@@ -67,20 +66,19 @@ class InvokeTest {
 
         // Create a map from service types to service implementations
         val service =
-          HttpServiceImplementationDescription(
+          ServiceImplementationBindings.HttpServiceImplementationBinding(
             "increment",
-            1.0,
             true,
-            ServiceImplementationDescription.Type.HTTP,
+            ServiceImplementationBindings.Type.HTTP,
             "http",
             "localhost",
             8000,
             "/increment",
-            HttpServiceImplementationDescription.Method.GET,
+            ServiceImplementationBindings.HttpMethod.GET,
           )
 
         val services = ServiceImplementationBuilder.from(listOf(service)).build()
-        val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
+        val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
         Runtime(

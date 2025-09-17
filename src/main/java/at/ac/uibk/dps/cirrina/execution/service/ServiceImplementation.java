@@ -13,19 +13,16 @@ import java.util.concurrent.CompletableFuture;
 public abstract class ServiceImplementation {
 
   private final String name;
-  private final double cost;
   private final boolean local;
 
   /**
    * Initializes this service implementation.
    *
    * @param name  Name of this service implementation.
-   * @param cost  Cost of this service implementation.
    * @param local Whether this service implementation is local.
    */
-  public ServiceImplementation(String name, double cost, boolean local) {
+  public ServiceImplementation(String name, boolean local) {
     this.name = name;
-    this.cost = cost;
     this.local = local;
   }
 
@@ -43,13 +40,6 @@ public abstract class ServiceImplementation {
   ) throws IOException;
 
   /**
-   * Returns the dynamic performance of this service implementation.
-   *
-   * @return Performance.
-   */
-  public abstract float getPerformance();
-
-  /**
    * Returns whether this service implementation is local.
    *
    * @return Is local.
@@ -65,15 +55,6 @@ public abstract class ServiceImplementation {
    */
   public String getName() {
     return name;
-  }
-
-  /**
-   * Returns the cost of this service implementation.
-   *
-   * @return Cost.
-   */
-  public double getCost() {
-    return cost;
   }
 
   /**

@@ -36,8 +36,7 @@ pkl {
     register("pklGenJava") {
       sourceModules.addAll(
         "src/main/resources/pkl/csm/Csml.pkl",
-        "src/main/resources/pkl/csm/HttpServiceImplementationDescription.pkl",
-        "src/main/resources/pkl/csm/ServiceImplementationDescription.pkl",
+        "src/main/resources/pkl/csm/ServiceImplementationBindings.pkl",
       )
       generateGetters.set(true)
       generateJavadoc.set(true)

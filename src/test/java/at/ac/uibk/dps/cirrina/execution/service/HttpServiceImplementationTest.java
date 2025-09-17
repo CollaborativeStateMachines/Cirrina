@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
@@ -141,8 +141,8 @@ public class HttpServiceImplementationTest {
   }
 
   @Test
-  public void testHttpServiceInvocation() throws IOException {
-    List.of(Method.POST, Method.GET)
+  public void testHttpServiceInvocation() {
+    List.of(HttpMethod.POST, HttpMethod.GET)
       .stream()
       .forEach(method -> {
         // First variable
@@ -158,7 +158,7 @@ public class HttpServiceImplementationTest {
           variables.add(ContextVariableBuilder.from(varTwo).build().evaluate(new Extent()));
 
           final var service = new HttpServiceImplementation(
-            new Parameters("http", 1.0f, false, "http", "localhost", 8000, "/plus", Method.POST)
+            new Parameters("http", false, "http", "localhost", 8000, "/plus", HttpMethod.POST)
           );
 
           final var output = service.invoke(variables, "some-id").get();
@@ -173,10 +173,10 @@ public class HttpServiceImplementationTest {
         // HTTP error
         assertThrows(ExecutionException.class, () -> {
           final var service = new HttpServiceImplementation(
-            new Parameters("http", 1.0f, false, "http", "localhost", 8000, "/error", Method.POST)
+            new Parameters("http", false, "http", "localhost", 8000, "/error", HttpMethod.POST)
           );
 
-          service.invoke(new ArrayList<ContextVariable>(), "some-id").get();
+          service.invoke(new ArrayList<>(), "some-id").get();
         });
 
         // Invalid response type
@@ -184,17 +184,16 @@ public class HttpServiceImplementationTest {
           final var service = new HttpServiceImplementation(
             new Parameters(
               "http",
-              1.0f,
               false,
               "http",
               "localhost",
               8000,
               "/broken-response1",
-              Method.POST
+              HttpMethod.POST
             )
           );
 
-          service.invoke(new ArrayList<ContextVariable>(), "some-id").get();
+          service.invoke(new ArrayList<>(), "some-id").get();
         });
 
         // Invalid response type
@@ -202,17 +201,16 @@ public class HttpServiceImplementationTest {
           final var service = new HttpServiceImplementation(
             new Parameters(
               "http",
-              1.0f,
               false,
               "http",
               "localhost",
               8000,
               "/broken-response2",
-              Method.POST
+              HttpMethod.POST
             )
           );
 
-          service.invoke(new ArrayList<ContextVariable>(), "some-id").get();
+          service.invoke(new ArrayList<>(), "some-id").get();
         });
       });
   }

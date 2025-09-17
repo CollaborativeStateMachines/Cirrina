@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
-import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription.Method;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
@@ -64,7 +64,7 @@ public class HttpServiceImplementation extends ServiceImplementation {
   /**
    * HTTP method.
    */
-  private final Method method;
+  private final ServiceImplementationBindings.HttpMethod method;
 
   /**
    * Initializes this HTTP service implementation.
@@ -72,7 +72,7 @@ public class HttpServiceImplementation extends ServiceImplementation {
    * @param parameters Initialization parameters.
    */
   public HttpServiceImplementation(Parameters parameters) {
-    super(parameters.name, parameters.cost, parameters.local);
+    super(parameters.name, parameters.local);
     this.scheme = parameters.scheme;
     this.host = parameters.host;
     this.port = (int) parameters.port;
@@ -170,16 +170,6 @@ public class HttpServiceImplementation extends ServiceImplementation {
   }
 
   /**
-   * Returns the dynamic performance of this service implementation.
-   *
-   * @return Performance.
-   */
-  @Override
-  public float getPerformance() {
-    return 1.0f; // TODO: Implement measuring of performance
-  }
-
-  /**
    * Returns a string for informative purposes (a service implementation is abstract, so can provide no information about the details).
    *
    * @return Information string.
@@ -197,12 +187,11 @@ public class HttpServiceImplementation extends ServiceImplementation {
 
   public record Parameters(
     String name,
-    double cost,
     boolean local,
     String scheme,
     String host,
     long port,
     String endPoint,
-    Method method
+    ServiceImplementationBindings.HttpMethod method
   ) {}
 }

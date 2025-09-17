@@ -38,16 +38,17 @@ object EnvironmentVariables {
   /** The NATS event server URL. */
   val natsEventUrl = EnvironmentVariable("NATS_EVENT_URL", default = "nats://localhost:4222/")
 
-  /** The NATS persistent context server URL. */
-  val natsPersistentContextUrl =
-    EnvironmentVariable("NATS_PERSISTENT_CONTEXT_URL", default = "nats://localhost:4222")
+  /** The NATS context server URL. */
+  val natsContextUrl = EnvironmentVariable("NATS_CONTEXT_URL", default = "nats://localhost:4222")
 
-  /** The NATS persistent context bucket. */
-  val natsPersistentContextBucket =
-    EnvironmentVariable("NATS_PERSISTENT_CONTEXT_BUCKET", default = "persistent")
+  /** The NATS context bucket. */
+  val natsContextBucket = EnvironmentVariable("NATS_CONTEXT_BUCKET", default = "persistent")
 
   /** The path to the CSML application. */
-  val applicationPath = EnvironmentVariable<String>("APPLICATION_PATH", required = true)
+  val appPath = EnvironmentVariable<String>("APP_PATH", required = true)
+
+  /** The path to the service implementation bindings. */
+  val serviceBindingsPath = EnvironmentVariable<String>("SERVICE_BINDINGS_PATH", required = true)
 
   /** The state machine names to instantiate. */
   val instantiate =
@@ -75,17 +76,17 @@ object EnvironmentVariables {
       },
     )
 
-  /** The persistent context provider to use. */
-  val persistentContextProvider =
+  /** The context provider to use. */
+  val contextProvider =
     EnvironmentVariable(
-      name = "PERSISTENT_CONTEXT_PROVIDER",
+      name = "CONTEXT_PROVIDER",
       default = PersistentContextProvider.NATS,
       mapper = { value ->
         try {
           PersistentContextProvider.valueOf(value.uppercase())
         } catch (_: IllegalArgumentException) {
           throw EnvironmentVariableError.Invalid(
-            "PERSISTENT_CONTEXT_PROVIDER",
+            "CONTEXT_PROVIDER",
             value,
             PersistentContextProvider.entries.toString(),
           )

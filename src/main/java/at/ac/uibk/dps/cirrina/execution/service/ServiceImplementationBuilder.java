@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
-import at.ac.uibk.dps.cirrina.csm.description.HttpServiceImplementationDescription;
-import at.ac.uibk.dps.cirrina.csm.description.ServiceImplementationDescription;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpServiceImplementationBinding;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.ServiceImplementationBinding;
 import at.ac.uibk.dps.cirrina.execution.service.HttpServiceImplementation.Parameters;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -13,38 +13,38 @@ import java.util.List;
  */
 public class ServiceImplementationBuilder {
 
-  private final List<? extends ServiceImplementationDescription> serviceImplementationDescriptions;
+  private final List<? extends ServiceImplementationBinding> serviceImplementationBindings;
 
   private ServiceImplementationBuilder(
-    List<? extends ServiceImplementationDescription> serviceImplementationDescriptions
+    List<? extends ServiceImplementationBinding> serviceImplementationBindings
   ) {
-    this.serviceImplementationDescriptions = serviceImplementationDescriptions;
+    this.serviceImplementationBindings = serviceImplementationBindings;
   }
 
   /**
-   * Construct a builder from a service implementation description.
+   * Construct a builder from service implementation bindings.
    *
-   * @param serviceImplementationDescription Service implementation description.
+   * @param serviceImplementationBinding Service implementation binding.
    * @return Builder.
    */
   public static ServiceImplementationBuilder from(
-    ServiceImplementationDescription serviceImplementationDescription
+    ServiceImplementationBinding serviceImplementationBinding
   ) {
-    var list = new ArrayList<ServiceImplementationDescription>();
-    list.add(serviceImplementationDescription);
+    var list = new ArrayList<ServiceImplementationBinding>();
+    list.add(serviceImplementationBinding);
     return new ServiceImplementationBuilder(list);
   }
 
   /**
-   * Construct a builder from multiple service implementation descriptions.
+   * Construct a builder from multiple service implementation bindings.
    *
-   * @param serviceImplementationDescriptions Service implementation descriptions.
+   * @param serviceImplementationBindings Service implementation bindings.
    * @return Builder.
    */
   public static ServiceImplementationBuilder from(
-    List<? extends ServiceImplementationDescription> serviceImplementationDescriptions
+    List<? extends ServiceImplementationBinding> serviceImplementationBindings
   ) {
-    return new ServiceImplementationBuilder(serviceImplementationDescriptions);
+    return new ServiceImplementationBuilder(serviceImplementationBindings);
   }
 
   /**
@@ -53,14 +53,13 @@ public class ServiceImplementationBuilder {
    * @return Service implementation.
    */
   private static ServiceImplementation buildOne(
-    ServiceImplementationDescription serviceImplementationDescription
+    ServiceImplementationBinding serviceImplementationBinding
   ) {
-    switch (serviceImplementationDescription) {
-      case HttpServiceImplementationDescription s -> {
+    switch (serviceImplementationBinding) {
+      case HttpServiceImplementationBinding s -> {
         return new HttpServiceImplementation(
           new Parameters(
             s.getName(),
-            s.getCost(),
             s.isLocal(),
             s.getScheme(),
             s.getHost(),
@@ -71,7 +70,7 @@ public class ServiceImplementationBuilder {
         );
       }
       default -> throw new IllegalStateException(
-        String.format("Unexpected value: %s", serviceImplementationDescription.getType())
+        String.format("Unexpected value: %s", serviceImplementationBinding.getType())
       );
     }
   }
@@ -84,7 +83,7 @@ public class ServiceImplementationBuilder {
   public Multimap<String, ServiceImplementation> build() {
     Multimap<String, ServiceImplementation> services = ArrayListMultimap.create();
 
-    for (var serviceDescription : serviceImplementationDescriptions) {
+    for (var serviceDescription : serviceImplementationBindings) {
       var service = buildOne(serviceDescription);
 
       services.put(service.getName(), service);

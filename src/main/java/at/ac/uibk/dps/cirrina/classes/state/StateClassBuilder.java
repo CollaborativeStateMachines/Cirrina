@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.classes.state;
 
-import at.ac.uibk.dps.cirrina.csml.description.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.StateDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
