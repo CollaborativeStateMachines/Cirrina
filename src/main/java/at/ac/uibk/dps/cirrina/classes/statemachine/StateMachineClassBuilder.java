@@ -2,9 +2,9 @@ package at.ac.uibk.dps.cirrina.classes.statemachine;
 
 import at.ac.uibk.dps.cirrina.classes.state.StateClassBuilder;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.StateDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.StateMachineDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.TransitionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;

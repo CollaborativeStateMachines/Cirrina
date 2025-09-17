@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.classes.statemachine
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
-import at.ac.uibk.dps.cirrina.io.description.CsmlParser
+import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
 import org.junit.jupiter.api.Assertions.*
@@ -21,7 +21,7 @@ class StateMachineClassTest {
     assertDoesNotThrow {
       stateMachineClass =
         CollaborativeStateMachineClassBuilder.from(
-            CsmlParser.parse(Path(DefaultDescriptions.complete).pathString)
+            CsmParser.parseCsml(Path(DefaultDescriptions.complete).pathString)
           )
           .build()
           .findStateMachineClassByName("stateMachine1")

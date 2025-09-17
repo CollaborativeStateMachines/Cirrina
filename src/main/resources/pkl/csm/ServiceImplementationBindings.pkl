@@ -1,0 +1,23 @@
+@ModuleInfo { minPklVersion = "0.29.0" }
+module at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+
+typealias Type = "HTTP"
+
+bindings: Listing<ServiceImplementationBinding>
+
+abstract class ServiceImplementationBinding {
+  type: Type
+  name: String
+  `local`: Boolean
+}
+
+typealias HttpMethod = "GET"|"POST"
+
+class HttpServiceImplementationBinding extends ServiceImplementationBinding {
+  type: Type = "HTTP"
+  scheme: String
+  host: String
+  port: Int(isBetween(1, 65535))
+  endPoint: String
+  method: HttpMethod
+}

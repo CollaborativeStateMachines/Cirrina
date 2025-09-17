@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
-import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableReferenceDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableReferenceDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import java.util.List;

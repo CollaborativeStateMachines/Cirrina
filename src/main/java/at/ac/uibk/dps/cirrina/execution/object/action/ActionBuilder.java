@@ -1,16 +1,16 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
-import at.ac.uibk.dps.cirrina.csml.description.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.AssignActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.CreateActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.EventDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.InvokeActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.MatchActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.MatchCaseDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.RaiseActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.TimeoutActionDescription;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.TimeoutResetActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.AssignActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.CreateActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.InvokeActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.MatchActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.MatchCaseDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.RaiseActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutResetActionDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;

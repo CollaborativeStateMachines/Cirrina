@@ -4,7 +4,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.NatsContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
-import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
@@ -56,7 +56,7 @@ class Cirrina {
           val openTelemetry = getOpenTelemetry()
 
           val services = ServiceImplementationBuilder.from(listOf()).build()
-          val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
+          val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
           val runtime =
             Runtime(openTelemetry, serviceImplementationSelector, eventHandler, persistentContext)

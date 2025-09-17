@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.classes.collaborativestatemachine;
 
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder;
-import at.ac.uibk.dps.cirrina.csml.description.Csml;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
+import at.ac.uibk.dps.cirrina.csm.Csml;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.context.Context;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;

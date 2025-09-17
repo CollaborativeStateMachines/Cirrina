@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.io.description.CsmlParser
+import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
 import at.ac.uibk.dps.cirrina.utils.Id
 import io.opentelemetry.api.OpenTelemetry
 import java.io.IOException
@@ -66,7 +66,7 @@ class Runtime(
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(
           // A main.pkl file is required in the CSML project
-          CsmlParser.parse(Path(path).pathString)
+          CsmParser.parseCsml(Path(path).pathString)
         )
         .build()
 

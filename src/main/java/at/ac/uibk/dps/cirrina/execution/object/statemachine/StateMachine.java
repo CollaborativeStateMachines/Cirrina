@@ -14,7 +14,7 @@ import at.ac.uibk.dps.cirrina.cirrina.Runtime;
 import at.ac.uibk.dps.cirrina.classes.state.StateClass;
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
-import at.ac.uibk.dps.cirrina.csml.description.Csml.EventChannel;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand;
 import at.ac.uibk.dps.cirrina.execution.command.ActionRaiseCommand;
 import at.ac.uibk.dps.cirrina.execution.command.ActionTimeoutResetCommand;

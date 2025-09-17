@@ -1,0 +1,22 @@
+amends "csm:ServiceImplementationBindings"
+
+bindings {
+  new HttpServiceImplementationBinding {
+    name = "myHttpService1"
+    `local` = false
+    scheme = "https"
+    host = "api.example.com"
+    port = 443
+    endPoint = "/data"
+    method = "GET"
+  }
+  new HttpServiceImplementationBinding {
+    name = "myHttpService2"
+    `local` = false
+    scheme = "https"
+    host = "api.example.com"
+    port = 443
+    endPoint = "/data"
+    method = "GET"
+  }
+}

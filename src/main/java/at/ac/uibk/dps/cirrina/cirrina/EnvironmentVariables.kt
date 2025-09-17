@@ -49,6 +49,10 @@ object EnvironmentVariables {
   /** The path to the CSML application. */
   val applicationPath = EnvironmentVariable<String>("APPLICATION_PATH", required = true)
 
+  /** The path to the service implementation description. */
+  val serviceImplementationPath =
+    EnvironmentVariable<String>("SERVICE_IMPLEMENTATION_PATH", required = true)
+
   /** The state machine names to instantiate. */
   val instantiate =
     EnvironmentVariable(

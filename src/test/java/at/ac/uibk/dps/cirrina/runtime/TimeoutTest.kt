@@ -4,7 +4,7 @@ import at.ac.uibk.dps.cirrina.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
-import at.ac.uibk.dps.cirrina.execution.service.OptimalServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
@@ -53,7 +53,7 @@ class TimeoutTest {
 
         // Create a map from service types to service implementations
         val services = ServiceImplementationBuilder.from(listOf()).build()
-        val serviceImplementationSelector = OptimalServiceImplementationSelector(services)
+        val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using one state machine (stateMachine1)
         Runtime(

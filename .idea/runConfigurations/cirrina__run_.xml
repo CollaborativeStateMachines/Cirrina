@@ -3,8 +3,8 @@
     <ExternalSystemSettings>
       <option name="env">
         <map>
-          <entry key="APPLICATION_PATH" value="src/test/resources/pkl/complete/" />
-          <entry key="INSTANTIATE" value="stateMachine1" />
+          <entry key="APPLICATION_PATH" value="$PROJECT_DIR$/../Cirrina-Examples/railway-crossing/main.pkl" />
+          <entry key="INSTANTIATE" value="bell,gate,light,crossing" />
           <entry key="OTEL_METRIC_EXPORT_INTERVAL" value="1000" />
         </map>
       </option>
