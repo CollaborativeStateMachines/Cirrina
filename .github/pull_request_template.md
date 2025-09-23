@@ -1,4 +1,4 @@
-# Pull request
+# Pull Request
 
 <!--
 Please make sure to have read the CONTRIBUTING.md guidelines.

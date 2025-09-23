@@ -33,8 +33,5 @@ jobs:
       - name: Build using Gradle
         run: ./gradlew build
 
-      - name: Check formatting with ktfmt
-        run: ./gradlew ktfmtCheck
-
       - name: Test using Gradle
         run: ./gradlew test

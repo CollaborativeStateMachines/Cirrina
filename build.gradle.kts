@@ -115,6 +115,8 @@ repositories {
   maven(url = "https://repository.cloudera.com/artifactory/cloudera-repos/")
 }
 
+tasks.compileKotlin { dependsOn(tasks.ktfmtFormat) }
+
 tasks.compileJava { dependsOn("pklMakePackages") }
 
 tasks.distZip { archiveFileName.set("${project.name}.zip") }
