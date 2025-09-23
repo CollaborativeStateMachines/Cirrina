@@ -1,4 +1,5 @@
 import "csm:Csml"
+import "nestedStateMachineOne.pkl"
 
 //                                           State Machine One                                           
 // ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -14,6 +15,9 @@ import "csm:Csml"
 // └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 class StateMachine extends Csml.StateMachineDescription {
   name = "stateMachine1"
+  stateMachines {
+    new nestedStateMachineOne.StateMachine {}
+  }
   states {
     // State a
     new Csml.StateDescription {
@@ -169,6 +173,7 @@ class StateMachine extends Csml.StateMachineDescription {
             }
           }
         }
+        // Transition to e on receiving e4 event
         new Csml.OnTransitionDescription {
           event = "e4"
           target = "e"

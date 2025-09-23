@@ -1,0 +1,22 @@
+import "csm:Csml"
+
+// Nested stateMachine for SM1
+class StateMachine extends Csml.StateMachineDescription {
+  name = "nestedStateMachine1"
+  states {
+    //State a
+    new Csml.StateDescription {
+      name = "a"
+      initial = true
+      // Raises global event ne1 on entry
+      entry {
+        new Csml.RaiseActionDescription {
+          event {
+            name = "ne1"
+            channel = "global"
+          }
+        }
+      }
+    }
+  }
+}

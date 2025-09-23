@@ -55,6 +55,13 @@ class Runtime(
     stateMachines.firstOrNull { it.stateMachineInstanceId == stateMachineId }
 
   /**
+   * Get all current state machine instances.
+   *
+   * @return A list of state machine instances.
+   */
+  fun getAllInstances(): List<StateMachine> = stateMachines
+
+  /**
    * Run the specified state machines defined in a CSML project.
    *
    * The CSML project is specified by the path to the folder containing a main.pkl file.
