@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-For contributing, please refer to the guidelines below.
+To contribute, please refer to the guidelines below.
 
 ## Development Setup
 
@@ -13,9 +13,9 @@ the CSM package provided by the project.
 
 ## Code Style
 
-This project uses the opinionated Prettier code formatter. The [Prettier Java](https://github.com/jhipster/prettier-java) plugin is used to format Java code. The Prettier 
-configuration is defined in the `.prettierrc` file. Please make sure to (at least) run Prettier before submitting a pull request. Preferred
-would be to run Prettier on save in your IDE, which is supported by our preferred IDE IntelliJ IDEA.
+This project uses the opinionated Prettier code formatter. The [Prettier Java](https://github.com/jhipster/prettier-java) plugin is used to
+format Java code. The Prettier configuration is defined in the `.prettierrc` file. Please make sure to (at least) run Prettier before
+submitting a pull request. Preferred would be to run Prettier on save in your IDE, which is supported by our preferred IDE IntelliJ IDEA.
 
 To install Prettier Java, you can use the following command:
 
@@ -23,9 +23,10 @@ To install Prettier Java, you can use the following command:
 npm install prettier-plugin-java --save-dev
 ```
 
-Subsequently, IntelliJ IDEA can be configured to use Prettier for formatting Java files. For this, you can use the [File Watchers](https://plugins.jetbrains.com/plugin/7177-file-watchers) 
-plugin inside IntelliJ IDEA. After installing the plugin, you can add a new file watcher for Prettier or import the provided `watchers.xml`
-file. File Watchers can be configured to run on save inside the _Tools → Actions on Save_ menu.
+Subsequently, IntelliJ IDEA can be configured to use Prettier for formatting Java files. For this, you can use
+the [File Watchers](https://plugins.jetbrains.com/plugin/7177-file-watchers) plugin inside IntelliJ IDEA. After installing the plugin, you
+can add a new file watcher for Prettier or import the provided `watchers.xml` file. File Watchers can be configured to run on save inside
+the _Tools → Actions on Save_ menu.
 
 For Kotlin formatting, we use [ktfmt](https://github.com/cortinico/ktfmt-gradle) and the Google style. Formatting is checked by the CI.
 
@@ -46,3 +47,5 @@ implementations should be reimplemented in Kotlin.
 
 Public functions and members should be properly documented using Javadoc or KDoc. Private functions and members should be commented in case
 they are not self-explanatory.
+
+Please follow the style of the existing code.
