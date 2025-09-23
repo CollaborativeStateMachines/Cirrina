@@ -36,6 +36,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class CompleteTest {
+
   // Create inner subclass to test NatsEventHandler propagateEvent
   @Nested
   inner class PropagateEventTestClass(natsUrl: String) : NatsEventHandler(natsUrl) {
@@ -281,13 +282,14 @@ class CompleteTest {
     // Test EventProtos.Event
     val event =
       EventProtos.Event.newBuilder()
-        .setCreatedTime(System.currentTimeMillis().toDouble())
+        .setCreatedTime(1.0)
         .setName("testEvent")
         .setId("someId")
         // Set channel three times to go through each case
-        .setChannel(EventProtos.Event.Channel.forNumber(0))
-        .setChannel(EventProtos.Event.Channel.forNumber(1))
-        .setChannel(EventProtos.Event.Channel.forNumber(3))
+        .setChannel(EventProtos.Event.Channel.INTERNAL)
+        .setChannel(EventProtos.Event.Channel.EXTERNAL)
+        .setChannel(EventProtos.Event.Channel.GLOBAL)
+        .setChannel(EventProtos.Event.Channel.PERIPHERAL)
         .addData(contextVariable)
         .build()
 
@@ -298,7 +300,7 @@ class CompleteTest {
 
     // Should have details as defined
     assertNotNull(event)
-    assertTrue(event.createdTime < System.currentTimeMillis().toDouble())
+    assertTrue(event.createdTime > 0.0)
     assertEquals(event.name, "testEvent")
     assertEquals(event.id, "someId")
     assertEquals(event.channel, EventProtos.Event.Channel.PERIPHERAL)
