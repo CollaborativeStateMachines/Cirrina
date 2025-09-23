@@ -1,5 +1,5 @@
-amends "csm:Csml"
-import "csm:Csml"
+amends "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/Csml.pkl"
 
 name = "timeout"
 version = "3.0.0"

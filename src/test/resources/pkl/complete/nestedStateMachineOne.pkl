@@ -1,4 +1,4 @@
-import "csm:Csml"
+import "modulepath:/pkl/csm/Csml.pkl"
 
 // Nested stateMachine for SM1
 class StateMachine extends Csml.StateMachineDescription {
