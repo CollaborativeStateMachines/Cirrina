@@ -100,8 +100,12 @@ dependencies {
 
   testImplementation(platform("org.junit:junit-bom:5.9.1"))
   testImplementation("org.junit.jupiter:junit-jupiter")
+  testImplementation("org.junit-pioneer:junit-pioneer:2.2.0")
 
   testImplementation("org.mockito:mockito-core:5.11.0")
+  testImplementation("org.mockito:mockito-inline:5.2.0")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
+
   implementation(kotlin("stdlib-jdk8"))
 }
 
