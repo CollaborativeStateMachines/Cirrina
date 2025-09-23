@@ -9,10 +9,12 @@
 
 Cirrina, a distributed Collaborative State Machines (CSM) runtime for the Cloud-Edge-IoT continuum. Collaborative state machines is a state
 machine-based programming model for the Cloud-Edge-IoT continuum. For more information, please visit the
-[project website](https://collaborativestatemachines.github.io/).
+[Project Website](https://collaborativestatemachines.github.io/).
 
 Collaborative State Machines and the Cirrina runtime are created and developed by the [Distributed and Parallel Systems Group of the
 University Innsbruck](https://dps.uibk.ac.at/).
+
+For contributions, please see the [Contribution Guidelines](CONTRIBUTING.md).
 
 ## Citing
 
