@@ -1,4 +1,4 @@
-import "csm:Csml"
+import "modulepath:/pkl/csm/Csml.pkl"
 import "nestedStateMachineOne.pkl"
 
 //                                           State Machine One                                           
