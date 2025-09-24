@@ -8,4 +8,6 @@ object DefaultDescriptions {
   const val timeout: String = "src/test/resources/pkl/timeout/main.pkl"
 
   const val pingPong: String = "src/test/resources/pkl/pingPong/main.pkl"
+
+  const val noop: String = "src/test/resources/pkl/noop/main.pkl"
 }
