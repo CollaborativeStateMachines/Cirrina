@@ -1,0 +1,22 @@
+cirrina:
+  # Docker image configuration
+  image:
+    repository: marlonetheredgeuibk/cirrina
+    tag: latest
+  replicaCount: 1
+
+  # Application path must be a URL
+  appPath: ""
+
+  # Service implementation bindings path must be a URL
+  serviceBindingsPath: ""
+
+  # Instantiation of state machines must be valid state machine names
+  instantiate: ""
+
+  # NATS server URLs
+  natsEventUrl: ""
+  natsContextUrl: ""
+
+  # Extra environment variables for the container
+  extraEnvVars: [ ]

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cirrina.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "cirrina.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.cirrina.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cirrina.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "cirrina.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: cirrina
+          image: "{{ .Values.cirrina.image.repository }}:{{ .Values.cirrina.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: APP_PATH
+              value: {{ .Values.cirrina.appPath | quote }}
+            - name: SERVICE_BINDINGS_PATH
+              value: {{ .Values.cirrina.serviceBindingsPath | quote }}
+            - name: INSTANTIATE
+              value: {{ .Values.cirrina.instantiate | quote }}
+            - name: NATS_EVENT_URL
+              value: {{ .Values.cirrina.natsEventUrl | quote }}
+            - name: NATS_CONTEXT_URL
+              value: {{ .Values.cirrina.natsContextUrl | quote }}
+{{- if .Values.cirrina.extraEnvVars }}
+{{- toYaml .Values.cirrina.extraEnvVars | nindent 12 }}
+{{- end }}
