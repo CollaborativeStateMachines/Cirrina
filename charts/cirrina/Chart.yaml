@@ -1,5 +1,0 @@
-apiVersion: v2
-name: cirrina
-description: Helm chart for deploying Cirrina
-type: application
-version: 0.1.0
