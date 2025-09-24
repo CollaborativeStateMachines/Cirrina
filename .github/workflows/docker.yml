@@ -1,15 +1,15 @@
 name: Publish Docker image
 on:
   release:
-    types: [published]
+    types: [ published ]
   push:
     branches:
       - master
       - develop
 jobs:
-  push_to_registry:
+  PushDockerImage:
     if: github.repository == 'CollaborativeStateMachines/Cirrina'
-    name: Push Docker image to Docker Hub
+    name: Push Docker Image
     runs-on: ubuntu-latest
     permissions:
       packages: write
