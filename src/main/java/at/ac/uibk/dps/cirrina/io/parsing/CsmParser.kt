@@ -66,6 +66,8 @@ object CsmParser {
     return builder.build()
   }
 
+  fun parseCsml(mainModulePath: URI): Csml = parseCsml(mainModulePath.toString())
+
   /**
    * Parse a CSML Pkl module at a path. Returns an instance of Csml upon success. Any errors will
    * result in an IllegalArgumentException being thrown.
