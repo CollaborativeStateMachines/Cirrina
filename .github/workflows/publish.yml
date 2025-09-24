@@ -2,13 +2,8 @@ name: Publish Artifacts
 on:
   release:
     types: [ published ]
-  push:
-    branches:
-      - develop
-      - master
 jobs:
   Publish:
-    if: github.repository == 'CollaborativeStateMachines/Cirrina'
     name: Publish Artifacts to GitHub
     runs-on: ubuntu-latest
     steps:
@@ -28,16 +23,9 @@ jobs:
         run: ./gradlew build
 
       - name: Build distribution ZIP
-        if: github.event_name == 'release'
         run: ./gradlew distZip
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
       - name: Upload release artifacts to GitHub Release
-        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
