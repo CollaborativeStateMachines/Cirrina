@@ -34,9 +34,9 @@ cirrina:
 To deploy Cirrina, use `kubectl`:
 
 ```console
-helm template prod charts/cirrina
-  --namespace default
-  -f values.yaml
+helm template prod charts/cirrina \
+  --namespace default \
+  -f values.yaml \
 | kubectl apply -f -
 ```
 
