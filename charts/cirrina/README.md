@@ -44,7 +44,7 @@ Or use another orchestration tool, such
 as [Open Cluster Management](https://open-cluster-management.io/):
 
 ```console
-helm template prod charts/cirrina \                                                                                 marlon@Marlon-PC
+helm template prod charts/cirrina \
   --namespace default \
   -f values.yaml \
 | clusteradm --context="kind-hub" create work prod-cirrina --clusters cluster1 -f -
