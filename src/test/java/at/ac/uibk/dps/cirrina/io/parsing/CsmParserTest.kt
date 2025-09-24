@@ -34,6 +34,17 @@ class CsmParserTest {
   }
 
   @Test
+  fun loadServiceImplementationBindingsUri() {
+    Assertions.assertDoesNotThrow {
+      CsmParser.parseServiceImplementationBindings(
+        URI.create(
+          "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/test/resources/pkl/serviceImplementation/services.pkl"
+        )
+      )
+    }
+  }
+
+  @Test
   fun loadServiceImplementationBindings() {
     assertDoesNotThrow {
       val services =

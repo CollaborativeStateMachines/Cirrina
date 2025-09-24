@@ -87,6 +87,29 @@ object CsmParser {
   }
 
   /**
+   * Parse a service implementation bindings Pkl module at a URI. Returns an instance of
+   * ServiceImplementationBindings upon success. Any errors will result in an
+   * IllegalArgumentException being thrown.
+   *
+   * @param serviceImplementationBindingsModuleUri Main Pkl module URI.
+   * @return Csml model.
+   * @throws IllegalArgumentException If an error occurs.
+   */
+  fun parseServiceImplementationBindings(
+    serviceImplementationBindingsModuleUri: URI
+  ): ServiceImplementationBindings {
+    try {
+      evaluator().use { evaluator ->
+        return evaluator
+          .evaluate(ModuleSource.uri(serviceImplementationBindingsModuleUri))
+          .`as`(ServiceImplementationBindings::class.java)
+      }
+    } catch (e: Exception) {
+      throw IllegalArgumentException("Parsing error", e)
+    }
+  }
+
+  /**
    * Parse a service implementation bindings Pkl module at a path. Returns an instance of
    * ServiceImplementationBindings upon success. Any errors will result in an
    * IllegalArgumentException being thrown.
