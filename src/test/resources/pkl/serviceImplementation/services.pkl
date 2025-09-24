@@ -1,4 +1,4 @@
-amends "csm:ServiceImplementationBindings"
+amends "modulepath:/pkl/csm/ServiceImplementationBindings.pkl"
 
 bindings {
   new HttpServiceImplementationBinding {

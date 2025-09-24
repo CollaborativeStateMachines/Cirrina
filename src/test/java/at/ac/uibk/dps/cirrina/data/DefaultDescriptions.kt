@@ -10,4 +10,6 @@ object DefaultDescriptions {
   const val pingPong: String = "src/test/resources/pkl/pingPong/main.pkl"
 
   const val noop: String = "src/test/resources/pkl/noop/main.pkl"
+
+  const val empty: String = "src/test/resources/pkl/noop/empty.pkl"
 }
