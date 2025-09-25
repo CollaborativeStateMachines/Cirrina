@@ -4,12 +4,15 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_INVOCATI
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_INVOKE_LATENCY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE;
 
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
+import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachineEventHandler;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +56,7 @@ public final class ActionInvokeCommand extends ActionCommand {
 
       final var extent = executionContext.scope().getExtent();
       final var eventListener = executionContext.eventListener();
+      final var eventHandler = executionContext.eventHandler();
 
       List<ContextVariable> input = prepareInput(extent);
 
@@ -70,7 +74,7 @@ public final class ActionInvokeCommand extends ActionCommand {
         })
         .thenAccept(output -> {
           assignServiceOutput(output, extent);
-          raiseEvents(output, eventListener);
+          raiseEvents(output, eventListener, eventHandler);
           measurePerformance(start, serviceImplementation);
         });
 
@@ -157,17 +161,32 @@ public final class ActionInvokeCommand extends ActionCommand {
   }
 
   /**
-   * Raise all events (internally) with output data as event data.
+   * Raise all events with output data as event data.
    *
    * @param output        Output data.
    * @param eventListener Event listener.
+   * @param eventHandler  Event handler.
    */
-  private void raiseEvents(List<ContextVariable> output, EventListener eventListener) {
+  private void raiseEvents(
+    List<ContextVariable> output,
+    EventListener eventListener,
+    StateMachineEventHandler eventHandler
+  ) {
     invokeAction
       .getDone()
       .stream()
       .map(event -> event.withData(output))
-      .forEach(eventListener::onReceiveEvent);
+      .forEach(event -> {
+        if (event.getChannel() == EventChannel.INTERNAL) {
+          eventListener.onReceiveEvent(event);
+        } else {
+          try {
+            eventHandler.sendEvent(event);
+          } catch (IOException e) {
+            logger.error("Failed to raise done event: {}", e.getMessage(), e);
+          }
+        }
+      });
   }
 
   /**

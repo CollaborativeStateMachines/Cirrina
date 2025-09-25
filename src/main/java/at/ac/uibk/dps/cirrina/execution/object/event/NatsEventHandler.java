@@ -2,37 +2,36 @@ package at.ac.uibk.dps.cirrina.execution.object.event;
 
 import at.ac.uibk.dps.cirrina.execution.object.exchange.EventExchange;
 import io.nats.client.Connection;
+import io.nats.client.ConnectionListener;
 import io.nats.client.Dispatcher;
 import io.nats.client.Message;
 import io.nats.client.Nats;
+import io.nats.client.Options;
 import java.io.IOException;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class NatsEventHandler extends EventHandler {
+public class NatsEventHandler extends EventHandler implements ConnectionListener {
 
   public static final String GLOBAL_SOURCE = "global";
   public static final String PERIPHERAL_SOURCE = "peripheral";
 
   private static final Logger logger = LogManager.getLogger();
 
-  private final Connection connection;
+  private volatile Connection connection;
 
-  private final Dispatcher dispatcher;
+  private volatile Dispatcher dispatcher;
 
   public NatsEventHandler(String natsUrl) throws IOException {
-    // Attempt to connect to the NATS server
+    // Connect asynchronously and handle reconnects internally
+    final var options = new Options.Builder().server(natsUrl).connectionListener(this).build();
     try {
-      connection = Nats.connect(natsUrl);
-    } catch (InterruptedException | IOException e) {
+      Nats.connectAsynchronously(options, true);
+    } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-
-      throw new IOException("Could not connect to the NATS server", e);
+      throw new IOException("Interrupted while initiating NATS connection", e);
     }
-
-    // Create a message dispatcher (asynchronous)
-    dispatcher = connection.createDispatcher(this::handle);
   }
 
   private void handle(Message message) {
@@ -48,6 +47,11 @@ public class NatsEventHandler extends EventHandler {
 
   @Override
   public void sendEvent(Event event, String source) throws IOException {
+    if (connection == null) {
+      logger.warn("Ignoring send event, not connected to NATS");
+      return;
+    }
+
     try {
       var data = new EventExchange(event).toBytes();
 
@@ -74,21 +78,41 @@ public class NatsEventHandler extends EventHandler {
 
   @Override
   public void subscribe(String eventName) {
+    if (connection == null) {
+      logger.warn("Ignoring subscribe, not connected to NATS");
+      return;
+    }
+
     dispatcher.subscribe(String.format("*.%s", eventName));
   }
 
   @Override
   public void unsubscribe(String eventName) {
+    if (connection == null) {
+      logger.warn("Ignoring unsubscribe, not connected to NATS");
+      return;
+    }
+
     dispatcher.unsubscribe(String.format("*.%s", eventName));
   }
 
   @Override
   public void subscribe(String source, String eventName) {
+    if (connection == null) {
+      logger.warn("Ignoring subscribe, not connected to NATS");
+      return;
+    }
+
     dispatcher.subscribe(String.format("%s.%s", source, eventName));
   }
 
   @Override
   public void unsubscribe(String source, String eventName) {
+    if (connection == null) {
+      logger.warn("Ignoring unsubscribe, not connected to NATS");
+      return;
+    }
+
     dispatcher.unsubscribe(String.format("%s.%s", source, eventName));
   }
 
@@ -100,6 +124,15 @@ public class NatsEventHandler extends EventHandler {
       connection.close();
     } catch (InterruptedException e) {
       throw new IOException("Failed to close NATS persistent context", e);
+    }
+  }
+
+  @Override
+  public void connectionEvent(Connection connection, Events type) {
+    this.connection = connection;
+
+    if (dispatcher != null) {
+      connection.closeDispatcher(dispatcher);
     }
   }
 }
