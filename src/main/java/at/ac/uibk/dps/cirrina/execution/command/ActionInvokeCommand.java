@@ -12,7 +12,6 @@ import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachineEventHandler;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation;
 import at.ac.uibk.dps.cirrina.utils.Time;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -180,11 +179,7 @@ public final class ActionInvokeCommand extends ActionCommand {
         if (event.getChannel() == EventChannel.INTERNAL) {
           eventListener.onReceiveEvent(event);
         } else {
-          try {
-            eventHandler.sendEvent(event);
-          } catch (IOException e) {
-            logger.error("Failed to raise done event: {}", e.getMessage(), e);
-          }
+          eventHandler.sendEvent(event);
         }
       });
   }
