@@ -3,9 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.object.context;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Disabled;
 
-@Disabled
 public class NatsContextTest extends ContextTest {
 
   @Override

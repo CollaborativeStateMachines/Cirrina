@@ -13,72 +13,37 @@ public abstract class ContextTest {
   protected abstract Context createContext();
 
   @Test
-  void testCreateAndGetContextVariable() throws Exception {
+  void testOperations() throws Exception {
     try (var context = createContext()) {
+      // Create a variable
       assertDoesNotThrow(() -> context.create("testVar", 42));
 
-      var v = assertDoesNotThrow(() -> context.get("testVar"));
-      assertEquals(42, v);
-    }
-  }
+      // Assign it a new value
+      {
+        var v = assertDoesNotThrow(() -> context.get("testVar"));
+        assertEquals(42, v);
+      }
 
-  @Test
-  void testCreateDuplicateVariable() throws Exception {
-    try (var context = createContext()) {
-      assertDoesNotThrow(() -> context.create("testVar", 42));
+      // Try to create it again, which should fail
       assertThrows(IOException.class, () -> context.create("testVar", 42));
-    }
-  }
 
-  @Test
-  void testGetNonExistentVariable() throws Exception {
-    try (var context = createContext()) {
+      // Non-existent variable should fail
       assertThrows(IOException.class, () -> context.get("nonExistentVar"));
-    }
-  }
 
-  @Test
-  void testAssign() throws Exception {
-    try (var context = createContext()) {
-      assertDoesNotThrow(() -> {
-        context.create("testVar", 42);
-        context.assign("testVar", 100);
-      });
-
-      var v = assertDoesNotThrow(() -> context.get("testVar"));
-      assertEquals(100, v);
-    }
-  }
-
-  @Test
-  void testAssignNonExistentVariable() throws Exception {
-    try (var context = createContext()) {
-      assertThrows(IOException.class, () -> context.assign("nonExistentVar", 1));
-    }
-  }
-
-  @Test
-  void testDelete() throws Exception {
-    try (var context = createContext()) {
-      assertDoesNotThrow(() -> {
-        context.create("testVar", 42);
-        context.delete("testVar");
-      });
-
-      assertThrows(IOException.class, () -> context.get("testVar"));
-    }
-  }
-
-  @Test
-  void testDeleteNonExistentVariable() throws Exception {
-    try (var context = createContext()) {
+      // Deleting a non-existent variable should fail
       assertThrows(IOException.class, () -> context.delete("nonExistentVar"));
-    }
-  }
 
-  @Test
-  void testGetAll() throws Exception {
-    try (var context = createContext()) {
+      // Assigning a value to a non-existent variable should fail
+      assertThrows(IOException.class, () -> context.assign("nonExistentVar", 1));
+
+      // Delete the variable
+      assertDoesNotThrow(() -> context.delete("testVar"));
+      assertThrows(IOException.class, () -> context.delete("nonExistentVar"));
+
+      // It should not exist anymore
+      assertThrows(IOException.class, () -> context.get("testVar"));
+
+      // Get all variables
       assertDoesNotThrow(() -> {
         context.create("var1", 1);
         context.create("var2", "value2");

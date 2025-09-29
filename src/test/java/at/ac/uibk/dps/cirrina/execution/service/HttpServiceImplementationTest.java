@@ -12,8 +12,6 @@ import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
 import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
 import at.ac.uibk.dps.cirrina.execution.service.HttpServiceImplementation.Parameters;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -22,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,104 +32,81 @@ public class HttpServiceImplementationTest {
   public static void setUp() throws IOException {
     httpServer = HttpServer.create(new InetSocketAddress(8000), 0);
 
-    httpServer.createContext(
-      "/plus",
-      new HttpHandler() {
-        public void handle(HttpExchange exchange) throws IOException {
-          assertEquals("some-id", exchange.getRequestHeaders().get("Cirrina-Sender-ID").getFirst());
+    httpServer.createContext("/plus", exchange -> {
+      Assertions.assertEquals(
+        "some-id",
+        exchange.getRequestHeaders().get("Cirrina-Sender-ID").getFirst()
+      );
 
-          final var payload = exchange.getRequestBody().readAllBytes();
+      final var payload = exchange.getRequestBody().readAllBytes();
 
-          final var in = ContextVariableProtos.ContextVariables.parseFrom(payload)
-            .getDataList()
-            .stream()
-            .map(ContextVariableExchange::fromProto)
-            .toList();
+      final var in = ContextVariableProtos.ContextVariables.parseFrom(payload)
+        .getDataList()
+        .stream()
+        .map(ContextVariableExchange::fromProto)
+        .toList();
 
-          final var varOne = in
-            .stream()
-            .filter(e -> e.name().equals("varOne"))
-            .findFirst();
-          final var varTwo = in
-            .stream()
-            .filter(e -> e.name().equals("varTwo"))
-            .findFirst();
+      final var varOne = in
+        .stream()
+        .filter(e -> e.name().equals("varOne"))
+        .findFirst();
+      final var varTwo = in
+        .stream()
+        .filter(e -> e.name().equals("varTwo"))
+        .findFirst();
 
-          // Create output
-          final var out = ContextVariableProtos.ContextVariables.newBuilder()
-            .addAllData(
-              Stream.of(
-                new ContextVariable(
-                  "result",
-                  (int) varOne.get().value() + (int) varTwo.get().value()
-                )
-              )
-                .map(contextVariable -> new ContextVariableExchange(contextVariable).toProto())
-                .toList()
-            )
-            .build()
-            .toByteArray();
+      // Create output
+      final var out = ContextVariableProtos.ContextVariables.newBuilder()
+        .addAllData(
+          Stream.of(
+            new ContextVariable("result", (int) varOne.get().value() + (int) varTwo.get().value())
+          )
+            .map(contextVariable -> new ContextVariableExchange(contextVariable).toProto())
+            .toList()
+        )
+        .build()
+        .toByteArray();
 
-          // Response status and length
-          exchange.sendResponseHeaders(200, out.length);
+      // Response status and length
+      exchange.sendResponseHeaders(200, out.length);
 
-          // Output the response
-          try (final var stream = exchange.getResponseBody()) {
-            stream.write(out);
-          }
-        }
+      // Output the response
+      try (final var stream = exchange.getResponseBody()) {
+        stream.write(out);
       }
-    );
+    });
 
-    httpServer.createContext(
-      "/error",
-      new HttpHandler() {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-          // Response status and length
-          exchange.sendResponseHeaders(500, 0);
+    httpServer.createContext("/error", exchange -> {
+      // Response status and length
+      exchange.sendResponseHeaders(500, 0);
 
-          // Output the response
-          try (final var stream = exchange.getResponseBody()) {
-            stream.write(new byte[0]);
-          }
-        }
+      // Output the response
+      try (final var stream = exchange.getResponseBody()) {
+        stream.write(new byte[0]);
       }
-    );
+    });
 
-    httpServer.createContext(
-      "/broken-response1",
-      new HttpHandler() {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-          // Response status and length
-          exchange.sendResponseHeaders(200, 1);
+    httpServer.createContext("/broken-response1", exchange -> {
+      // Response status and length
+      exchange.sendResponseHeaders(200, 1);
 
-          // Output the response
-          try (final var stream = exchange.getResponseBody()) {
-            stream.write(new byte[] { 1 });
-          }
-        }
+      // Output the response
+      try (final var stream = exchange.getResponseBody()) {
+        stream.write(new byte[] { 1 });
       }
-    );
+    });
 
-    httpServer.createContext(
-      "/broken-response2",
-      new HttpHandler() {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-          final byte[] out = null;
+    httpServer.createContext("/broken-response2", exchange -> {
+      final byte[] out = null;
 
-          // Response status and length
-          exchange.sendResponseHeaders(200, out.length);
+      // Response status and length
+      exchange.sendResponseHeaders(200, out.length);
 
-          // Output the response
-          try (final var stream = exchange.getResponseBody()) {
-            stream.write(out);
-          }
-        }
+      // Output the response
+      try (final var stream = exchange.getResponseBody()) {
+        stream.write(out);
       }
-    );
+    });
 
     httpServer.start();
   }

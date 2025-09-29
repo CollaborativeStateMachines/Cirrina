@@ -24,14 +24,6 @@ java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 jacoco { toolVersion = "0.8.11" }
 
 pkl {
-  project {
-    packagers {
-      register("pklMakePackages") {
-        projectDirectories.from(file("src/main/resources/pkl/csm/"))
-        outputPath.set(File("build/generated/pkl/packages/csm"))
-      }
-    }
-  }
   javaCodeGenerators {
     register("pklGenJava") {
       sourceModules.addAll(
@@ -116,8 +108,6 @@ repositories {
 }
 
 tasks.compileKotlin { dependsOn(tasks.ktfmtFormat) }
-
-tasks.compileJava { dependsOn("pklMakePackages") }
 
 tasks.distZip { archiveFileName.set("${project.name}.zip") }
 

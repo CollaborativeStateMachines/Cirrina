@@ -3,8 +3,8 @@ package at.ac.uibk.dps.cirrina.io.parsing
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import java.net.URI
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
@@ -12,19 +12,19 @@ class CsmParserTest {
 
   @Test
   fun testCsmlPositive() {
-    Assertions.assertDoesNotThrow { CsmParser.parseCsml(DefaultDescriptions.complete) }
+    assertDoesNotThrow { CsmParser.parseCsml(DefaultDescriptions.complete) }
   }
 
   @Test
   fun testCsmlNegative() {
-    Assertions.assertThrows(IllegalArgumentException::class.java) {
+    assertThrows(IllegalArgumentException::class.java) {
       CsmParser.parseCsml(DefaultDescriptions.empty)
     }
   }
 
   @Test
   fun testCsmlUri() {
-    Assertions.assertDoesNotThrow {
+    assertDoesNotThrow {
       CsmParser.parseCsml(
         URI.create(
           "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/test/resources/pkl/noop/main.pkl"
@@ -35,7 +35,7 @@ class CsmParserTest {
 
   @Test
   fun loadServiceImplementationBindingsUri() {
-    Assertions.assertDoesNotThrow {
+    assertDoesNotThrow {
       CsmParser.parseServiceImplementationBindings(
         URI.create(
           "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/test/resources/pkl/serviceImplementation/services.pkl"

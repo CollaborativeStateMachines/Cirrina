@@ -83,10 +83,19 @@ public final class NatsContext extends Context implements AutoCloseable {
   @Override
   public Object get(String name) throws IOException {
     try {
+      if (!keyValue.keys().contains(name)) {
+        throw new IOException("A variable with the name '%s' does not exist".formatted(name));
+      }
+
       var entry = keyValue.get(name);
 
       return fromBytes(entry.getValue());
-    } catch (IOException | JetStreamApiException | UnsupportedOperationException e) {
+    } catch (
+      IOException
+      | JetStreamApiException
+      | UnsupportedOperationException
+      | InterruptedException e
+    ) {
       throw new IOException("Failed to retrieve the variable '%s'".formatted(name), e);
     }
   }
@@ -105,12 +114,20 @@ public final class NatsContext extends Context implements AutoCloseable {
   @Override
   public int create(String name, Object value) throws IOException {
     try {
-      final var data = toBytes(value);
+      if (keyValue.keys().contains(name)) {
+        throw new IOException("A variable with the name '%s' already exists".formatted(name));
+      }
 
+      final var data = toBytes(value);
       keyValue.create(name, data);
 
       return data.length;
-    } catch (IOException | JetStreamApiException | UnsupportedOperationException e) {
+    } catch (
+      IOException
+      | JetStreamApiException
+      | UnsupportedOperationException
+      | InterruptedException e
+    ) {
       throw new IOException("Failed to create variable '%s'".formatted(name), e);
     }
   }
@@ -127,12 +144,15 @@ public final class NatsContext extends Context implements AutoCloseable {
   @Override
   public int assign(String name, Object value) throws IOException {
     try {
-      final var data = toBytes(value);
+      if (!keyValue.keys().contains(name)) {
+        throw new IOException("A variable with the name '%s' does not exist".formatted(name));
+      }
 
+      final var data = toBytes(value);
       keyValue.put(name, data);
 
       return data.length;
-    } catch (IOException | JetStreamApiException e) {
+    } catch (IOException | JetStreamApiException | InterruptedException e) {
       throw new IOException("Failed to assign to the variable '%s'".formatted(name), e);
     }
   }
@@ -147,8 +167,12 @@ public final class NatsContext extends Context implements AutoCloseable {
   @Override
   public void delete(String name) throws IOException {
     try {
+      if (!keyValue.keys().contains(name)) {
+        throw new IOException("A variable with the name '%s' does not exist".formatted(name));
+      }
+
       keyValue.delete(name);
-    } catch (IOException | JetStreamApiException e) {
+    } catch (IOException | JetStreamApiException | InterruptedException e) {
       throw new IOException("Failed to delete the variable '%s'".formatted(name), e);
     }
   }
@@ -166,12 +190,6 @@ public final class NatsContext extends Context implements AutoCloseable {
     try {
       for (var key : keyValue.keys()) {
         var entry = keyValue.get(key);
-
-        // This would be unexpected
-        if (entry == null) {
-          throw new IOException("Could not retrieve the value of the variable '%s'".formatted(key));
-        }
-
         ret.add(new ContextVariable(entry.getKey(), entry.getValue()));
       }
     } catch (IOException | JetStreamApiException | InterruptedException e) {

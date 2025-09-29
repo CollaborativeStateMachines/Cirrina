@@ -112,10 +112,9 @@ public class InMemoryContext extends Context {
    * Returns all context variables.
    *
    * @return Context variables.
-   * @throws IOException If the variables could not be retrieved.
    */
   @Override
-  public List<ContextVariable> getAll() throws IOException {
+  public List<ContextVariable> getAll() {
     return values
       .entrySet()
       .stream()
