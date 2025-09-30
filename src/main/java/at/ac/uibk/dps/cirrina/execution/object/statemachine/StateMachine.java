@@ -717,7 +717,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       });
 
       return onTransition;
-    } catch (IOException | IllegalStateException e) {
+    } catch (IllegalStateException e) {
       throw new UnsupportedOperationException("Could not select on transition", e);
     }
   }

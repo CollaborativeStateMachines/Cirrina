@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.execution.command;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,27 +23,23 @@ public final class ActionRaiseCommand extends ActionCommand {
   }
 
   @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
+  public List<ActionCommand> execute() {
     final var commands = new ArrayList<ActionCommand>();
 
-    try {
-      final var event = raiseAction.getEvent();
+    final var event = raiseAction.getEvent();
 
-      final var extent = executionContext.scope().getExtent();
-      final var eventHandler = executionContext.eventHandler();
-      final var eventListener = executionContext.eventListener();
+    final var extent = executionContext.scope().getExtent();
+    final var eventHandler = executionContext.eventHandler();
+    final var eventListener = executionContext.eventListener();
 
-      final var evaluatedEvent = Event.ensureHasEvaluatedData(event, extent);
+    final var evaluatedEvent = Event.ensureHasEvaluatedData(event, extent);
 
-      // Dispatch the event
-      if (evaluatedEvent.getChannel() == EventChannel.INTERNAL) {
-        eventListener.onReceiveEvent(evaluatedEvent);
-      } else {
-        // Send the event through the event handler
-        eventHandler.sendEvent(evaluatedEvent);
-      }
-    } catch (IOException e) {
-      logger.error("Data creation failed: {}", e.getMessage());
+    // Dispatch the event
+    if (evaluatedEvent.getChannel() == EventChannel.INTERNAL) {
+      eventListener.onReceiveEvent(evaluatedEvent);
+    } else {
+      // Send the event through the event handler
+      eventHandler.sendEvent(evaluatedEvent);
     }
 
     return commands;

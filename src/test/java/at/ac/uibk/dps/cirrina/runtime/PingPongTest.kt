@@ -28,7 +28,7 @@ class PingPongTest {
           object : EventHandler() {
             override fun close() {}
 
-            override fun sendEvent(event: Event, source: String) = propagateEvent(event)
+            override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
 
             override fun subscribe(topic: String) {}
 

@@ -15,69 +15,68 @@ import org.apache.logging.log4j.core.LoggerContext
 
 /** Cirrina entry class. */
 class Cirrina {
-
   companion object {
-    // Logger for Cirrina.
+    const val NATS_CONNECTION_TIMEOUT = 60000L
+
     val logger = LogManager.getLogger()
 
     init {
-      // Static initialization cannot occur more than once
       setupLogging()
       setupnewHealthService()
     }
 
     // Set up the logger.
     private fun setupLogging() {
-      val loggerContext = LogManager.getContext(false) as LoggerContext
-
-      val loggerConfig = loggerContext.configuration.getLoggerConfig(logger.name)
-      loggerConfig.level = Level.INFO
-
-      loggerContext.updateLoggers()
+      (LogManager.getContext(false) as LoggerContext).apply {
+        configuration.getLoggerConfig(logger.name).level = Level.INFO
+        updateLoggers()
+      }
     }
 
     // Create the health service.
-    private fun setupnewHealthService(): HealthService {
-      return try {
-        HealthService(EnvironmentVariables.healthPort.get())
-      } catch (e: RuntimeException) {
-        throw RuntimeException("Failed to start the health service: $e", e)
-      }
-    }
+    private fun setupnewHealthService(): HealthService =
+      runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
+        .getOrElse { e -> throw RuntimeException("Failed to start the health service: $e", e) }
   }
 
   /** Run Cirrina as configured. */
   fun run() {
     try {
-      newEventHandler().use { eventHandler ->
-        eventHandler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
-        eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
-
-        newPersistentContext().use { persistentContext ->
-          val openTelemetry = getOpenTelemetry()
-
-          // Create a service implementation selector based on the parsed service implementation
-          // bindings
-          val serviceImplementationSelector =
-            RandomServiceImplementationSelector(
-              ServiceImplementationBuilder.from(
-                  CsmParser.parseServiceImplementationBindings(
-                      EnvironmentVariables.serviceBindingsPath.get()
-                    )
-                    .bindings
-                )
-                .build()
-            )
-
-          // Create and run the runtime
-          val runtime =
-            Runtime(openTelemetry, serviceImplementationSelector, eventHandler, persistentContext)
-
-          runtime.run(EnvironmentVariables.appPath.get(), EnvironmentVariables.instantiate.get())
-
-          logger.info("Done running")
+      newEventHandler()
+        .apply {
+          if (this is NatsEventHandler) {
+            awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
+          }
         }
-      }
+        .use { eventHandler ->
+          eventHandler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
+          eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
+
+          newPersistentContext()
+            .apply {
+              if (this is NatsContext) {
+                awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
+              }
+            }
+            .use { persistentContext ->
+              val openTelemetry = getOpenTelemetry()
+              val serviceImplementationSelector =
+                RandomServiceImplementationSelector(
+                  ServiceImplementationBuilder.from(
+                      CsmParser.parseServiceImplementationBindings(
+                          EnvironmentVariables.serviceBindingsPath.get()
+                        )
+                        .bindings
+                    )
+                    .build()
+                )
+
+              Runtime(openTelemetry, serviceImplementationSelector, eventHandler, persistentContext)
+                .run(EnvironmentVariables.appPath.get(), EnvironmentVariables.instantiate.get())
+
+              logger.info("Done running")
+            }
+        }
     } catch (e: EnvironmentVariableError) {
       logger.error("There is an error in the current configuration, because: '${e.message}'", e)
     } catch (e: Exception) {

@@ -1,15 +1,13 @@
 package at.ac.uibk.dps.cirrina.runtime
 
 import at.ac.uibk.dps.cirrina.cirrina.Runtime
-import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.context.NatsContext
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
-import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventExchange
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Utility
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
@@ -19,109 +17,36 @@ import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlExporter
 import at.ac.uibk.dps.cirrina.utils.BuildVersion
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
-import io.nats.client.*
-import io.nats.client.api.KeyValueEntry
 import java.io.StringWriter
 import java.time.Duration
 import kotlin.jvm.optionals.getOrNull
-import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
-import org.mockito.MockedStatic
-import org.mockito.Mockito
-import org.mockito.Mockito.mock
-import org.mockito.kotlin.atLeastOnce
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class CompleteTest {
 
-  // Create inner subclass to test NatsEventHandler propagateEvent
-  @Nested
-  inner class PropagateEventTestClass(natsUrl: String) : NatsEventHandler(natsUrl) {
+  private inner class MockEventHandler : EventHandler() {
     var lastPropagatedEvent: Event? = null
       private set
 
-    // Override to check if propagateEvent is called with correct event
+    override fun close() {}
+
+    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+
+    override fun subscribe(topic: String) {}
+
+    override fun unsubscribe(topic: String) {}
+
+    override fun subscribe(source: String, subject: String) {}
+
+    override fun unsubscribe(source: String, subject: String) {}
+
     override fun propagateEvent(event: Event) {
       this.lastPropagatedEvent = event
       super.propagateEvent(event)
     }
-  }
-
-  // Mocks for NATS
-  private lateinit var mockConnection: Connection
-  private lateinit var mockKeyValueManagement: KeyValueManagement
-  private lateinit var mockKeyValue: KeyValue
-  private lateinit var mockNats: MockedStatic<Nats>
-
-  private val mockStorage = mutableMapOf<String, ByteArray>()
-
-  // Mocks for NATSEventHandler
-  private lateinit var mockDispatcher: Dispatcher
-  private lateinit var messageHandlerCaptor: ArgumentCaptor<MessageHandler>
-
-  @BeforeEach
-  fun setUpNatsMock() {
-    // Initialize previously declared mocks
-    mockConnection = mock()
-    mockKeyValueManagement = mock()
-    mockKeyValue = mock()
-    mockDispatcher = mock()
-
-    // Intercept static method calls to the NATS class
-    mockNats = Mockito.mockStatic(Nats::class.java)
-    mockNats.`when`<Connection> { Nats.connect(any<String>()) }.thenReturn(mockConnection)
-
-    // Capture argument values for MessageHandler
-    messageHandlerCaptor = ArgumentCaptor.forClass(MessageHandler::class.java)
-
-    // Chain mocks together
-    whenever(mockConnection.createDispatcher(messageHandlerCaptor.capture()))
-      .thenReturn(mockDispatcher)
-    whenever(mockConnection.keyValueManagement()).thenReturn(mockKeyValueManagement)
-    whenever(mockConnection.keyValue(any())).thenReturn(mockKeyValue)
-    whenever(mockKeyValueManagement.bucketNames).thenReturn(emptyList())
-
-    // Store key/value in mockStorage and return 1L as revision number
-    whenever(mockKeyValue.put(any(), any<ByteArray>())).then {
-      mockStorage[it.arguments[0] as String] = it.arguments[1] as ByteArray
-      1L
-    }
-
-    // Add key/value to mockStorage if key does not exist
-    whenever(mockKeyValue.create(any(), any())).then {
-      val key = it.arguments[0] as String
-
-      if (mockStorage.contains(key)) {
-        throw RuntimeException("Key $key already exists")
-      }
-
-      mockStorage[key] = it.arguments[1] as ByteArray
-      1L
-    }
-
-    // Return KeyValueEntry element if value for key exists in mockStorage
-    whenever(mockKeyValue.get(any())).then {
-      val key = it.arguments[0] as String
-      val value = mockStorage[key]
-
-      if (value != null) {
-        val mockEntry: KeyValueEntry = mock()
-        whenever(mockEntry.value).thenReturn(value)
-        mockEntry
-      } else {
-        null
-      }
-    }
-  }
-
-  // Teardown for NATS and storage
-  @AfterEach
-  fun teardownNatsMock() {
-    mockNats.close()
-    mockStorage.clear()
   }
 
   @Test
@@ -134,92 +59,82 @@ class CompleteTest {
     assertTimeout(Duration.ofSeconds(100)) {
       // Should not throw any exception
       assertDoesNotThrow {
-        // Instantiate NatsEventHandler through subclass
-        val eventHandler = PropagateEventTestClass("nats://mock:4222")
+        MockEventHandler().use { eventHandler ->
+          InMemoryContext(false).use { context ->
+            val server = mockHttpServer { input ->
+              val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+              listOf(ContextVariable("v", (v.value as Int) + 1))
+            }
+            try {
+              // Create a map from service types to service implementations
+              val service =
+                ServiceImplementationBindings.HttpServiceImplementationBinding(
+                  "increment",
+                  true,
+                  ServiceImplementationBindings.Type.HTTP,
+                  "http",
+                  "localhost",
+                  8000,
+                  "/increment",
+                  ServiceImplementationBindings.HttpMethod.GET,
+                )
 
-        // Instantiate NatsContext
-        val natsContext = NatsContext(false, "nats://mock:4222", "test")
+              val services = ServiceImplementationBuilder.from(listOf(service)).build()
+              val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
-        // Mock the HTTP server
-        val server = mockHttpServer { input ->
-          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+              // Create and run the runtime using two state machines (stateMachine1 and
+              // stateMachine2)
+              val runtime =
+                Runtime(
+                  loggingOpenTelemetry(),
+                  serviceImplementationSelector,
+                  eventHandler,
+                  context,
+                )
+              runtime.run(DefaultDescriptions.complete, listOf("stateMachine1"))
 
-          listOf(ContextVariable("v", (v.value as Int) + 1))
+              // Retrieve all state machine instances registered with the runtime
+              val allStateMachines = runtime.getAllInstances().toMutableList()
+
+              // Should be "stateMachine1"
+              assertEquals(
+                allStateMachines.first().getStateMachineClass().toString(),
+                "stateMachine1",
+              )
+
+              allStateMachines.removeAt(0)
+
+              // Should contain nestedStateMachine after removing statemachine1
+              assertEquals(allStateMachines.size, 1)
+
+              // Should have state a
+              assertEquals(
+                allStateMachines
+                  .first()
+                  .getStateMachineClass()
+                  .findStateClassByName("a")
+                  .getOrNull()
+                  .toString(),
+                "a",
+              )
+
+              // Should not have state b
+              assertNull(
+                allStateMachines
+                  .first()
+                  .getStateMachineClass()
+                  .findStateClassByName("b")
+                  .getOrNull()
+              )
+
+              // This test counts up to 100, and down to 0, so the final value should be 0
+              assertEquals(context.get("v"), 0)
+              assertEquals(context.get("b"), true)
+            } finally {
+              server.stop(1)
+            }
+          }
         }
-
-        // Create a map from service types to service implementations
-        val service =
-          ServiceImplementationBindings.HttpServiceImplementationBinding(
-            "increment",
-            true,
-            ServiceImplementationBindings.Type.HTTP,
-            "http",
-            "localhost",
-            8000,
-            "/increment",
-            ServiceImplementationBindings.HttpMethod.GET,
-          )
-
-        val services = ServiceImplementationBuilder.from(listOf(service)).build()
-        val serviceImplementationSelector = RandomServiceImplementationSelector(services)
-
-        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
-        val runtime =
-          Runtime(loggingOpenTelemetry(), serviceImplementationSelector, eventHandler, natsContext)
-        runtime.run(DefaultDescriptions.complete, listOf("stateMachine1"))
-
-        // Capture arguments for String class
-        val subjectCaptor = ArgumentCaptor.forClass(String::class.java)
-
-        // Should have published global event ne1 atLeastOnce
-        verify(mockConnection, atLeastOnce()).publish(subjectCaptor.capture(), any())
-        assertTrue(subjectCaptor.allValues.any { it.endsWith(".ne1") })
-
-        val event =
-          Event("testEvent", EventChannel.GLOBAL, listOf(ContextVariable("varName", "some string")))
-
-        val mockMessage = mock<Message>()
-        whenever(mockMessage.data).thenReturn(EventExchange(event).toBytes())
-
-        val capturedHandler = messageHandlerCaptor.value
-        capturedHandler.onMessage(mockMessage)
-
-        // Should have propagated the testEvent
-        assertNotNull(eventHandler.lastPropagatedEvent)
-        assertEquals(event.name, eventHandler.lastPropagatedEvent?.getName())
-
-        // Retrieve all state machine instances registered with the runtime
-        val allStateMachines = runtime.getAllInstances().toMutableList()
-
-        // Should be "stateMachine1"
-        assertEquals(allStateMachines.first().getStateMachineClass().toString(), "stateMachine1")
-
-        allStateMachines.removeAt(0)
-
-        // Should contain nestedStateMachine after removing statemachine1
-        assertEquals(allStateMachines.size, 1)
-
-        // Should have state a
-        assertEquals(
-          allStateMachines
-            .first()
-            .getStateMachineClass()
-            .findStateClassByName("a")
-            .getOrNull()
-            .toString(),
-          "a",
-        )
-
-        // Should not have state b
-        assertNull(
-          allStateMachines.first().getStateMachineClass().findStateClassByName("b").getOrNull()
-        )
-
-        // This test counts up to 100, and down to 0, so the final value should be 0
-        assertEquals(natsContext.get("v"), 0)
-        assertEquals(natsContext.get("b"), true)
-
-        server.stop(1)
       }
     }
   }
@@ -431,73 +346,65 @@ class CompleteTest {
   @Test
   @Order(5)
   fun testPlantUml() {
-    // Setup mocks again
-    val eventHandler = PropagateEventTestClass("nats://mock:4222")
+    MockEventHandler().use { eventHandler ->
+      InMemoryContext(false).use { context ->
+        val server = mockHttpServer { input ->
+          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+          listOf(ContextVariable("v", (v.value as Int) + 1))
+        }
+        try {
+          val service =
+            ServiceImplementationBindings.HttpServiceImplementationBinding(
+              "increment",
+              true,
+              ServiceImplementationBindings.Type.HTTP,
+              "http",
+              "localhost",
+              8000,
+              "/increment",
+              ServiceImplementationBindings.HttpMethod.GET,
+            )
 
-    val natsContext = NatsContext(false, "nats://mock:4222", "test")
+          val services = ServiceImplementationBuilder.from(listOf(service)).build()
+          val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
-    val server = mockHttpServer { input ->
-      val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+          val runtime =
+            Runtime(loggingOpenTelemetry(), serviceImplementationSelector, eventHandler, context)
+          runtime.run(DefaultDescriptions.complete, listOf("stateMachine1"))
 
-      listOf(ContextVariable("v", (v.value as Int) + 1))
-    }
+          val allStateMachines = runtime.getAllInstances()
 
-    val service =
-      ServiceImplementationBindings.HttpServiceImplementationBinding(
-        "increment",
-        true,
-        ServiceImplementationBindings.Type.HTTP,
-        "http",
-        "localhost",
-        8000,
-        "/increment",
-        ServiceImplementationBindings.HttpMethod.GET,
-      )
+          val plantUmlExporter = PlantUmlExporter()
+          plantUmlExporter.withStateMachine(allStateMachines.first().getStateMachineClass())
 
-    val services = ServiceImplementationBuilder.from(listOf(service)).build()
-    val serviceImplementationSelector = RandomServiceImplementationSelector(services)
+          val export = plantUmlExporter.getPlantUml()
 
-    // Start the runtime
-    val runtime =
-      Runtime(loggingOpenTelemetry(), serviceImplementationSelector, eventHandler, natsContext)
-    runtime.run(DefaultDescriptions.complete, listOf("stateMachine1"))
+          val importantSubstrings =
+            arrayOf(
+              "stateMachine1",
+              "state \"a\"",
+              "state \"b\"",
+              "state \"e\"",
+              "[*] -->",
+              "--> [*]",
+              "Invoke{increment}",
+              "nestedStateMachine1",
+            )
 
-    // Retrieve all stateMachines registered with the runtime
-    val allStateMachines = runtime.getAllInstances()
+          for (string in importantSubstrings) {
+            assertTrue(export.contains(string))
+          }
 
-    server.stop(1)
-
-    // Create PlantUmlExporter with retrieved stateMachineClass
-    val plantUmlExporter = PlantUmlExporter()
-    plantUmlExporter.withStateMachine(allStateMachines.first().getStateMachineClass())
-
-    // Create visitor to visit all stateMachines
-    val export = plantUmlExporter.getPlantUml()
-
-    // Create array of strings that the PlantUML string should contain
-    val importantSubstrings =
-      arrayOf(
-        "stateMachine1",
-        "state \"a\"",
-        "state \"b\"",
-        "state \"e\"",
-        "[*] -->",
-        "--> [*]",
-        "Invoke{increment}",
-        "nestedStateMachine1",
-      )
-
-    // Should contain all of the above substrings
-    for (string in importantSubstrings) {
-      assertTrue(export.contains(string))
-    }
-
-    // Should not throw exception when exporting
-    assertDoesNotThrow {
-      CollaborativeStateMachineExporter.export(
-        StringWriter(),
-        allStateMachines.first().getStateMachineClass(),
-      )
+          assertDoesNotThrow {
+            CollaborativeStateMachineExporter.export(
+              StringWriter(),
+              allStateMachines.first().getStateMachineClass(),
+            )
+          }
+        } finally {
+          server.stop(1)
+        }
+      }
     }
   }
 }

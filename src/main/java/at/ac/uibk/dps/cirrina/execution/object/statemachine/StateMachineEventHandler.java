@@ -2,7 +2,6 @@ package at.ac.uibk.dps.cirrina.execution.object.statemachine;
 
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventHandler;
-import java.io.IOException;
 
 public class StateMachineEventHandler {
 
@@ -15,7 +14,7 @@ public class StateMachineEventHandler {
     this.eventHandler = eventHandler;
   }
 
-  public void sendEvent(Event event) throws IOException {
+  public void sendEvent(Event event) {
     eventHandler.sendEvent(event, stateMachine.getStateMachineInstanceId().toString());
   }
 }

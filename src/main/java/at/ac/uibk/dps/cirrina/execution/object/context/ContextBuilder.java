@@ -73,7 +73,7 @@ public class ContextBuilder {
    */
   public ContextBuilder natsContext(boolean isLocal, String natsUrl, String bucketName)
     throws IOException {
-    context = new NatsContext(isLocal, natsUrl, bucketName);
+    context = new NatsContext(isLocal, natsUrl, bucketName, false);
 
     return this;
   }
