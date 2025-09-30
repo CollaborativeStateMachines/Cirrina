@@ -21,7 +21,6 @@ import java.io.StringWriter
 import java.time.Duration
 import kotlin.jvm.optionals.getOrNull
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -50,13 +49,12 @@ class CompleteTest {
   }
 
   @Test
-  @Order(1)
   fun testCompleteExecute() {
     val buildVersion = BuildVersion.getBuildVersion()
     assertNull(buildVersion)
 
     // Must finish within ten seconds
-    assertTimeout(Duration.ofSeconds(100)) {
+    assertTimeout(Duration.ofSeconds(10)) {
       // Should not throw any exception
       assertDoesNotThrow {
         MockEventHandler().use { eventHandler ->
@@ -82,19 +80,20 @@ class CompleteTest {
               val services = ServiceImplementationBuilder.from(listOf(service)).build()
               val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
-              // Create and run the runtime using two state machines (stateMachine1 and
-              // stateMachine2)
+              // Create and run the runtime using one state machine (stateMachine1)
               val runtime =
                 Runtime(
-                  loggingOpenTelemetry(),
-                  serviceImplementationSelector,
-                  eventHandler,
-                  context,
-                )
-              runtime.run(DefaultDescriptions.complete, listOf("stateMachine1"))
+                    DefaultDescriptions.complete,
+                    listOf("stateMachine1"),
+                    loggingOpenTelemetry(),
+                    serviceImplementationSelector,
+                    eventHandler,
+                    context,
+                  )
+                  .apply { run() }
 
               // Retrieve all state machine instances registered with the runtime
-              val allStateMachines = runtime.getAllInstances().toMutableList()
+              val allStateMachines = runtime.stateMachines.toMutableList()
 
               // Should be "stateMachine1"
               assertEquals(
@@ -140,7 +139,6 @@ class CompleteTest {
   }
 
   @Test
-  @Order(2)
   fun testUtility() {
     val sizes = intArrayOf(10, 50, 100, 200, 500)
     val sizeSet = HashSet<Int>()
@@ -160,7 +158,6 @@ class CompleteTest {
   }
 
   @Test
-  @Order(3)
   fun testProtos() {
     // Build integer ContextVariableProtos.Value
     val integerValue = ContextVariableProtos.Value.newBuilder().setInteger(123).build()
@@ -270,7 +267,6 @@ class CompleteTest {
   }
 
   @Test
-  @Order(4)
   fun testServiceImplementationBindings() {
     // Define test service
     val service =
@@ -344,7 +340,6 @@ class CompleteTest {
   }
 
   @Test
-  @Order(5)
   fun testPlantUml() {
     MockEventHandler().use { eventHandler ->
       InMemoryContext(false).use { context ->
@@ -369,13 +364,18 @@ class CompleteTest {
           val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
           val runtime =
-            Runtime(loggingOpenTelemetry(), serviceImplementationSelector, eventHandler, context)
-          runtime.run(DefaultDescriptions.complete, listOf("stateMachine1"))
-
-          val allStateMachines = runtime.getAllInstances()
+            Runtime(
+                DefaultDescriptions.complete,
+                listOf("stateMachine1"),
+                loggingOpenTelemetry(),
+                serviceImplementationSelector,
+                eventHandler,
+                context,
+              )
+              .apply { run() }
 
           val plantUmlExporter = PlantUmlExporter()
-          plantUmlExporter.withStateMachine(allStateMachines.first().getStateMachineClass())
+          plantUmlExporter.withStateMachine(runtime.stateMachines.first().getStateMachineClass())
 
           val export = plantUmlExporter.getPlantUml()
 
@@ -398,7 +398,7 @@ class CompleteTest {
           assertDoesNotThrow {
             CollaborativeStateMachineExporter.export(
               StringWriter(),
-              allStateMachines.first().getStateMachineClass(),
+              runtime.stateMachines.first().getStateMachineClass(),
             )
           }
         } finally {

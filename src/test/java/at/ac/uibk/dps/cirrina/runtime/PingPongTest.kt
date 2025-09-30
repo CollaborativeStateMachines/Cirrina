@@ -59,12 +59,14 @@ class PingPongTest {
         // The order is 2-1, as state machine 1 sends and event to state machine 2, if state machine
         // 2 is not yet created, it will not receive the event as the event mocking is very simple
         Runtime(
+            DefaultDescriptions.pingPong,
+            listOf("stateMachine2", "stateMachine1"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.pingPong, listOf("stateMachine2", "stateMachine1"))
+          .run()
 
         // This test counts up to 100, so the final value should be 100
         assertEquals(100, mockPersistentContext["v"])

@@ -57,12 +57,14 @@ class TimeoutTest {
 
         // Create and run the runtime using one state machine (stateMachine1)
         Runtime(
+            DefaultDescriptions.timeout,
+            listOf("stateMachine1"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.timeout, listOf("stateMachine1"))
+          .run()
 
         // This test counts up to 10, so the final value should be 10
         assertEquals(10, mockPersistentContext["v"])
