@@ -71,8 +71,15 @@ class Cirrina {
                     .build()
                 )
 
-              Runtime(openTelemetry, serviceImplementationSelector, eventHandler, persistentContext)
-                .run(EnvironmentVariables.appPath.get(), EnvironmentVariables.instantiate.get())
+              Runtime(
+                  EnvironmentVariables.appPath.get(),
+                  EnvironmentVariables.instantiate.get(),
+                  openTelemetry,
+                  serviceImplementationSelector,
+                  eventHandler,
+                  persistentContext,
+                )
+                .run()
 
               logger.info("Done running")
             }

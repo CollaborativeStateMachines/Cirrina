@@ -82,12 +82,14 @@ class InvokeTest {
 
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
         Runtime(
+            DefaultDescriptions.invoke,
+            listOf("stateMachine1"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.invoke, listOf("stateMachine1"))
+          .run()
 
         // This test counts up to 10, so the final value should be 10
         assertEquals(10, mockPersistentContext["v"])

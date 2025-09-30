@@ -46,12 +46,14 @@ class NoopTest {
 
         // Create and run the runtime using a single state machine.
         Runtime(
+            DefaultDescriptions.noop,
+            listOf("stateMachine"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
           )
-          .run(DefaultDescriptions.noop, listOf("stateMachine"))
+          .run()
       }
     }
   }
