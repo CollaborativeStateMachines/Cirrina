@@ -63,14 +63,14 @@ object TestUtils {
 
   fun mockPersistentContext(
     createBlock: InMemoryContext.() -> Unit = {},
-    assignBlock: (superAssign: (String, Any) -> Int, name: String, value: Any) -> Int =
+    assignBlock: (superAssign: (String, Any?) -> Int, name: String, value: Any?) -> Int =
       { superAssign, name, value ->
         superAssign(name, value)
       },
   ): InMemoryContext {
     val mockPersistentContext =
       object : InMemoryContext(true) {
-        override fun assign(name: String, value: Any): Int {
+        override fun assign(name: String, value: Any?): Int {
           return assignBlock({ n, v -> super.assign(n, v) }, name, value)
         }
       }

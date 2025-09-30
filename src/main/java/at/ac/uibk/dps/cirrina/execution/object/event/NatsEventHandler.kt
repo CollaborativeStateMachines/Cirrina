@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger
 /**
  * Event handler that uses NATS for communication.
  *
- * @param natsUrl the NATS server URL
+ * @param natsUrl NATS server URL
  */
 class NatsEventHandler(natsUrl: String) : EventHandler() {
 
@@ -35,33 +35,33 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
             override fun connectionEvent(conn: Connection, type: ConnectionListener.Events?) {
               when (type) {
                 ConnectionListener.Events.CONNECTED,
-                ConnectionListener.Events.RECONNECTED ->
+                ConnectionListener.Events.RECONNECTED -> {
                   synchronized(lock) {
-                      connection = conn
-
-                      // Close the existing dispatcher and create a new one
+                    try {
                       dispatcher?.let { conn.closeDispatcher(it) }
-                      dispatcher = conn.createDispatcher(::handle)
-
-                      // Subscribe to all existing subscriptions
-                      subscriptions.forEach { subject ->
-                        dispatcher?.subscribe(subject)
-                          ?: logger.debug("Queued subscription failed unexpectedly: $subject")
-                      }
-
-                      // Signal that the initial connection has been established
+                      dispatcher =
+                        conn.createDispatcher(::handle).apply {
+                          subscriptions.forEach { subject -> subscribe(subject) }
+                        }
+                      connection = conn
+                    } catch (e: Exception) {
+                      logger.error("Failed to setup event handler", e)
+                    } finally {
                       connectedLatch.countDown()
                     }
-                    .also { logger.info("(Re)connected to NATS") }
+                  }
+                  logger.info("(Re)connected to NATS for event handling")
+                }
 
-                ConnectionListener.Events.DISCONNECTED ->
+                ConnectionListener.Events.DISCONNECTED -> {
                   synchronized(lock) {
-                      connection = null
-                      dispatcher = null
-                    }
-                    .also { logger.warn("NATS disconnected") }
+                    connection = null
+                    dispatcher = null
+                  }
+                  logger.warn("NATS disconnected for event handling")
+                }
 
-                else -> logger.info("NATS connection event: $type")
+                else -> {}
               }
             }
           }
@@ -89,14 +89,17 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
 
   // Handles incoming NATS messages and propagates them as Events.
   private fun handle(message: Message) {
-    try {
-      val event = EventExchange.fromBytes(message.data).event
-      propagateEvent(event)
-    } catch (e: UnsupportedOperationException) {
-      logger.debug("A message could not be read as an event: ${e.message}")
-    } catch (e: Exception) {
-      logger.error("Unexpected error handling NATS message", e)
-    }
+    runCatching {
+        val event = EventExchange.fromBytes(message.data).event
+        propagateEvent(event)
+      }
+      .onFailure { e ->
+        when (e) {
+          is UnsupportedOperationException ->
+            logger.debug("A message could not be read as an event: ${e.message}")
+          else -> logger.error("Unexpected error handling NATS message", e)
+        }
+      }
   }
 
   /**
@@ -128,11 +131,8 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
 
     synchronized(lock) {
       connection?.let { conn ->
-        try {
-          conn.publish(subject, EventExchange(event).toBytes())
-        } catch (e: Exception) {
-          logger.error("Failed to publish event '$subject' through NATS", e)
-        }
+        runCatching { conn.publish(subject, EventExchange(event).toBytes()) }
+          .onFailure { e -> logger.error("Failed to publish event '$subject' through NATS", e) }
       } ?: logger.warn("Not sending event, not connected to NATS")
     }
   }
@@ -146,12 +146,11 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     val subject = "*.$eventName"
     synchronized(lock) {
       subscriptions.add(subject)
-      try {
-        dispatcher?.subscribe(subject)
-          ?: logger.debug("Dispatcher unavailable; queued subscription: $subject")
-      } catch (e: Exception) {
-        logger.error("Could not subscribe to $eventName", e)
-      }
+      runCatching {
+          dispatcher?.subscribe(subject)
+            ?: logger.debug("Dispatcher unavailable; queued subscription: $subject")
+        }
+        .onFailure { e -> logger.error("Could not subscribe to $eventName", e) }
     }
   }
 
@@ -164,11 +163,8 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     val subject = "*.$eventName"
     synchronized(lock) {
       subscriptions.remove(subject)
-      try {
-        dispatcher?.unsubscribe(subject)
-      } catch (e: Exception) {
-        logger.error("Could not unsubscribe from $eventName", e)
-      }
+      runCatching { dispatcher?.unsubscribe(subject) }
+        .onFailure { e -> logger.error("Could not unsubscribe from $eventName", e) }
     }
   }
 
@@ -182,12 +178,11 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     val subject = "$source.$eventName"
     synchronized(lock) {
       subscriptions.add(subject)
-      try {
-        dispatcher?.subscribe(subject)
-          ?: logger.debug("Dispatcher unavailable; queued subscription: $subject")
-      } catch (e: Exception) {
-        logger.error("Could not subscribe to $subject", e)
-      }
+      runCatching {
+          dispatcher?.subscribe(subject)
+            ?: logger.debug("Dispatcher unavailable; queued subscription: $subject")
+        }
+        .onFailure { e -> logger.error("Could not subscribe to $subject", e) }
     }
   }
 
@@ -201,11 +196,8 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     val subject = "$source.$eventName"
     synchronized(lock) {
       subscriptions.remove(subject)
-      try {
-        dispatcher?.unsubscribe(subject)
-      } catch (e: Exception) {
-        logger.error("Could not unsubscribe from $subject", e)
-      }
+      runCatching { dispatcher?.unsubscribe(subject) }
+        .onFailure { e -> logger.error("Could not unsubscribe from $subject", e) }
     }
   }
 
@@ -217,13 +209,14 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   override fun close() {
     synchronized(lock) {
       try {
-        dispatcher?.let { connection?.closeDispatcher(it) }
-        connection?.close()
+        runCatching {
+            dispatcher?.let { connection?.closeDispatcher(it) }
+            connection?.close()
+          }
+          .onFailure { e -> logger.error("Failed to close NATS event handler", e) }
       } catch (e: InterruptedException) {
         Thread.currentThread().interrupt()
         logger.error("Failed to close NATS event handler due to interruption", e)
-      } catch (e: Exception) {
-        logger.error("Failed to close NATS event handler", e)
       }
     }
   }
