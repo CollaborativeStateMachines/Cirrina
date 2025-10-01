@@ -45,12 +45,12 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
                         }
                       connection = conn
                     } catch (e: Exception) {
-                      logger.error("Failed to setup event handler", e)
+                      logger.error("Failed to setup the NATS event handler", e)
                     } finally {
                       connectedLatch.countDown()
                     }
                   }
-                  logger.info("(Re)connected to NATS for event handling")
+                  logger.info("(Re)connected to the NATS server for event handling")
                 }
 
                 ConnectionListener.Events.DISCONNECTED -> {
@@ -58,7 +58,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
                     connection = null
                     dispatcher = null
                   }
-                  logger.warn("NATS disconnected for event handling")
+                  logger.warn("Disconnected from the NATS server for event handling")
                 }
 
                 else -> {}
@@ -66,24 +66,13 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
             }
           }
         )
-        .errorListener(
-          object : ErrorListener {
-            override fun errorOccurred(conn: Connection?, error: String?) {
-              logger.error("NATS error: $error")
-            }
-
-            override fun exceptionOccurred(conn: Connection?, e: Exception?) {
-              logger.error("NATS exception", e)
-            }
-          }
-        )
         .build()
 
     try {
       Nats.connectAsynchronously(options, true)
-    } catch (e: InterruptedException) {
+    } catch (_: InterruptedException) {
       Thread.currentThread().interrupt()
-      logger.error("Interrupted while initiating NATS connection, will never connect", e)
+      logger.error("Interrupted while initiating NATS connection, will never connect")
     }
   }
 
@@ -97,7 +86,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
         when (e) {
           is UnsupportedOperationException ->
             logger.debug("A message could not be read as an event: ${e.message}")
-          else -> logger.error("Unexpected error handling NATS message", e)
+          else -> logger.error("Unexpected error handling a NATS message", e)
         }
       }
   }
@@ -133,7 +122,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
       connection?.let { conn ->
         runCatching { conn.publish(subject, EventExchange(event).toBytes()) }
           .onFailure { e -> logger.error("Failed to publish event '$subject' through NATS", e) }
-      } ?: logger.warn("Not sending event, not connected to NATS")
+      } ?: logger.warn("Not sending event, not connected to the NATS server")
     }
   }
 
@@ -213,10 +202,10 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
             dispatcher?.let { connection?.closeDispatcher(it) }
             connection?.close()
           }
-          .onFailure { e -> logger.error("Failed to close NATS event handler", e) }
-      } catch (e: InterruptedException) {
+          .onFailure { e -> logger.error("Failed to close the NATS event handler", e) }
+      } catch (_: InterruptedException) {
         Thread.currentThread().interrupt()
-        logger.error("Failed to close NATS event handler due to interruption", e)
+        logger.error("Failed to close the NATS event handler due to interruption")
       }
     }
   }
