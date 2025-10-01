@@ -3,8 +3,6 @@ package at.ac.uibk.dps.cirrina.classes.statemachine
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
-import kotlin.io.path.Path
-import kotlin.io.path.pathString
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -21,7 +19,7 @@ class StateMachineClassTest {
     assertDoesNotThrow {
       stateMachineClass =
         CollaborativeStateMachineClassBuilder.from(
-            CsmParser.parseCsml(Path(DefaultDescriptions.complete).pathString)
+            CsmParser.parseCsml(DefaultDescriptions.complete)
           )
           .build()
           .findStateMachineClassByName("stateMachine1")

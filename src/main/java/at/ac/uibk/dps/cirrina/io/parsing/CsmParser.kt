@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.io.parsing
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import java.net.URI
-import java.util.*
 import org.pkl.config.java.ConfigEvaluator
 import org.pkl.config.java.ConfigEvaluatorBuilder
 import org.pkl.core.ModuleSource
@@ -69,24 +68,6 @@ object CsmParser {
   }
 
   /**
-   * Parse a CSML Pkl module at a path. Returns an instance of Csml upon success. Any errors will
-   * result in an IllegalArgumentException being thrown.
-   *
-   * @param mainModulePath Main Pkl module path.
-   * @return Csml model.
-   * @throws IllegalArgumentException If an error occurs.
-   */
-  fun parseCsml(mainModulePath: String): Csml {
-    try {
-      evaluator().use { evaluator ->
-        return evaluator.evaluate(ModuleSource.file(mainModulePath)).`as`(Csml::class.java)
-      }
-    } catch (e: Exception) {
-      throw IllegalArgumentException("Parsing error", e)
-    }
-  }
-
-  /**
    * Parse a service implementation bindings Pkl module at a URI. Returns an instance of
    * ServiceImplementationBindings upon success. Any errors will result in an
    * IllegalArgumentException being thrown.
@@ -102,29 +83,6 @@ object CsmParser {
       evaluator().use { evaluator ->
         return evaluator
           .evaluate(ModuleSource.uri(serviceImplementationBindingsModuleUri))
-          .`as`(ServiceImplementationBindings::class.java)
-      }
-    } catch (e: Exception) {
-      throw IllegalArgumentException("Parsing error", e)
-    }
-  }
-
-  /**
-   * Parse a service implementation bindings Pkl module at a path. Returns an instance of
-   * ServiceImplementationBindings upon success. Any errors will result in an
-   * IllegalArgumentException being thrown.
-   *
-   * @param mainModulePath Main Pkl module path.
-   * @return Csml model.
-   * @throws IllegalArgumentException If an error occurs.
-   */
-  fun parseServiceImplementationBindings(
-    serviceImplementationBindingsModulePath: String
-  ): ServiceImplementationBindings {
-    try {
-      evaluator().use { evaluator ->
-        return evaluator
-          .evaluate(ModuleSource.file(serviceImplementationBindingsModulePath))
           .`as`(ServiceImplementationBindings::class.java)
       }
     } catch (e: Exception) {

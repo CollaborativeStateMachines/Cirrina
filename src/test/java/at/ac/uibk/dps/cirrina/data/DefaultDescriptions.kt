@@ -1,15 +1,13 @@
 package at.ac.uibk.dps.cirrina.data
 
+import at.ac.uibk.dps.cirrina.utils.TestUtils.resourceUri
+import java.net.URI
+
 object DefaultDescriptions {
-  const val complete: String = "src/test/resources/pkl/complete/main.pkl"
-
-  const val invoke: String = "src/test/resources/pkl/invoke/main.pkl"
-
-  const val timeout: String = "src/test/resources/pkl/timeout/main.pkl"
-
-  const val pingPong: String = "src/test/resources/pkl/pingPong/main.pkl"
-
-  const val noop: String = "src/test/resources/pkl/noop/main.pkl"
-
-  const val empty: String = "src/test/resources/pkl/noop/empty.pkl"
+  val complete: URI by lazy { resourceUri("pkl/complete/main.pkl") }
+  val invoke: URI by lazy { resourceUri("pkl/invoke/main.pkl") }
+  val timeout: URI by lazy { resourceUri("pkl/timeout/main.pkl") }
+  val pingPong: URI by lazy { resourceUri("pkl/pingPong/main.pkl") }
+  val noop: URI by lazy { resourceUri("pkl/noop/main.pkl") }
+  val empty: URI by lazy { resourceUri("pkl/noop/empty.pkl") }
 }

@@ -9,6 +9,7 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
+import java.net.URI
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.LoggerContext
@@ -64,7 +65,7 @@ class Cirrina {
                 RandomServiceImplementationSelector(
                   ServiceImplementationBuilder.from(
                       CsmParser.parseServiceImplementationBindings(
-                          EnvironmentVariables.serviceBindingsPath.get()
+                          URI(EnvironmentVariables.serviceBindingsPath.get())
                         )
                         .bindings
                     )
@@ -72,7 +73,7 @@ class Cirrina {
                 )
 
               Runtime(
-                  EnvironmentVariables.appPath.get(),
+                  URI(EnvironmentVariables.appPath.get()),
                   EnvironmentVariables.instantiate.get(),
                   openTelemetry,
                   serviceImplementationSelector,
