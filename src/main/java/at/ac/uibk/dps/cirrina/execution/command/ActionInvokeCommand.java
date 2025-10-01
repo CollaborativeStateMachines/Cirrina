@@ -64,9 +64,8 @@ public final class ActionInvokeCommand extends ActionCommand {
         .invoke(input, executionContext.scope().getId())
         .exceptionally(e -> {
           logger.error(
-            "Service invocation failed for service '{}': {}",
+            "Service invocation failed for service '{}'",
             serviceImplementation.getInformationString(),
-            e.getMessage(),
             e
           );
           return null;
@@ -143,9 +142,8 @@ public final class ActionInvokeCommand extends ActionCommand {
               extent.trySet(outputReference.getReference(), outputVariable.value());
             } catch (Exception e) {
               logger.error(
-                "Failed to assign service output to variable '{}': {}",
+                "Failed to assign service output to variable '{}'",
                 outputReference.getReference(),
-                e.getMessage(),
                 e
               );
             }

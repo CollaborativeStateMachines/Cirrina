@@ -86,9 +86,9 @@ class Cirrina {
             }
         }
     } catch (e: EnvironmentVariableError) {
-      logger.error("There is an error in the current configuration, because: '${e.message}'", e)
+      logger.error("There is an error in the current configuration", e)
     } catch (e: Exception) {
-      logger.error("There was an unknown in the runtime execution, because: '${e.message}'", e)
+      logger.error("There was an unknown in the runtime execution", e)
     }
   }
 

@@ -65,7 +65,7 @@ public final class ActionAssignCommand extends ActionCommand {
           )
         );
     } catch (IOException e) {
-      logger.error("Data assignment failed: {}", e.getMessage());
+      logger.error("Data assignment failed", e);
     }
 
     return commands;

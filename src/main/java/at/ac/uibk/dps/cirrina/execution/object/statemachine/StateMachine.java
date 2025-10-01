@@ -780,7 +780,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
       Thread.currentThread().interrupt();
     } catch (Exception e) {
-      logger.error("%s received a fatal error".formatted(stateMachineId.toString()), e);
+      logger.error("{} received a fatal error", stateMachineId.toString(), e);
     }
 
     logger.info("{} has stopped", stateMachineId.toString());

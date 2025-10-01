@@ -69,7 +69,7 @@ public final class ActionCreateCommand extends ActionCommand {
           gauges.attributesForData("create", !isPersistent ? "local" : "persistent", size)
         );
     } catch (Exception e) {
-      logger.error("Data creation failed: {}", e.getMessage());
+      logger.error("Data creation failed", e);
     }
 
     return commands;
