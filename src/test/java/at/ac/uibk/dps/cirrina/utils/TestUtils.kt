@@ -22,8 +22,17 @@ import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor
 import java.net.InetSocketAddress
+import java.net.URI
+import java.nio.file.Paths
 
 object TestUtils {
+  fun resourceUri(path: String): URI {
+    val url =
+      TestUtils::class.java.classLoader.getResource(path)
+        ?: throw IllegalArgumentException("Resource not found: $path")
+    return Paths.get(url.toURI()).toUri()
+  }
+
   fun loggingOpenTelemetry(): OpenTelemetry {
     val resource = Resource.getDefault().toBuilder().build()
 

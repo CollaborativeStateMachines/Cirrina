@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.io.parsing
 
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
+import at.ac.uibk.dps.cirrina.utils.TestUtils.resourceUri
 import java.net.URI
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -26,7 +27,7 @@ class CsmParserTest {
   fun testCsmlUri() {
     assertDoesNotThrow {
       CsmParser.parseCsml(
-        URI.create(
+        URI(
           "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/test/resources/pkl/noop/main.pkl"
         )
       )
@@ -37,7 +38,7 @@ class CsmParserTest {
   fun loadServiceImplementationBindingsUri() {
     assertDoesNotThrow {
       CsmParser.parseServiceImplementationBindings(
-        URI.create(
+        URI(
           "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/test/resources/pkl/serviceImplementation/services.pkl"
         )
       )
@@ -49,7 +50,7 @@ class CsmParserTest {
     assertDoesNotThrow {
       val services =
         CsmParser.parseServiceImplementationBindings(
-          "src/test/resources/pkl/serviceImplementation/services.pkl"
+          resourceUri("pkl/serviceImplementation/services.pkl")
         )
 
       assertEquals(2, services.bindings.size)

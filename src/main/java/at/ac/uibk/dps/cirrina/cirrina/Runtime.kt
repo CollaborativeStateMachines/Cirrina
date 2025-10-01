@@ -11,8 +11,7 @@ import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
 import at.ac.uibk.dps.cirrina.utils.Id
 import io.opentelemetry.api.OpenTelemetry
 import java.io.IOException
-import kotlin.io.path.Path
-import kotlin.io.path.pathString
+import java.net.URI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -23,7 +22,7 @@ import org.apache.logging.log4j.Logger
 /**
  * Runtime for executing state machines defined in a Cirrina CSML project.
  *
- * @param path Path to the folder containing the main (main.pkl) file.
+ * @param main Main (main.pkl) URI.
  * @param stateMachineNames List of state machine names to execute.
  * @property openTelemetry The OpenTelemetry instance for tracing state machine execution.
  * @property serviceImplementationSelector The service implementation selector.
@@ -31,7 +30,7 @@ import org.apache.logging.log4j.Logger
  * @property persistentContext The persistent context where state machine variables are stored.
  */
 class Runtime(
-  path: String,
+  main: URI,
   stateMachineNames: List<String>,
   private val openTelemetry: OpenTelemetry,
   private var serviceImplementationSelector: ServiceImplementationSelector,
@@ -50,7 +49,7 @@ class Runtime(
 
   init {
     val collaborativeStateMachineClass =
-      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(Path(path).pathString)).build()
+      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main)).build()
 
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
       try {
