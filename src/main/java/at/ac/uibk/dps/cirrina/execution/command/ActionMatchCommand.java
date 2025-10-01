@@ -40,7 +40,7 @@ public final class ActionMatchCommand extends ActionCommand {
         }
       }
     } catch (UnsupportedOperationException e) {
-      logger.error("Could not execute match action: {}", e.getMessage());
+      logger.error("Could not execute match action", e);
     }
 
     return commands;
