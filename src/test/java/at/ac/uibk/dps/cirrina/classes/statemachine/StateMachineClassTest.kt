@@ -22,8 +22,7 @@ class StateMachineClassTest {
             CsmParser.parseCsml(DefaultDescriptions.complete)
           )
           .build()
-          .findStateMachineClassByName("stateMachine1")
-          .get()
+          .findStateMachineClassByName("stateMachine1")!!
     }
   }
 

@@ -5,14 +5,13 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_DAT
 import at.ac.uibk.dps.cirrina.execution.object.action.CreateAction;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import com.google.common.flogger.FluentLogger;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public final class ActionCreateCommand extends ActionCommand {
 
-  private static final Logger logger = LogManager.getLogger();
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final CreateAction createAction;
 
@@ -69,7 +68,7 @@ public final class ActionCreateCommand extends ActionCommand {
           gauges.attributesForData("create", !isPersistent ? "local" : "persistent", size)
         );
     } catch (Exception e) {
-      logger.error("Data creation failed", e);
+      logger.atWarning().withCause(e).log("Data creation failed");
     }
 
     return commands;

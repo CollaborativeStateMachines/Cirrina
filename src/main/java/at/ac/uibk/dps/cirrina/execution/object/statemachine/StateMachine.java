@@ -35,6 +35,7 @@ import at.ac.uibk.dps.cirrina.tracing.Counters;
 import at.ac.uibk.dps.cirrina.tracing.Gauges;
 import at.ac.uibk.dps.cirrina.utils.Id;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import com.google.common.flogger.FluentLogger;
 import io.opentelemetry.api.OpenTelemetry;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
@@ -46,8 +47,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public final class StateMachine implements Runnable, EventListener, Scope {
 
@@ -59,7 +59,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   /**
    * State machine logger.
    */
-  private static final Logger logger = LogManager.getLogger();
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   /**
    * State machine ID.
@@ -486,6 +486,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       throw new IllegalArgumentException("A state '%s' does not exist".formatted(stateName));
     }
 
+    logger
+      .atFine()
+      .log("State machine '%s': Switching state '%s' to '%s'", this, activeState, state);
+
     // Update the active state
     activeState = state;
   }
@@ -616,6 +620,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     @NotNull Transition transition,
     @Nullable Event raisingEvent
   ) throws UnsupportedOperationException {
+    logger.atFine().log("State machine '%s': Handling internal transition '%s'", this, transition);
+
     // Only perform the transition
     doTransition(transition, raisingEvent);
   }
@@ -631,6 +637,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     @NotNull Transition transition,
     @Nullable Event raisingEvent
   ) throws UnsupportedOperationException {
+    logger.atFine().log("State machine '%s': Handling external transition '%s'", this, transition);
+
     final var targetStateName = transition.getTargetStateName().get();
 
     // Acquire the target state instance
@@ -680,12 +688,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    */
   private Optional<Transition> handleEvent(Event event)
     throws InterruptedException, UnsupportedOperationException {
+    logger.atFiner().log("State machine '%s': Handling event '%s'", this, event);
+
     // Increment events received counter
     counters
       .getCounter(COUNTER_EVENTS_HANDLED)
       .add(1, counters.attributesForEvent(event.getChannel().toString()));
 
-    // Find a matching transition
     try {
       // Create a temporary in-memory context containing the event data
       final var eventDataContext = new InMemoryContext(true);
@@ -703,18 +712,22 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       final var onTransition = trySelectOnTransition(event, extent);
 
       // Set the event data in the actual extent
-      onTransition.ifPresent(transition -> {
-        try {
-          for (var contextVariable : event.getData()) {
-            getExtent().setOrCreate(
-              EVENT_DATA_VARIABLE_PREFIX + contextVariable.name(),
-              contextVariable.value()
-            );
+      onTransition.ifPresentOrElse(
+        transition -> {
+          logger.atFiner().log("State machine '%s': Selected on transition '%s'", this, transition);
+          try {
+            for (var contextVariable : event.getData()) {
+              getExtent().setOrCreate(
+                EVENT_DATA_VARIABLE_PREFIX + contextVariable.name(),
+                contextVariable.value()
+              );
+            }
+          } catch (IOException e) {
+            logger.atWarning().withCause(e).log("Failed to set event data");
           }
-        } catch (IOException e) {
-          logger.error("Failed to set event data", e);
-        }
-      });
+        },
+        () -> logger.atFiner().log("State machine '%s': No on transition selected", this)
+      );
 
       return onTransition;
     } catch (IllegalStateException e) {
@@ -729,6 +742,8 @@ public final class StateMachine implements Runnable, EventListener, Scope {
    */
   @Override
   public void run() {
+    logger.atInfo().log("State machine '%s': Starting", this);
+
     // Increment state machine instances counter
     counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(1, counters.attributesForInstances());
 
@@ -776,14 +791,13 @@ public final class StateMachine implements Runnable, EventListener, Scope {
         }
       }
     } catch (InterruptedException e) {
-      logger.info("{} is interrupted", stateMachineId.toString());
-
       Thread.currentThread().interrupt();
+      logger.atSevere().withCause(e).log("State machine '%s': Interrupted", this);
     } catch (Exception e) {
-      logger.error("{} received a fatal error", stateMachineId.toString(), e);
+      logger.atSevere().withCause(e).log("State machine '%s': Received a fatal error", this);
     }
 
-    logger.info("{} has stopped", stateMachineId.toString());
+    logger.atInfo().log("State machine '%s': Stopped", this);
 
     // Decrement state machine instances counter
     counters.getCounter(COUNTER_STATE_MACHINE_INSTANCES).add(-1, counters.attributesForInstances());
@@ -804,6 +818,11 @@ public final class StateMachine implements Runnable, EventListener, Scope {
   @Override
   public String getId() {
     return getStateMachineInstanceId().toString();
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this).append("id", stateMachineId).toString();
   }
 
   /**

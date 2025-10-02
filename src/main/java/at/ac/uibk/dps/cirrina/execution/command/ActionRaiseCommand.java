@@ -6,12 +6,8 @@ import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public final class ActionRaiseCommand extends ActionCommand {
-
-  private static final Logger logger = LogManager.getLogger();
 
   private final RaiseAction raiseAction;
 
