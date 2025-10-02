@@ -9,15 +9,15 @@ import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
 import at.ac.uibk.dps.cirrina.utils.Id
+import com.google.common.flogger.FluentLogger
 import io.opentelemetry.api.OpenTelemetry
-import java.io.IOException
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+
+private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
 /**
  * Runtime for executing state machines defined in a Cirrina CSML project.
@@ -37,11 +37,7 @@ class Runtime(
   val eventHandler: EventHandler,
   val persistentContext: Context,
 ) {
-  companion object {
-    private val logger: Logger = LogManager.getLogger()
-  }
-
-  // Instantiated state machines.
+  /** Instantiated state machines. */
   val stateMachines: List<StateMachine>
 
   /** Top-level extent. */
@@ -51,24 +47,33 @@ class Runtime(
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main)).build()
 
+    logger.atFine().log("Creating persistent context variables")
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
-      try {
-        logger.info("Creating persistent context variable '{}'", variable.name())
-        persistentContext.create(variable.name(), variable.value())
-      } catch (_: IOException) {
-        logger.info(
-          "Did not create persistent context variable '{}', does it already exist?",
-          variable.name(),
-        )
-      }
+      runCatching {
+          logger.atFiner().log("Creating persistent context variable '${variable.name()}'")
+          persistentContext.create(variable.name(), variable.value())
+        }
+        .onFailure { _ ->
+          logger
+            .atWarning()
+            .log(
+              "Did not create persistent context variable '${variable.name()}', does it already exist?"
+            )
+        }
     }
 
     stateMachines =
       stateMachineNames
-        .map { name ->
-          collaborativeStateMachineClass.findStateMachineClassByName(name).orElseThrow {
-            IllegalArgumentException("No state machine found with name: $name")
-          }
+        .mapNotNull { name ->
+          collaborativeStateMachineClass.findStateMachineClassByName(name)
+            ?: run {
+              logger
+                .atWarning()
+                .log(
+                  "A state machine with name '$name' could not be instantiated, because it does not exist"
+                )
+              null
+            }
         }
         .flatMap { buildInstances(it, null) }
   }

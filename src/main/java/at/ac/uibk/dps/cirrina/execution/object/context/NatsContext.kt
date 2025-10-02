@@ -1,12 +1,13 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ValueExchange
+import com.google.common.flogger.FluentLogger
 import io.nats.client.*
 import io.nats.client.api.KeyValueConfiguration
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.Logger
+
+private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
 /**
  * A persistent context stored in a NATS key-value bucket.
@@ -24,21 +25,16 @@ class NatsContext(
   private val bucketName: String,
   private val deleteBucket: Boolean = false,
 ) : Context(isLocal), AutoCloseable {
-
-  companion object {
-    private val logger: Logger = LogManager.getLogger()
-  }
-
-  // NATS connection can be null if not connected
+  // NATS connection can be null if not connected.
   private var connection: Connection? = null
 
-  // NATs key-value can be null if not connected
+  // NATs key-value can be null if not connected.
   private var keyValue: KeyValue? = null
 
-  // Lock for the connection and key-value
+  // Lock for the connection and key-value.
   private val lock = Any()
 
-  // Latch for initial connection
+  // Latch for initial connection.
   private val connectedLatch = CountDownLatch(1)
 
   init {
@@ -51,25 +47,30 @@ class NatsContext(
               when (type) {
                 ConnectionListener.Events.CONNECTED,
                 ConnectionListener.Events.RECONNECTED -> {
+                  logger.atFiner().log("Received NATS connected event")
                   synchronized(lock) {
                     try {
                       keyValue = getOrCreateBucket(conn)
                       connection = conn
                     } catch (e: Exception) {
-                      logger.error("Failed to setup the persistent context bucket", e)
+                      logger
+                        .atWarning()
+                        .withCause(e)
+                        .log("Failed to setup the persistent context bucket")
                     } finally {
                       connectedLatch.countDown()
                     }
                   }
-                  logger.info("(Re)connected to the NATS server for persistent context")
+                  logger.atFine().log("Connected to the NATS server")
                 }
 
                 ConnectionListener.Events.DISCONNECTED -> {
+                  logger.atFiner().log("Received NATS disconnected event")
                   synchronized(lock) {
                     connection = null
                     keyValue = null
                   }
-                  logger.warn("Disconnected from the NATS server for persistent context")
+                  logger.atFine().log("Disconnected from the NATS server")
                 }
 
                 else -> {}
@@ -81,9 +82,12 @@ class NatsContext(
 
     try {
       Nats.connectAsynchronously(options, true)
-    } catch (_: InterruptedException) {
+    } catch (e: InterruptedException) {
       Thread.currentThread().interrupt()
-      logger.error("Interrupted while initiating NATS connection, will never connect")
+      logger
+        .atSevere()
+        .withCause(e)
+        .log("Interrupted while initiating NATS connection, will never connect")
     }
   }
 
@@ -92,14 +96,17 @@ class NatsContext(
     runCatching {
         conn.keyValueManagement().apply {
           if (!bucketNames.contains(bucketName)) {
-            logger.warn("Persistent bucket '$bucketName' does not exist, creating it")
+            logger.atInfo().log("Persistent bucket '$bucketName' does not exist, creating it")
             create(KeyValueConfiguration.Builder().name(bucketName).build())
           }
         }
         conn.keyValue(bucketName)
       }
       .getOrElse { e ->
-        throw IOException("Failed to create or retrieve bucket '$bucketName': ${e.message}", e)
+        throw IOException(
+          "Failed to create or retrieve bucket '$bucketName', is JetStream enabled?",
+          e,
+        )
       }
 
   private fun toBytes(value: Any?): ByteArray = ValueExchange(value).toBytes()
@@ -117,8 +124,7 @@ class NatsContext(
   override fun get(name: String): Any =
     synchronized(lock) {
       runCatching {
-          val kv =
-            keyValue ?: throw IOException("Not connected to the NATS server for persistent context")
+          val kv = keyValue ?: throw IOException("Not connected to the NATS server")
           if (!kv.keys().contains(name)) {
             throw IOException("A variable with the name '$name' does not exist")
           }
@@ -141,8 +147,7 @@ class NatsContext(
   override fun create(name: String, value: Any?): Int =
     synchronized(lock) {
       runCatching {
-          val kv =
-            keyValue ?: throw IOException("Not connected to the NATS server for persistent context")
+          val kv = keyValue ?: throw IOException("Not connected to the NATS server")
           if (kv.keys().contains(name)) {
             throw IOException("A variable with the name '$name' already exists")
           }
@@ -166,8 +171,7 @@ class NatsContext(
   override fun assign(name: String, value: Any?): Int =
     synchronized(lock) {
       runCatching {
-          val kv =
-            keyValue ?: throw IOException("Not connected to the NATS server for persistent context")
+          val kv = keyValue ?: throw IOException("Not connected to the NATS server")
           if (!kv.keys().contains(name)) {
             throw IOException("A variable with the name '$name' does not exist")
           }
@@ -189,8 +193,7 @@ class NatsContext(
   override fun delete(name: String) {
     synchronized(lock) {
       runCatching {
-          val kv =
-            keyValue ?: throw IOException("Not connected to the NATS server for persistent context")
+          val kv = keyValue ?: throw IOException("Not connected to the NATS server")
           if (!kv.keys().contains(name)) {
             throw IOException("A variable with the name '$name' does not exist")
           }
@@ -205,8 +208,7 @@ class NatsContext(
   override fun getAll(): List<ContextVariable> =
     synchronized(lock) {
       runCatching {
-          val kv =
-            keyValue ?: throw IOException("Not connected to the NATS server for persistent context")
+          val kv = keyValue ?: throw IOException("Not connected to the NATS server")
           kv.keys().map { key ->
             val entry = kv.get(key)
             ContextVariable(entry.key, entry.value)
@@ -225,7 +227,7 @@ class NatsContext(
             conn.close()
           }
         }
-        .onFailure { e -> throw IOException("Failed to close the NATS persistent context", e) }
+        .onFailure { e -> logger.atWarning().withCause(e).log("Failed to close the NATS") }
     }
   }
 

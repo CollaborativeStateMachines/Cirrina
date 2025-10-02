@@ -12,11 +12,10 @@ import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
 import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachineEventHandler;
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import com.google.common.flogger.FluentLogger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Action invoke command, performs a service type invocation.
@@ -28,7 +27,7 @@ import org.apache.logging.log4j.Logger;
  */
 public final class ActionInvokeCommand extends ActionCommand {
 
-  private static final Logger logger = LogManager.getLogger();
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final InvokeAction invokeAction;
 
@@ -63,11 +62,13 @@ public final class ActionInvokeCommand extends ActionCommand {
       serviceImplementation
         .invoke(input, executionContext.scope().getId())
         .exceptionally(e -> {
-          logger.error(
-            "Service invocation failed for service '{}'",
-            serviceImplementation.getInformationString(),
-            e
-          );
+          logger
+            .atWarning()
+            .withCause(e)
+            .log(
+              "Service invocation failed for service '%s'",
+              serviceImplementation.getInformationString()
+            );
           return null;
         })
         .thenAccept(output -> {
@@ -141,18 +142,16 @@ public final class ActionInvokeCommand extends ActionCommand {
             try {
               extent.trySet(outputReference.getReference(), outputVariable.value());
             } catch (Exception e) {
-              logger.error(
-                "Failed to assign service output to variable '{}'",
-                outputReference.getReference(),
-                e
-              );
+              logger
+                .atWarning()
+                .withCause(e)
+                .log("Failed to assign service output to variable '%s'", outputReference);
             }
           },
           () ->
-            logger.warn(
-              "Service output does not contain expected variable '{}'",
-              outputReference.getReference()
-            )
+            logger
+              .atWarning()
+              .log("Service output does not contain expected variable '%s'", outputReference)
         );
     }
   }

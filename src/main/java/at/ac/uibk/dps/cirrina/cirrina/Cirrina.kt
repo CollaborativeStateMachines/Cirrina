@@ -7,88 +7,80 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
+import com.google.common.flogger.FluentLogger
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import java.net.URI
-import org.apache.logging.log4j.Level
-import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.core.LoggerContext
+
+private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
 /** Cirrina entry class. */
 class Cirrina {
   companion object {
     const val NATS_CONNECTION_TIMEOUT = 60000L
 
-    val logger = LogManager.getLogger()
-
     init {
-      setupLogging()
-      setupnewHealthService()
-    }
-
-    // Set up the logger.
-    private fun setupLogging() {
-      (LogManager.getContext(false) as LoggerContext).apply {
-        configuration.getLoggerConfig(logger.name).level = Level.INFO
-        updateLoggers()
-      }
-    }
-
-    // Create the health service.
-    private fun setupnewHealthService(): HealthService =
+      logger.atFine().log("Starting health service")
       runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
-        .getOrElse { e -> throw RuntimeException("Failed to start the health service: $e", e) }
+        .getOrElse { e -> logger.atSevere().withCause(e).log("Could not start the health service") }
+    }
   }
 
   /** Run Cirrina as configured. */
   fun run() {
     try {
+      logger.atFine().log("Creating the event handler")
       newEventHandler()
         .apply {
           if (this is NatsEventHandler) {
+            logger.atFine().log("Awaiting connection to NATS as the event handler")
             awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
           }
         }
         .use { eventHandler ->
+          logger.atFiner().log("Subscribing to event sources")
           eventHandler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
           eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
 
+          logger.atFine().log("Creating the persistent context")
           newPersistentContext()
             .apply {
               if (this is NatsContext) {
+                logger.atFine().log("Awaiting connection to NATS as the persistent context")
                 awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
               }
             }
             .use { persistentContext ->
               val openTelemetry = getOpenTelemetry()
-              val serviceImplementationSelector =
-                RandomServiceImplementationSelector(
-                  ServiceImplementationBuilder.from(
-                      CsmParser.parseServiceImplementationBindings(
-                          URI(EnvironmentVariables.serviceBindingsPath.get())
-                        )
-                        .bindings
-                    )
-                    .build()
-                )
 
-              Runtime(
+              logger.atFine().log("Loading service implementation bindings")
+              var serviceImplementationBindings =
+                CsmParser.parseServiceImplementationBindings(
+                    URI(EnvironmentVariables.serviceBindingsPath.get())
+                  )
+                  .bindings
+
+              logger.atFine().log("Creating the runtime")
+              val runtime =
+                Runtime(
                   URI(EnvironmentVariables.appPath.get()),
                   EnvironmentVariables.instantiate.get(),
                   openTelemetry,
-                  serviceImplementationSelector,
+                  RandomServiceImplementationSelector(
+                    ServiceImplementationBuilder.from(serviceImplementationBindings).build()
+                  ),
                   eventHandler,
                   persistentContext,
                 )
-                .run()
 
-              logger.info("Done running")
+              logger.atFine().log("Running the runtime")
+              runtime.run()
             }
         }
-    } catch (e: EnvironmentVariableError) {
-      logger.error("There is an error in the current configuration", e)
+    } catch (e: ConfigurationError) {
+      logger.atSevere().withCause(e).log("There is an error in the current configuration")
     } catch (e: Exception) {
-      logger.error("There was an unknown in the runtime execution", e)
+      logger.atSevere().withCause(e).log("There was an unknown in the runtime execution")
     }
   }
 

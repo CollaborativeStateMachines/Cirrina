@@ -5,15 +5,14 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_DAT
 import at.ac.uibk.dps.cirrina.execution.object.action.AssignAction;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import at.ac.uibk.dps.cirrina.utils.Time;
+import com.google.common.flogger.FluentLogger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public final class ActionAssignCommand extends ActionCommand {
 
-  private static final Logger logger = LogManager.getLogger();
+  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
 
   private final AssignAction assignAction;
 
@@ -65,7 +64,7 @@ public final class ActionAssignCommand extends ActionCommand {
           )
         );
     } catch (IOException e) {
-      logger.error("Data assignment failed", e);
+      logger.atWarning().withCause(e).log("Data assignment failed");
     }
 
     return commands;

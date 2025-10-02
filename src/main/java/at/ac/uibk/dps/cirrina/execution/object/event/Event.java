@@ -9,6 +9,7 @@ import at.ac.uibk.dps.cirrina.utils.Time;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Event, resembles an event as it is sent to state machine instances.
@@ -131,7 +132,12 @@ public final class Event {
    */
   @Override
   public String toString() {
-    return name;
+    return new ToStringBuilder(this)
+      .append("createdTime", createdTime)
+      .append("id", id)
+      .append("name", name)
+      .append("channel", channel)
+      .build();
   }
 
   /**

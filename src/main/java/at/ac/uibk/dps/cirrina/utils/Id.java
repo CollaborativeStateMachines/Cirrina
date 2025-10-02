@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.utils;
 
 import java.util.Objects;
 import java.util.UUID;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public final class Id {
 
@@ -9,7 +10,7 @@ public final class Id {
 
   @Override
   public String toString() {
-    return uuid.toString();
+    return new ToStringBuilder(this).append("uuid", uuid).toString();
   }
 
   @Override

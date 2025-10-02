@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.execution.command.CommandFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 
 public final class Transition {
@@ -45,5 +46,13 @@ public final class Transition {
 
   public boolean isElse() {
     return isElse;
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this)
+      .append("internal", isInternalTransition())
+      .append("targetStateName", getTargetStateName())
+      .toString();
   }
 }

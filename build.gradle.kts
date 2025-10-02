@@ -56,6 +56,9 @@ dependencies {
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.1")
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.1")
 
+  implementation("com.google.flogger:flogger:0.9")
+  implementation("com.google.flogger:flogger-system-backend:0.9")
+
   implementation("com.google.guava:guava:33.0.0-jre")
 
   implementation("com.google.protobuf:protobuf-java:4.32.0")
@@ -73,10 +76,9 @@ dependencies {
   implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 
   implementation("org.apache.commons:commons-jexl3:3.3")
+  implementation("org.apache.commons:commons-lang3:3.19.0")
 
   implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
-
-  implementation("org.apache.logging.log4j:log4j-core:2.23.1")
 
   implementation("org.glassfish.expressly:expressly:5.0.0")
 

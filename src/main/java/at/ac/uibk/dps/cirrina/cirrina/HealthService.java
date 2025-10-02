@@ -47,7 +47,7 @@ public class HealthService implements AutoCloseable {
    * Stops the health service.
    */
   @Override
-  public void close() throws Exception {
+  public void close() {
     httpServer.stop(0);
   }
 }
