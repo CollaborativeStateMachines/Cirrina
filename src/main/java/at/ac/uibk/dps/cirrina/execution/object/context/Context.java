@@ -13,7 +13,7 @@ public abstract class Context implements AutoCloseable {
   /**
    * Initializes this context object.
    *
-   * @param isLocal True if this context is local, otherwise false.
+   * @param isLocal true if this context is local, otherwise false
    */
   public Context(boolean isLocal) {
     this.isLocal = isLocal;
@@ -22,29 +22,29 @@ public abstract class Context implements AutoCloseable {
   /**
    * Retrieve a context variable.
    *
-   * @param name Name of the context variable.
-   * @return The retrieved context variable.
-   * @throws IOException If the context variable could not be retrieved.
+   * @param name name of the context variable
+   * @return The retrieved context variable
+   * @throws IOException if the context variable could not be retrieved
    */
   public abstract Object get(String name) throws IOException;
 
   /**
    * Creates a context variable.
    *
-   * @param name  Name of the context variable.
-   * @param value Value of the context variable.
-   * @return Byte size of stored data.
-   * @throws IOException If the variable could not be created.
+   * @param name  name of the context variable
+   * @param value value of the context variable
+   * @return byte size of stored data
+   * @throws IOException if the variable could not be created
    */
   public abstract int create(String name, Object value) throws IOException;
 
   /**
    * Assigns to a context variable.
    *
-   * @param name  Name of the context variable.
-   * @param value New value of the context variable.
-   * @return Byte size of stored data.
-   * @throws IOException If the variable could not be assigned to.
+   * @param name  name of the context variable
+   * @param value new value of the context variable
+   * @return byte size of stored data
+   * @throws IOException if the variable could not be assigned to
    */
   public abstract int assign(String name, Object value) throws IOException;
 
@@ -57,17 +57,24 @@ public abstract class Context implements AutoCloseable {
   public abstract void delete(String name) throws IOException;
 
   /**
+   * Deletes all context variables.
+   *
+   * @throws IOException if the variable could not be deleted
+   */
+  public abstract void deleteAll() throws IOException;
+
+  /**
    * Returns all context variables.
    *
-   * @return Context variables.
-   * @throws IOException If the variables could not be retrieved.
+   * @return context variables.
+   * @throws IOException if the variables could not be retrieved
    */
   public abstract List<ContextVariable> getAll() throws IOException;
 
   /**
    * Returns a flag that indicates if this context is local.
    *
-   * @return True if local, otherwise false.
+   * @return true if local, otherwise false
    */
   public boolean isLocal() {
     return isLocal;

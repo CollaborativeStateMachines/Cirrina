@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.context.NatsContext
+import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
@@ -21,6 +21,7 @@ private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 class Cirrina {
   companion object {
     const val NATS_CONNECTION_TIMEOUT = 60000L
+    const val ETCD_CONNECTION_TIMEOUT = 60000L
 
     init {
       ToStringBuilder.setDefaultStyle(SIMPLE_STYLE)
@@ -59,9 +60,9 @@ class Cirrina {
           logger.atFine().log("Creating the persistent context")
           newPersistentContext()
             .apply {
-              if (this is NatsContext) {
-                logger.atFine().log("Awaiting connection to NATS as the persistent context")
-                awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
+              if (this is EtcdContext) {
+                logger.atFine().log("Awaiting connection to Etcd as the persistent context")
+                awaitInitialConnection(ETCD_CONNECTION_TIMEOUT)
               }
             }
             .use { persistentContext ->
@@ -116,7 +117,7 @@ class Cirrina {
   // Construct a new persistent context based as configured.
   private fun newPersistentContext(): Context =
     when (EnvironmentVariables.contextProvider.get()) {
-      PersistentContextProvider.NATS -> newNatsPersistentContext()
+      PersistentContextProvider.ETCD -> newEtcdPersistentContext()
       else ->
         throw ConfigurationError.Unknown(
           "persistent context",
@@ -124,13 +125,9 @@ class Cirrina {
         )
     }
 
-  // Construct a new NATS persistent context as configured.
-  private fun newNatsPersistentContext(): NatsContext =
-    NatsContext(
-      false,
-      EnvironmentVariables.natsContextUrl.get(),
-      EnvironmentVariables.natsContextBucket.get(),
-    )
+  // Construct a new Etcd persistent context as configured.
+  private fun newEtcdPersistentContext(): EtcdContext =
+    EtcdContext(false, listOf(EnvironmentVariables.etcdContextUrl.get()))
 
   // Construct a new OpenTelemetry instance as configured.
   private fun getOpenTelemetry(): OpenTelemetry =

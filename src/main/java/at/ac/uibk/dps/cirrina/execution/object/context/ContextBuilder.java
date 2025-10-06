@@ -62,23 +62,6 @@ public class ContextBuilder {
   }
 
   /**
-   * Build a NATS context.
-   *
-   * @param isLocal    True if this context is local, otherwise false.
-   * @param natsUrl    NATS url.
-   * @param bucketName NATS bucket name.
-   * @return This builder.
-   * @throws IOException If the context could not be built.
-   * @see NatsContext
-   */
-  public ContextBuilder natsContext(boolean isLocal, String natsUrl, String bucketName)
-    throws IOException {
-    context = new NatsContext(isLocal, natsUrl, bucketName, false);
-
-    return this;
-  }
-
-  /**
    * Builds the current context.
    *
    * @return Context.
