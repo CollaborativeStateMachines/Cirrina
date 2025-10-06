@@ -16,7 +16,7 @@ internal class NatsEventHandlerTest {
   @ParameterizedTest
   @EnumSource(Csml.EventChannel::class)
   fun testNatsEventHandlerSendReceive(channel: Csml.EventChannel) {
-    val natsServerURL = System.getenv("NATS_SERVER_URL")
+    val natsServerURL = System.getenv("NATS_EVENT_URL")
     assumeTrue(natsServerURL != null, "Skipping NATS event handler test")
 
     // Test should finish in 5 seconds

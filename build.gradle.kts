@@ -63,6 +63,8 @@ dependencies {
 
   implementation("com.google.protobuf:protobuf-java:4.32.0")
 
+  implementation("io.etcd:jetcd-core:0.8.5")
+
   implementation("io.nats:jnats:2.17.3")
 
   implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"))

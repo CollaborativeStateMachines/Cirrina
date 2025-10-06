@@ -14,6 +14,8 @@ abstract class ContextTest {
   @Throws(Exception::class)
   fun testOperations() {
     createContext().use { context ->
+      assertDoesNotThrow { context.deleteAll() }
+
       // Create a variable
       assertDoesNotThrow { context.create("testVar", 42) }
 
@@ -37,10 +39,15 @@ abstract class ContextTest {
 
       // Delete the variable
       assertDoesNotThrow { context.delete("testVar") }
-      assertThrows<IOException> { context.delete("nonExistentVar") }
+
+      // Deleting it again should fail
+      assertThrows<IOException> { context.delete("testVar") }
 
       // It should not exist anymore
       assertThrows<IOException> { context.get("testVar") }
+
+      // Assigning should fail
+      assertThrows<IOException> { context.assign("testVar", 42) }
 
       // Get all variables
       assertDoesNotThrow {
@@ -57,6 +64,8 @@ abstract class ContextTest {
   @Throws(Exception::class)
   fun testMultiThreadedCreateGet() {
     createContext().use { context ->
+      assertDoesNotThrow { context.deleteAll() }
+
       val threadCount = 10
       val iterationsPerThread = 100
 
@@ -87,6 +96,8 @@ abstract class ContextTest {
   @Throws(Exception::class)
   fun testMultiThreadedSetValueGetValue() {
     createContext().use { context ->
+      assertDoesNotThrow { context.deleteAll() }
+
       val threadCount = 10
       val iterationsPerThread = 100
 

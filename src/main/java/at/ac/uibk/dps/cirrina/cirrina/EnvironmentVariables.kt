@@ -7,7 +7,7 @@ enum class EventProvider {
 
 /** Provider for the persistent context. */
 enum class PersistentContextProvider {
-  NATS
+  ETCD
 }
 
 /** An environment variable, which can be converted from a string to the required type. */
@@ -38,11 +38,8 @@ object EnvironmentVariables {
   /** The NATS event server URL. */
   val natsEventUrl = EnvironmentVariable("NATS_EVENT_URL", default = "nats://localhost:4222/")
 
-  /** The NATS context server URL. */
-  val natsContextUrl = EnvironmentVariable("NATS_CONTEXT_URL", default = "nats://localhost:4222")
-
-  /** The NATS context bucket. */
-  val natsContextBucket = EnvironmentVariable("NATS_CONTEXT_BUCKET", default = "persistent")
+  /** The Etcd context server URL. */
+  val etcdContextUrl = EnvironmentVariable("ETCD_CONTEXT_URL", default = "http://localhost:2379")
 
   /** The path to the CSML application. */
   val appPath = EnvironmentVariable<String>("APP_PATH", required = true)
@@ -80,7 +77,7 @@ object EnvironmentVariables {
   val contextProvider =
     EnvironmentVariable(
       name = "CONTEXT_PROVIDER",
-      default = PersistentContextProvider.NATS,
+      default = PersistentContextProvider.ETCD,
       mapper = { value ->
         try {
           PersistentContextProvider.valueOf(value.uppercase())
