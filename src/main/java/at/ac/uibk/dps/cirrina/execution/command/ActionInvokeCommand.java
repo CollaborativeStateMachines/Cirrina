@@ -61,20 +61,19 @@ public final class ActionInvokeCommand extends ActionCommand {
       // Invoke (asynchronously)
       serviceImplementation
         .invoke(input, executionContext.scope().getId())
-        .exceptionally(e -> {
-          logger
-            .atWarning()
-            .withCause(e)
-            .log(
-              "Service invocation failed for service '%s'",
-              serviceImplementation.getInformationString()
-            );
-          return null;
-        })
-        .thenAccept(output -> {
-          assignServiceOutput(output, extent);
-          raiseEvents(output, eventListener, eventHandler);
-          measurePerformance(start, serviceImplementation);
+        .whenComplete((output, e) -> {
+          if (e != null) {
+            logger
+              .atWarning()
+              .log(
+                "Service invocation failed for service '%s'",
+                serviceImplementation.getInformationString()
+              );
+          } else {
+            assignServiceOutput(output, extent);
+            raiseEvents(output, eventListener, eventHandler);
+            measurePerformance(start, serviceImplementation);
+          }
         });
 
       return commands;

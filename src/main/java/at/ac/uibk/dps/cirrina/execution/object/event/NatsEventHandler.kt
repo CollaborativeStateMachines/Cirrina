@@ -54,7 +54,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
                         }
                       connection = conn
                     } catch (e: Exception) {
-                      logger.atWarning().withCause(e).log("Failed to setup the NATS event handler")
+                      logger.atSevere().withCause(e).log("Failed to setup the NATS event handler")
                     } finally {
                       connectedLatch.countDown()
                     }
@@ -97,8 +97,8 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
       .onFailure { e ->
         when (e) {
           is UnsupportedOperationException ->
-            logger.atFiner().withCause(e).log("A message could not be read as an event")
-          else -> logger.atWarning().withCause(e).log("Unexpected error while handling a message")
+            logger.atFiner().log("A message could not be read as an event")
+          else -> logger.atWarning().log("Unexpected error while handling a message")
         }
       }
   }
@@ -133,9 +133,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     synchronized(lock) {
       connection?.let { conn ->
         runCatching { conn.publish(subject, EventExchange(event).toBytes()) }
-          .onFailure { e ->
-            logger.atWarning().withCause(e).log("Failed to publish event '$subject'", e)
-          }
+          .onFailure { _ -> logger.atWarning().log("Failed to publish event '$subject'") }
       } ?: logger.atWarning().log("Not sending event, not connected to the NATS server")
     }
   }
@@ -153,7 +151,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
           dispatcher?.subscribe(subject)
             ?: logger.atFiner().log("Dispatcher unavailable; queued subscription: $subject")
         }
-        .onFailure { e -> logger.atWarning().withCause(e).log("Could not subscribe to $eventName") }
+        .onFailure { _ -> logger.atWarning().log("Could not subscribe to $eventName") }
     }
   }
 
@@ -167,9 +165,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { e ->
-          logger.atWarning().withCause(e).log("Could not unsubscribe from $eventName", e)
-        }
+        .onFailure { _ -> logger.atWarning().log("Could not unsubscribe from $eventName") }
     }
   }
 
@@ -187,9 +183,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
           dispatcher?.subscribe(subject)
             ?: logger.atFiner().log("Dispatcher unavailable; queued subscription: $subject")
         }
-        .onFailure { e ->
-          logger.atWarning().withCause(e).log("Could not subscribe to $subject", e)
-        }
+        .onFailure { _ -> logger.atWarning().log("Could not subscribe to $subject") }
     }
   }
 
@@ -204,9 +198,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { e ->
-          logger.atWarning().withCause(e).log("Could not unsubscribe from $subject", e)
-        }
+        .onFailure { _ -> logger.atWarning().log("Could not unsubscribe from $subject") }
     }
   }
 
@@ -221,7 +213,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
           dispatcher?.let { connection?.closeDispatcher(it) }
           connection?.close()
         }
-        .onFailure { e -> logger.atWarning().withCause(e).log("Failed to close the NATS") }
+        .onFailure { _ -> logger.atWarning().log("Failed to close the NATS") }
     }
   }
 

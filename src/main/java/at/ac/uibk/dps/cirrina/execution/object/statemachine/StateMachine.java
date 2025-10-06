@@ -487,7 +487,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     }
 
     logger
-      .atFine()
+      .atFiner()
       .log("State machine '%s': Switching state '%s' to '%s'", this, activeState, state);
 
     // Update the active state
@@ -620,7 +620,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     @NotNull Transition transition,
     @Nullable Event raisingEvent
   ) throws UnsupportedOperationException {
-    logger.atFine().log("State machine '%s': Handling internal transition '%s'", this, transition);
+    logger.atFiner().log("State machine '%s': Handling internal transition '%s'", this, transition);
 
     // Only perform the transition
     doTransition(transition, raisingEvent);
@@ -637,7 +637,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     @NotNull Transition transition,
     @Nullable Event raisingEvent
   ) throws UnsupportedOperationException {
-    logger.atFine().log("State machine '%s': Handling external transition '%s'", this, transition);
+    logger.atFiner().log("State machine '%s': Handling external transition '%s'", this, transition);
 
     final var targetStateName = transition.getTargetStateName().get();
 
@@ -723,7 +723,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
               );
             }
           } catch (IOException e) {
-            logger.atWarning().withCause(e).log("Failed to set event data");
+            logger.atWarning().log("Failed to set event data");
           }
         },
         () -> logger.atFiner().log("State machine '%s': No on transition selected", this)
@@ -822,7 +822,10 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
   @Override
   public String toString() {
-    return new ToStringBuilder(this).append("id", stateMachineId).toString();
+    return new ToStringBuilder(this)
+      .append("id", stateMachineId)
+      .append("name", stateMachineClass.getName())
+      .toString();
   }
 
   /**

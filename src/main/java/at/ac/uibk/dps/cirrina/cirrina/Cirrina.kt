@@ -11,6 +11,9 @@ import com.google.common.flogger.FluentLogger
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import java.net.URI
+import java.util.logging.LogManager
+import org.apache.commons.lang3.builder.ToStringBuilder
+import org.apache.commons.lang3.builder.ToStringStyle.SIMPLE_STYLE
 
 private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
@@ -20,6 +23,17 @@ class Cirrina {
     const val NATS_CONNECTION_TIMEOUT = 60000L
 
     init {
+      ToStringBuilder.setDefaultStyle(SIMPLE_STYLE)
+
+      runCatching {
+          Cirrina::class.java.getResourceAsStream("/logging.properties")?.use { inputStream ->
+            LogManager.getLogManager().readConfiguration(inputStream)
+          } ?: logger.atWarning().log("Logging properties file not found")
+        }
+        .onFailure { ex ->
+          logger.atSevere().withCause(ex).log("Could not load logging properties")
+        }
+
       logger.atFine().log("Starting health service")
       runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
         .getOrElse { e -> logger.atSevere().withCause(e).log("Could not start the health service") }
