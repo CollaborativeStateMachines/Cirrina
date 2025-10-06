@@ -61,7 +61,7 @@ class NatsContext(
                       connection = conn
                     } catch (e: Exception) {
                       logger
-                        .atWarning()
+                        .atSevere()
                         .withCause(e)
                         .log("Failed to setup the persistent context bucket")
                     } finally {
@@ -234,7 +234,7 @@ class NatsContext(
             conn.close()
           }
         }
-        .onFailure { e -> logger.atWarning().withCause(e).log("Failed to close the NATS") }
+        .onFailure { _ -> logger.atWarning().log("Failed to close the NATS") }
     }
   }
 
