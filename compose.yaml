@@ -1,4 +1,3 @@
-version: '3.7'
 configs:
   telegraf_config:
     file: ./telegraf.conf
@@ -28,3 +27,16 @@ services:
     ports:
       - "4222:4222"
       - "6222:6222"
+  etcd:
+    image: "quay.io/coreos/etcd:v3.5.7"
+    container_name: "etcd"
+    ports:
+      - "2379:2379"
+    command:
+      - "/usr/local/bin/etcd"
+      - "--name"
+      - "s1"
+      - "--listen-client-urls"
+      - "http://0.0.0.0:2379"
+      - "--advertise-client-urls"
+      - "http://0.0.0.0:2379"
