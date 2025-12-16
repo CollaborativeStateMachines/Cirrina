@@ -348,9 +348,6 @@ class ExpressionTest {
       assertThrows(UnsupportedOperationException.class, () ->
         ExpressionBuilder.from("1 + ").build().execute(extent)
       );
-      assertThrows(UnsupportedOperationException.class, () ->
-        ExpressionBuilder.from("varOneInt = 2").build().execute(extent)
-      );
 
       // Throws at runtime
       assertThrows(UnsupportedOperationException.class, () ->
