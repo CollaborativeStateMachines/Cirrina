@@ -9,7 +9,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
-import at.ac.uibk.dps.cirrina.execution.`object`.expression.Utility
+import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.io.plantuml.CollaborativeStateMachineExporter
@@ -139,12 +139,12 @@ class CompleteTest {
   }
 
   @Test
-  fun testUtility() {
+  fun testStdlib() {
     val sizes = intArrayOf(10, 50, 100, 200, 500)
     val sizeSet = HashSet<Int>()
 
     repeat(100) {
-      val payload = Utility.genRandPayload(sizes)
+      val payload = Stdlib.genRandPayload(sizes)
       assertNotNull(payload)
       assertTrue(sizes.any { it == payload.size })
       sizeSet.add(payload.size)
