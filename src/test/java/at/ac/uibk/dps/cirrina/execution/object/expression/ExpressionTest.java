@@ -64,57 +64,29 @@ class ExpressionTest {
         // Array with 1, 2, 3
         context.create("someArray", ExpressionBuilder.from("[1, 2, 3]").build().execute(extent));
 
-        // Add 4, 5, 6
-        ExpressionBuilder.from("someArray = someArray + [4]").build().execute(extent);
-        ExpressionBuilder.from("someArray = someArray + {5}").build().execute(extent);
-        ExpressionBuilder.from("someArray = someArray + [6, ...]").build().execute(extent);
+        final var ex = "someArray + [4] + {5} + [6, ...]";
 
         assertArrayEquals(
           new Object[] { 1, 2, 3, 4, 5, 6 },
-          (Object[]) extent.resolve("someArray").get()
+          (Object[]) ExpressionBuilder.from(ex).build().execute(extent)
         );
 
-        // Assert presence
-        assertEquals(true, ExpressionBuilder.from("someArray.contains(1)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someArray.contains(2)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someArray.contains(3)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someArray.contains(4)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someArray.contains(5)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someArray.contains(6)").build().execute(extent));
-
         // Remove 4
-        ExpressionBuilder.from("someArray = someArray - [4]").build().execute(extent);
-
         assertArrayEquals(
           new Object[] { 1, 2, 3, 5, 6 },
-          (Object[]) extent.resolve("someArray").get()
+          (Object[]) ExpressionBuilder.from(ex + " - [4]").build().execute(extent)
         );
 
         // Remove 5
-        ExpressionBuilder.from("someArray = someArray - {5}").build().execute(extent);
-
         assertArrayEquals(
           new Object[] { 1, 2, 3, 6 },
-          (Object[]) extent.resolve("someArray").get()
+          (Object[]) ExpressionBuilder.from(ex + " - [4] - {5}").build().execute(extent)
         );
 
         // Remove 6
-        ExpressionBuilder.from("someArray = someArray - [6, ...]").build().execute(extent);
-
-        assertArrayEquals(new Object[] { 1, 2, 3 }, (Object[]) extent.resolve("someArray").get());
-
-        // Assert absence
-        assertEquals(
-          false,
-          ExpressionBuilder.from("someArray.contains(4)").build().execute(extent)
-        );
-        assertEquals(
-          false,
-          ExpressionBuilder.from("someArray.contains(5)").build().execute(extent)
-        );
-        assertEquals(
-          false,
-          ExpressionBuilder.from("someArray.contains(6)").build().execute(extent)
+        assertArrayEquals(
+          new Object[] { 1, 2, 3 },
+          (Object[]) ExpressionBuilder.from(ex + " - [4] - {5} - [6, ...]").build().execute(extent)
         );
       });
     }
@@ -132,40 +104,30 @@ class ExpressionTest {
           ExpressionBuilder.from("[1, 2, 3, ...]").build().execute(extent)
         );
 
-        // Add 4, 5, 6
-        ExpressionBuilder.from("someList = someList + [4]").build().execute(extent);
-        ExpressionBuilder.from("someList = someList + {5}").build().execute(extent);
-        ExpressionBuilder.from("someList = someList + [6, ...]").build().execute(extent);
+        final var ex = "someList + [4] + {5} + [6, ...]";
 
-        assertIterableEquals(List.of(1, 2, 3, 4, 5, 6), (List<?>) extent.resolve("someList").get());
-
-        // Assert presence
-        assertEquals(true, ExpressionBuilder.from("someList.contains(1)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(2)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(3)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(4)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(5)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(6)").build().execute(extent));
+        assertIterableEquals(
+          List.of(1, 2, 3, 4, 5, 6),
+          (List<?>) ExpressionBuilder.from(ex).build().execute(extent)
+        );
 
         // Remove 4
-        ExpressionBuilder.from("someList = someList - [4]").build().execute(extent);
-
-        assertIterableEquals(List.of(1, 2, 3, 5, 6), (List<?>) extent.resolve("someList").get());
+        assertIterableEquals(
+          List.of(1, 2, 3, 5, 6),
+          (List<?>) ExpressionBuilder.from(ex + " - [4]").build().execute(extent)
+        );
 
         // Remove 5
-        ExpressionBuilder.from("someList = someList - {5}").build().execute(extent);
-
-        assertIterableEquals(List.of(1, 2, 3, 6), (List<?>) extent.resolve("someList").get());
+        assertIterableEquals(
+          List.of(1, 2, 3, 6),
+          (List<?>) ExpressionBuilder.from(ex + " - [4] - {5}").build().execute(extent)
+        );
 
         // Remove 6
-        ExpressionBuilder.from("someList = someList - [6, ...]").build().execute(extent);
-
-        assertIterableEquals(List.of(1, 2, 3), (List<?>) extent.resolve("someList").get());
-
-        // Assert absence
-        assertEquals(false, ExpressionBuilder.from("someList.contains(4)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someList.contains(5)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someList.contains(6)").build().execute(extent));
+        assertIterableEquals(
+          List.of(1, 2, 3),
+          (List<?>) ExpressionBuilder.from(ex + " - [4] - {5} - [6, ...]").build().execute(extent)
+        );
       });
     }
   }
@@ -177,54 +139,32 @@ class ExpressionTest {
         var extent = new Extent(context);
 
         // Set with 1, 2, 3
-        context.create("someList", ExpressionBuilder.from("{1, 2, 3}").build().execute(extent));
+        context.create("someSet", ExpressionBuilder.from("{1, 2, 3}").build().execute(extent));
 
-        // Add 4, 5, 6
-        ExpressionBuilder.from("someList = someList + [4]").build().execute(extent);
-        ExpressionBuilder.from("someList = someList + {5}").build().execute(extent);
-        ExpressionBuilder.from("someList = someList + [6, ...]").build().execute(extent);
+        final var ex = "someSet + [4] + {5} + [6, ...]";
 
         assertIterableEquals(
           new LinkedHashSet<>(List.of(1, 2, 3, 4, 5, 6)),
-          (Set<?>) extent.resolve("someList").get()
+          (Set<?>) ExpressionBuilder.from(ex).build().execute(extent)
         );
 
-        // Assert presence
-        assertEquals(true, ExpressionBuilder.from("someList.contains(1)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(2)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(3)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(4)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(5)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someList.contains(6)").build().execute(extent));
-
         // Remove 4
-        ExpressionBuilder.from("someList = someList - [4]").build().execute(extent);
-
         assertIterableEquals(
           new LinkedHashSet<>(List.of(1, 2, 3, 5, 6)),
-          (Set<?>) extent.resolve("someList").get()
+          (Set<?>) ExpressionBuilder.from(ex + " - [4]").build().execute(extent)
         );
 
         // Remove 5
-        ExpressionBuilder.from("someList = someList - {5}").build().execute(extent);
-
         assertIterableEquals(
           new LinkedHashSet<>(List.of(1, 2, 3, 6)),
-          (Set<?>) extent.resolve("someList").get()
+          (Set<?>) ExpressionBuilder.from(ex + " - [4] - {5}").build().execute(extent)
         );
 
         // Remove 6
-        ExpressionBuilder.from("someList = someList - [6, ...]").build().execute(extent);
-
         assertIterableEquals(
           new LinkedHashSet<>(List.of(1, 2, 3)),
-          (Set<?>) extent.resolve("someList").get()
+          (Set<?>) ExpressionBuilder.from(ex + " - [4] - {5} - [6, ...]").build().execute(extent)
         );
-
-        // Assert absence
-        assertEquals(false, ExpressionBuilder.from("someList.contains(4)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someList.contains(5)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someList.contains(6)").build().execute(extent));
       });
     }
   }
@@ -238,57 +178,52 @@ class ExpressionTest {
         // Map with 1:2
         context.create("someMap", ExpressionBuilder.from("{1:2}").build().execute(extent));
 
-        // Add 3:4, 5:6, 7:8, 9:10, 11:12
-        ExpressionBuilder.from("someMap = someMap + {3:4}").build().execute(extent);
-        ExpressionBuilder.from("someMap = someMap + {5:6}").build().execute(extent);
-        ExpressionBuilder.from("someMap = someMap + {7:8}").build().execute(extent);
-        ExpressionBuilder.from("someMap = someMap + {9:10}").build().execute(extent);
-        ExpressionBuilder.from("someMap = someMap + {11:12}").build().execute(extent);
+        final var ex = "(someMap + {3:4} + {5:6} + {7:8} + {9:10} + {11:12})";
 
         assertEquals(
           Map.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
-          extent.resolve("someMap").get()
+          ExpressionBuilder.from(ex).build().execute(extent)
         );
 
         // Assert presence
-        assertEquals(true, ExpressionBuilder.from("someMap.contains(1)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someMap.contains(3)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someMap.contains(5)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someMap.contains(7)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someMap.contains(9)").build().execute(extent));
-        assertEquals(true, ExpressionBuilder.from("someMap.contains(11)").build().execute(extent));
+        assertEquals(true, ExpressionBuilder.from(ex + ".contains(1)").build().execute(extent));
+        assertEquals(true, ExpressionBuilder.from(ex + ".contains(3)").build().execute(extent));
+        assertEquals(true, ExpressionBuilder.from(ex + ".contains(5)").build().execute(extent));
+        assertEquals(true, ExpressionBuilder.from(ex + ".contains(7)").build().execute(extent));
+        assertEquals(true, ExpressionBuilder.from(ex + ".contains(9)").build().execute(extent));
+        assertEquals(true, ExpressionBuilder.from(ex + ".contains(11)").build().execute(extent));
 
         // Remove 3:4
-        ExpressionBuilder.from("someMap = someMap - {3:4}").build().execute(extent);
-
-        assertEquals(Map.of(1, 2, 5, 6, 7, 8, 9, 10, 11, 12), extent.resolve("someMap").get());
+        assertEquals(
+          Map.of(1, 2, 5, 6, 7, 8, 9, 10, 11, 12),
+          ExpressionBuilder.from(ex + " - {3:4}").build().execute(extent)
+        );
 
         // Remove 5:6
-        ExpressionBuilder.from("someMap = someMap - [5]").build().execute(extent);
-
-        assertEquals(Map.of(1, 2, 7, 8, 9, 10, 11, 12), extent.resolve("someMap").get());
+        assertEquals(
+          Map.of(1, 2, 7, 8, 9, 10, 11, 12),
+          ExpressionBuilder.from(ex + " - {3:4} - [5]").build().execute(extent)
+        );
 
         // Remove 7:8
-        ExpressionBuilder.from("someMap = someMap - [7, ...]").build().execute(extent);
-
-        assertEquals(Map.of(1, 2, 9, 10, 11, 12), extent.resolve("someMap").get());
+        assertEquals(
+          Map.of(1, 2, 9, 10, 11, 12),
+          ExpressionBuilder.from(ex + " - {3:4} - [5] - [7, ...]").build().execute(extent)
+        );
 
         // Remove 9:10
-        ExpressionBuilder.from("someMap = someMap - {9}").build().execute(extent);
-
-        assertEquals(Map.of(1, 2, 11, 12), extent.resolve("someMap").get());
+        assertEquals(
+          Map.of(1, 2, 11, 12),
+          ExpressionBuilder.from(ex + " - {3:4} - [5] - [7, ...] - {9}").build().execute(extent)
+        );
 
         // Remove 11:12
-        ExpressionBuilder.from("someMap = someMap - 11").build().execute(extent);
-
-        assertEquals(Map.of(1, 2), extent.resolve("someMap").get());
-
-        // Assert absence
-        assertEquals(false, ExpressionBuilder.from("someMap.contains(3)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someMap.contains(5)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someMap.contains(7)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someMap.contains(9)").build().execute(extent));
-        assertEquals(false, ExpressionBuilder.from("someMap.contains(11)").build().execute(extent));
+        assertEquals(
+          Map.of(1, 2),
+          ExpressionBuilder.from(ex + " - {3:4} - {3:4} - [5] - [7, ...] - {9} - 11")
+            .build()
+            .execute(extent)
+        );
       });
     }
   }
@@ -316,21 +251,6 @@ class ExpressionTest {
   }
 
   @Test
-  void testMultiLineExpression() throws Exception {
-    try (var context = new InMemoryContext(true)) {
-      assertDoesNotThrow(() -> {
-        var extent = new Extent(context);
-
-        context.create("varOneInt", 1);
-
-        var multiLineExpression =
-          "let varExpressionLocal = 1; varExpressionLocal += varOneInt; varExpressionLocal";
-        assertEquals(2, ExpressionBuilder.from(multiLineExpression).build().execute(extent));
-      });
-    }
-  }
-
-  @Test
   void testExpressionUsingNamespace() throws Exception {
     try (var context = new InMemoryContext(true)) {
       assertEquals(1, ExpressionBuilder.from("math:abs(-1)").build().execute(new Extent(context)));
@@ -348,6 +268,12 @@ class ExpressionTest {
       assertThrows(UnsupportedOperationException.class, () ->
         ExpressionBuilder.from("1 + ").build().execute(extent)
       );
+      assertThrows(UnsupportedOperationException.class, () ->
+        ExpressionBuilder.from("varOneInt = 2").build().execute(extent)
+      );
+      assertThrows(UnsupportedOperationException.class, () ->
+        ExpressionBuilder.from("let varOneInt = 2").build().execute(extent)
+      );
 
       // Throws at runtime
       assertThrows(UnsupportedOperationException.class, () ->
@@ -361,9 +287,6 @@ class ExpressionTest {
       );
       assertThrows(UnsupportedOperationException.class, () ->
         ExpressionBuilder.from("varInvalid + 1").build().execute(extent)
-      );
-      assertThrows(UnsupportedOperationException.class, () ->
-        ExpressionBuilder.from("let varTemp = varInvalid; varTemp").build().execute(extent)
       );
     }
   }
