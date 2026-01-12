@@ -2,7 +2,6 @@ package at.ac.uibk.dps.cirrina.classes.transition;
 
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder;
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.GuardDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
@@ -65,12 +64,10 @@ public abstract class TransitionClassBuilder {
     @Override
     public TransitionClass build() throws IllegalArgumentException {
       // Resolve guards
-      Function<List<? extends GuardDescription>, List<Guard>> resolveGuards = (List<
-        ? extends GuardDescription
-      > guards) ->
+      Function<List<String>, List<Guard>> resolveGuards = (List<String> guards) ->
         guards
           .stream()
-          .map(guardClass -> GuardBuilder.from(guardClass).build())
+          .map(expression -> GuardBuilder.from(expression).build())
           .toList();
 
       // Resolve actions

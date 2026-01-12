@@ -34,13 +34,9 @@ open class StateDescription {
 open class TransitionDescription {
   event: String?
   target: String?
-  guards: Listing<GuardDescription>
+  guards: Listing<Expression>
   actions: Listing<ActionDescription>
   `else`: String?
-}
-
-class GuardDescription {
-  expression: Expression
 }
 
 abstract class ActionDescription {
@@ -115,7 +111,6 @@ class ContextVariableReferenceDescription {
 typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
 typealias Transition = TransitionDescription
-typealias Guard = GuardDescription
 typealias Action = ActionDescription
 typealias AssignAction = AssignActionDescription
 typealias InvokeAction = InvokeActionDescription

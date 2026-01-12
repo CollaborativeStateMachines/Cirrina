@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina.execution.object.guard;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.GuardDescription;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 
 /**
@@ -8,37 +7,34 @@ import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
  */
 public final class GuardBuilder {
 
-  /**
-   * The guard class to build from.
-   */
-  private final GuardDescription guardClass;
+  private final String expressionDescription;
 
   /**
    * Initializes a guard builder.
    *
-   * @param guardClass Guard class.
+   * @param expressionDescription guard expression description
    */
-  private GuardBuilder(GuardDescription guardClass) {
-    this.guardClass = guardClass;
+  private GuardBuilder(String expressionDescription) {
+    this.expressionDescription = expressionDescription;
   }
 
   /**
    * Creates a guard builder.
    *
-   * @param guardClass Guard class.
-   * @return Guard builder.
+   * @param expressionDescription guard expression description
+   * @return guard builder
    */
-  public static GuardBuilder from(GuardDescription guardClass) {
-    return new GuardBuilder(guardClass);
+  public static GuardBuilder from(String expressionDescription) {
+    return new GuardBuilder(expressionDescription);
   }
 
   /**
    * Builds the guard.
    *
-   * @return The built guard.
-   * @throws IllegalArgumentException In case the guard could not be built.
+   * @return the guard
+   * @throws IllegalArgumentException in case the guard could not be built
    */
   public Guard build() throws IllegalArgumentException {
-    return new Guard(ExpressionBuilder.from(guardClass.getExpression()).build());
+    return new Guard(ExpressionBuilder.from(expressionDescription).build());
   }
 }

@@ -71,9 +71,7 @@ stateMachines {
           new {
             target = "a"
             guards {
-              new {
-                expression = "v < 10"
-              }
+              "v < 10"
             }
             `else` = "c"
           }

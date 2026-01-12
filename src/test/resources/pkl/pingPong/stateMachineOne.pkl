@@ -47,9 +47,7 @@ class StateMachine extends Csml.StateMachine {
         new {
           target = "c"
           guards {
-            new {
-              expression = "v >= 100"
-            }
+            "v >= 100"
           }
         }
       }
