@@ -11,10 +11,10 @@ stateMachines {
         name = "a"
         initial = true
         after {
-          new Csml.TimeoutActionDescription {
+          new {
             name = "timeout"
             delay = "100"
-            action = new Csml.RaiseActionDescription {
+            action = new Csml.RaiseAction {
               event {
                 name = "update"
                 channel = "internal"
@@ -23,16 +23,16 @@ stateMachines {
           }
         }
         on {
-          new Csml.OnTransitionDescription {
+          new {
             event = "update"
             target = "a"
             actions {
-              new Csml.MatchActionDescription {
+              new Csml.MatchAction {
                 value = "v < 10"
                 cases {
                   new {
                     `case` = "true"
-                    action = new Csml.AssignActionDescription {
+                    action = new Csml.AssignAction {
                       variable {
                         name = "v"
                         value = "v + 1"
@@ -41,7 +41,7 @@ stateMachines {
                   }
                   new {
                     `case` = "false"
-                    action = new Csml.RaiseActionDescription {
+                    action = new Csml.RaiseAction {
                       event {
                         name = "tob"
                         channel = "internal"
@@ -52,7 +52,7 @@ stateMachines {
               }
             }
           }
-          new Csml.OnTransitionDescription {
+          new {
             event = "tob"
             target = "b"
           }
@@ -63,13 +63,13 @@ stateMachines {
         terminal = true
       }
     }
-    persistentContext {
-      variables {
-        new {
-          name = "v"
-          value = "0"
-        }
-      }
+  }
+}
+persistentContext {
+  variables {
+    new {
+      name = "v"
+      value = "0"
     }
   }
 }

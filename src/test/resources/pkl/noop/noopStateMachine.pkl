@@ -1,9 +1,9 @@
 import "modulepath:/pkl/csm/Csml.pkl"
 
-class StateMachine extends Csml.StateMachineDescription {
+class StateMachine extends Csml.StateMachine {
   name = "stateMachine"
   states {
-    new Csml.StateDescription {
+    new {
       name = "a"
       initial = true
       terminal = true

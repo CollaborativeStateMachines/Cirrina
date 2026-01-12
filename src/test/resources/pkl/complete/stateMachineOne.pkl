@@ -1,18 +1,6 @@
 import "modulepath:/pkl/csm/Csml.pkl"
 import "nestedStateMachineOne.pkl"
 
-//                                           State Machine One                                           
-// ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
-// │                                                                                                     │
-// │                                  e1                                                                 │
-// │                        ┌────────────────────┐        e2                                             │
-// │                       ┌┴┐                  ┌▼┐ assign v=$v ┌─┐ v>=100 ┌─┐         create b=true     │
-// │            create v=0 │A│ invoke increment │B├─────────────►C├────────►D├───┐      after 10ms       │
-// │ after 10ms  raise e1  └─┘  done raise e2   └▲┘             └┬┘        └▲┘   │     assign v=v-1      │
-// │                                             └───────────────┘          │    │        match v        │
-// │                                                   v<100                └────┘ case 0: reset timeout │
-// │                                                                                                     │
-// └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 class StateMachine extends Csml.StateMachine {
   name = "stateMachine1"
   stateMachines {
@@ -34,7 +22,6 @@ class StateMachine extends Csml.StateMachine {
           }
         }
       }
-      // Transition to b
       on {
         new {
           event = "e1"
@@ -42,10 +29,8 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    // State b
     new {
       name = "b"
-      // Increment v by service invocation and raise e2
       entry {
         new Csml.InvokeAction {
           serviceType = "increment"
@@ -64,7 +49,6 @@ class StateMachine extends Csml.StateMachine {
           }
         }
       }
-      // Transition to c and update v based on event data ($v)
       on {
         new {
           event = "e2"
@@ -80,15 +64,13 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    // State c
     new {
       name = "c"
-      // Transition to d or b
       always {
         new {
           target = "d"
           guards {
-            new Csml.Guard {
+            new {
               expression = "v >= 100"
             }
           }
@@ -96,17 +78,15 @@ class StateMachine extends Csml.StateMachine {
         new {
           target = "b"
           guards {
-            new Csml.Guard {
+            new {
               expression = "v < 100"
             }
           }
         }
       }
     }
-    // State d
     new {
       name = "d"
-      // After 10ms
       after {
         new Csml.TimeoutAction {
           name = "timeout"
@@ -119,7 +99,6 @@ class StateMachine extends Csml.StateMachine {
           }
         }
       }
-      // Decrement v and reset timeout when reaching 0
       on {
         new {
           event = "e3"
@@ -152,14 +131,12 @@ class StateMachine extends Csml.StateMachine {
             }
           }
         }
-        // Transition to e on receiving e4 event
         new {
           event = "e4"
           target = "e"
         }
       }
     }
-    // State e
     new {
       name = "e"
       terminal = true

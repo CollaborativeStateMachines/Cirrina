@@ -1,17 +1,14 @@
 import "modulepath:/pkl/csm/Csml.pkl"
 
-// Nested stateMachine for SM1
-class StateMachine extends Csml.StateMachineDescription {
+class StateMachine extends Csml.StateMachine {
   name = "nestedStateMachine1"
   states {
-    // State a
-    new Csml.StateDescription {
+    new {
       name = "a"
       initial = true
       terminal = true
-      // Raises global event ne1 on entry
       entry {
-        new Csml.RaiseActionDescription {
+        new Csml.RaiseAction {
           event {
             name = "ne1"
             channel = "global"

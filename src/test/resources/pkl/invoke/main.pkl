@@ -11,10 +11,10 @@ stateMachines {
         name = "a"
         initial = true
         after {
-          new Csml.TimeoutActionDescription {
+          new {
             name = "timeout"
             delay = "100"
-            action = new Csml.RaiseActionDescription {
+            action = new {
               event {
                 name = "update"
                 channel = "internal"
@@ -23,11 +23,11 @@ stateMachines {
           }
         }
         on {
-          new Csml.OnTransitionDescription {
+          new {
             event = "update"
             target = "a"
             actions {
-              new Csml.InvokeActionDescription {
+              new Csml.InvokeAction {
                 serviceType = "increment"
                 isLocal = true
                 input {
@@ -43,7 +43,7 @@ stateMachines {
                   }
                 }
               }
-              new Csml.AssignActionDescription {
+              new Csml.AssignAction {
                 variable {
                   name = "e"
                   value = "e + 1"
@@ -51,7 +51,7 @@ stateMachines {
               }
             }
           }
-          new Csml.OnTransitionDescription {
+          new {
             event = "tob"
             target = "b"
           }
@@ -60,7 +60,7 @@ stateMachines {
       new {
         name = "b"
         entry {
-          new Csml.AssignActionDescription {
+          new Csml.AssignAction {
             variable {
               name = "v"
               value = "$v"
@@ -68,10 +68,10 @@ stateMachines {
           }
         }
         always {
-          new Csml.TransitionDescription {
+          new {
             target = "a"
             guards {
-              new Csml.GuardDescription {
+              new {
                 expression = "v < 10"
               }
             }
