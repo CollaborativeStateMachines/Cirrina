@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.classes.transition;
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder;
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.GuardDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.OnTransitionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
@@ -84,24 +83,25 @@ public abstract class TransitionClassBuilder {
           .toList();
 
       // Create the appropriate transitionClass
-      switch (transitionDescription) {
-        case OnTransitionDescription onTransitionClass -> {
-          return new OnTransitionClass(
-            onTransitionClass.getTarget(),
-            transitionDescription.getElse(),
-            resolveGuards.apply(onTransitionClass.getGuards()),
-            resolveActions.apply(onTransitionClass.getActions()),
-            onTransitionClass.getEvent()
-          );
-        }
-        default -> {
-          return new TransitionClass(
-            transitionDescription.getTarget(),
-            transitionDescription.getElse(),
-            resolveGuards.apply(transitionDescription.getGuards()),
-            resolveActions.apply(transitionDescription.getActions())
-          );
-        }
+      // KLUDGE: The CSML language used to have both on-transitions and transitions in the language
+      // itself, we simplified this, but the OnTransitionClass and TransitionClass remain to make
+      // this a minimal change at the time of writing
+      // TODO: Unify OnTransitionClass and TransitionClass
+      if (transitionDescription.getEvent() != null) {
+        return new OnTransitionClass(
+          transitionDescription.getTarget(),
+          transitionDescription.getElse(),
+          resolveGuards.apply(transitionDescription.getGuards()),
+          resolveActions.apply(transitionDescription.getActions()),
+          transitionDescription.getEvent()
+        );
+      } else {
+        return new TransitionClass(
+          transitionDescription.getTarget(),
+          transitionDescription.getElse(),
+          resolveGuards.apply(transitionDescription.getGuards()),
+          resolveActions.apply(transitionDescription.getActions())
+        );
       }
     }
   }

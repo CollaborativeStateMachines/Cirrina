@@ -15,7 +15,6 @@ open class StateMachineDescription {
   states: Listing<StateDescription>
   stateMachines: Listing<StateMachineDescription>
   localContext: ContextDescription?
-  persistentContext: ContextDescription?
 }
 
 open class StateDescription {
@@ -25,23 +24,19 @@ open class StateDescription {
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
   while: Listing<ActionDescription>
-  after: Listing<ActionDescription>
-  on: Listing<OnTransitionDescription>
+  after: Listing<TimeoutActionDescription>
+  on: Listing<TransitionDescription>
   always: Listing<TransitionDescription>
   localContext: ContextDescription
-  persistentContext: ContextDescription
   staticContext: ContextDescription
 }
 
 open class TransitionDescription {
+  event: String?
   target: String?
   guards: Listing<GuardDescription>
   actions: Listing<ActionDescription>
   `else`: String?
-}
-
-class OnTransitionDescription extends TransitionDescription {
-  event: String
 }
 
 class GuardDescription {
@@ -52,17 +47,11 @@ abstract class ActionDescription {
   type: Type
 }
 
-typealias Type = "invoke"|"create"|"assign"|"raise"|"timeout"|"timeoutReset"|"match"
+typealias Type = "invoke"|"assign"|"raise"|"timeout"|"timeoutReset"|"match"
 
 open class AssignActionDescription extends ActionDescription {
   type: Type = "assign"
   variable: ContextVariableDescription
-}
-
-open class CreateActionDescription extends ActionDescription {
-  type: Type = "create"
-  variable: ContextVariableDescription
-  isPersistent: Boolean = false
 }
 
 open class InvokeActionDescription extends ActionDescription {
@@ -94,7 +83,7 @@ open class TimeoutActionDescription extends ActionDescription {
   type: Type = "timeout"
   name: String
   delay: Expression
-  action: ActionDescription
+  action: RaiseActionDescription
 }
 
 open class TimeoutResetActionDescription extends ActionDescription {
@@ -126,11 +115,9 @@ class ContextVariableReferenceDescription {
 typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
 typealias Transition = TransitionDescription
-typealias OnTransition = OnTransitionDescription
 typealias Guard = GuardDescription
 typealias Action = ActionDescription
 typealias AssignAction = AssignActionDescription
-typealias CreateAction = CreateActionDescription
 typealias InvokeAction = InvokeActionDescription
 typealias MatchCase = MatchCaseDescription
 typealias MatchAction = MatchActionDescription

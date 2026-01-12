@@ -6,7 +6,6 @@ import at.ac.uibk.dps.cirrina.classes.transition.OnTransitionClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.AssignAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.CreateAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
@@ -134,9 +133,6 @@ public class PlantUmlVisitor {
           a.getVariable().name(),
           a.getVariable().value()
         )
-      );
-      case CreateAction a -> actionBuilder.append(
-        String.format("<color:%s>%s()</color>", ActionColors.getActionColor(a), "Create")
       );
       case InvokeAction a -> actionBuilder.append(
         String.format(

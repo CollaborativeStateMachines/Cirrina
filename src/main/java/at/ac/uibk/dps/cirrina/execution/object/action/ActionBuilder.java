@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.execution.object.action;
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.AssignActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.CreateActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.InvokeActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.MatchActionDescription;
@@ -117,18 +116,6 @@ public final class ActionBuilder {
 
         // Construct the assign action
         return new AssignAction(parameters);
-      }
-      case CreateActionDescription create -> {
-        final var contextVariable = ContextVariableBuilder.from(create.getVariable()).build();
-
-        // Construct parameters
-        final var parameters = new CreateAction.Parameters(
-          contextVariable,
-          create.isIsPersistent()
-        );
-
-        // Construct the create action
-        return new CreateAction(parameters);
       }
       case InvokeActionDescription invoke -> {
         // Acquire the input variables

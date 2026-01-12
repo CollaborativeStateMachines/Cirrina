@@ -13,32 +13,20 @@ import "nestedStateMachineOne.pkl"
 // │                                                   v<100                └────┘ case 0: reset timeout │
 // │                                                                                                     │
 // └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
-class StateMachine extends Csml.StateMachineDescription {
+class StateMachine extends Csml.StateMachine {
   name = "stateMachine1"
   stateMachines {
     new nestedStateMachineOne.StateMachine {}
   }
   states {
-    // State a
-    new Csml.StateDescription {
+    new {
       name = "a"
       initial = true
-      // Create persistent variable v
-      entry {
-        new Csml.CreateActionDescription {
-          variable {
-            name = "v"
-            value = "0"
-          }
-          isPersistent = true
-        }
-      }
-      // After 10ms
       after {
-        new Csml.TimeoutActionDescription {
+        new {
           name = "timeout"
           delay = "10"
-          action = new Csml.RaiseActionDescription {
+          action = new {
             event {
               name = "e1"
               channel = "internal"
@@ -48,18 +36,18 @@ class StateMachine extends Csml.StateMachineDescription {
       }
       // Transition to b
       on {
-        new Csml.OnTransitionDescription {
+        new {
           event = "e1"
           target = "b"
         }
       }
     }
     // State b
-    new Csml.StateDescription {
+    new {
       name = "b"
       // Increment v by service invocation and raise e2
       entry {
-        new Csml.InvokeActionDescription {
+        new Csml.InvokeAction {
           serviceType = "increment"
           isLocal = true
           input {
@@ -69,7 +57,7 @@ class StateMachine extends Csml.StateMachineDescription {
             }
           }
           done {
-            new Csml.EventDescription {
+            new {
               name = "e2"
               channel = "internal"
             }
@@ -78,11 +66,11 @@ class StateMachine extends Csml.StateMachineDescription {
       }
       // Transition to c and update v based on event data ($v)
       on {
-        new Csml.OnTransitionDescription {
+        new {
           event = "e2"
           target = "c"
           actions {
-            new Csml.AssignActionDescription {
+            new Csml.AssignAction {
               variable = new {
                 name = "v"
                 value = "$v"
@@ -93,22 +81,22 @@ class StateMachine extends Csml.StateMachineDescription {
       }
     }
     // State c
-    new Csml.StateDescription {
+    new {
       name = "c"
       // Transition to d or b
       always {
-        new Csml.TransitionDescription {
+        new {
           target = "d"
           guards {
-            new Csml.GuardDescription {
+            new Csml.Guard {
               expression = "v >= 100"
             }
           }
         }
-        new Csml.TransitionDescription {
+        new {
           target = "b"
           guards {
-            new Csml.GuardDescription {
+            new Csml.Guard {
               expression = "v < 100"
             }
           }
@@ -116,23 +104,14 @@ class StateMachine extends Csml.StateMachineDescription {
       }
     }
     // State d
-    new Csml.StateDescription {
+    new {
       name = "d"
-      entry {
-        new Csml.CreateActionDescription {
-          variable {
-            name = "b"
-            value = "true"
-          }
-          isPersistent = true
-        }
-      }
       // After 10ms
       after {
-        new Csml.TimeoutActionDescription {
+        new Csml.TimeoutAction {
           name = "timeout"
           delay = "10"
-          action = new Csml.RaiseActionDescription {
+          action = new {
             event {
               name = "e3"
               channel = "internal"
@@ -142,27 +121,27 @@ class StateMachine extends Csml.StateMachineDescription {
       }
       // Decrement v and reset timeout when reaching 0
       on {
-        new Csml.OnTransitionDescription {
+        new {
           event = "e3"
           actions {
-            new Csml.AssignActionDescription {
+            new Csml.AssignAction {
               variable = new {
                 name = "v"
                 value = "v - 1"
               }
             }
-            new Csml.MatchActionDescription {
+            new Csml.MatchAction {
               value = "v"
               cases {
-                new Csml.MatchCaseDescription {
+                new Csml.MatchCase {
                   `case` = "0"
-                  action = new Csml.TimeoutResetActionDescription {
+                  action = new Csml.TimeoutResetAction {
                     action = "timeout"
                   }
                 }
-                new Csml.MatchCaseDescription {
+                new Csml.MatchCase {
                   `case` = "0"
-                  action = new Csml.RaiseActionDescription {
+                  action = new Csml.RaiseAction {
                     event {
                       name = "e4"
                       channel = "internal"
@@ -174,14 +153,14 @@ class StateMachine extends Csml.StateMachineDescription {
           }
         }
         // Transition to e on receiving e4 event
-        new Csml.OnTransitionDescription {
+        new {
           event = "e4"
           target = "e"
         }
       }
     }
     // State e
-    new Csml.StateDescription {
+    new {
       name = "e"
       terminal = true
     }
