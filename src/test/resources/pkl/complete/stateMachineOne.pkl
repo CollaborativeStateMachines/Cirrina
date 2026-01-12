@@ -16,7 +16,7 @@ class StateMachine extends Csml.StateMachine {
           delay = "10"
           action = new {
             event {
-              name = "e1"
+              topic = "e1"
               channel = "internal"
             }
           }
@@ -43,7 +43,7 @@ class StateMachine extends Csml.StateMachine {
           }
           done {
             new {
-              name = "e2"
+              topic = "e2"
               channel = "internal"
             }
           }
@@ -89,7 +89,7 @@ class StateMachine extends Csml.StateMachine {
           delay = "10"
           action = new {
             event {
-              name = "e3"
+              topic = "e3"
               channel = "internal"
             }
           }
@@ -107,18 +107,18 @@ class StateMachine extends Csml.StateMachine {
             }
             new Csml.MatchAction {
               value = "v"
-              cases {
-                new Csml.MatchCase {
-                  `case` = "0"
+              arms {
+                new {
+                  of = "0"
                   action = new Csml.TimeoutResetAction {
                     action = "timeout"
                   }
                 }
-                new Csml.MatchCase {
-                  `case` = "0"
+                new {
+                  of = "0"
                   action = new Csml.RaiseAction {
                     event {
-                      name = "e4"
+                      topic = "e4"
                       channel = "internal"
                     }
                   }

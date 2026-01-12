@@ -15,7 +15,7 @@ class StateMachine extends Csml.StateMachine {
         }
         new Csml.RaiseAction {
           event {
-            name = "e1"
+            topic = "e1"
             channel = "global"
           }
         }
@@ -32,7 +32,7 @@ class StateMachine extends Csml.StateMachine {
       entry {
         new Csml.RaiseAction {
           event {
-            name = "e3"
+            topic = "e3"
             channel = "global"
           }
         }

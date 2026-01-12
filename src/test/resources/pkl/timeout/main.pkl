@@ -16,7 +16,7 @@ stateMachines {
             delay = "100"
             action = new Csml.RaiseAction {
               event {
-                name = "update"
+                topic = "update"
                 channel = "internal"
               }
             }
@@ -29,9 +29,9 @@ stateMachines {
             actions {
               new Csml.MatchAction {
                 value = "v < 10"
-                cases {
+                arms {
                   new {
-                    `case` = "true"
+                    of = "true"
                     action = new Csml.AssignAction {
                       variable {
                         name = "v"
@@ -40,10 +40,10 @@ stateMachines {
                     }
                   }
                   new {
-                    `case` = "false"
+                    of = "false"
                     action = new Csml.RaiseAction {
                       event {
-                        name = "tob"
+                        topic = "tob"
                         channel = "internal"
                       }
                     }

@@ -36,7 +36,7 @@ open class TransitionDescription {
   target: String?
   guards: Listing<Expression>
   actions: Listing<ActionDescription>
-  `else`: String?
+  or: String?
 }
 
 abstract class ActionDescription {
@@ -59,15 +59,15 @@ open class InvokeActionDescription extends ActionDescription {
   output: Listing<ContextVariableReferenceDescription>
 }
 
-class MatchCaseDescription {
-  `case`: Expression
+class MatchArmDescription {
+  of: Expression
   action: ActionDescription
 }
 
 open class MatchActionDescription extends ActionDescription {
   type: Type = "match"
   value: Expression
-  cases: Listing<MatchCaseDescription>
+  arms: Listing<MatchArmDescription>
 }
 
 open class RaiseActionDescription extends ActionDescription {
@@ -90,7 +90,7 @@ open class TimeoutResetActionDescription extends ActionDescription {
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 
 class EventDescription {
-  name: String
+  topic: String
   channel: EventChannel
   data: Listing<ContextVariableDescription>
 }
@@ -114,7 +114,7 @@ typealias Transition = TransitionDescription
 typealias Action = ActionDescription
 typealias AssignAction = AssignActionDescription
 typealias InvokeAction = InvokeActionDescription
-typealias MatchCase = MatchCaseDescription
+typealias MatchArm = MatchArmDescription
 typealias MatchAction = MatchActionDescription
 typealias RaiseAction = RaiseActionDescription
 typealias TimeoutAction = TimeoutActionDescription

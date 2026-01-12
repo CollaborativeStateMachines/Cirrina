@@ -51,7 +51,7 @@ public class EventBuilder {
    */
   public Event build() {
     return new Event(
-      eventDescription.getName(),
+      eventDescription.getTopic(),
       eventDescription.getChannel(),
       buildVariableList(eventDescription.getData())
     );

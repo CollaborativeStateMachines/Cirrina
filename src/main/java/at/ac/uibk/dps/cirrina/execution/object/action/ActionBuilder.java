@@ -6,7 +6,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.InvokeActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.MatchActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.MatchCaseDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.MatchArmDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.RaiseActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutResetActionDescription;
@@ -26,15 +26,12 @@ import java.util.Optional;
  */
 public final class ActionBuilder {
 
-  /**
-   * The action class to build from.
-   */
   private final ActionDescription actionDescription;
 
   /**
    * Initializes an action builder.
    *
-   * @param actionDescription Action class.
+   * @param actionDescription action description
    */
   private ActionBuilder(ActionDescription actionDescription) {
     this.actionDescription = actionDescription;
@@ -43,8 +40,8 @@ public final class ActionBuilder {
   /**
    * Creates an action builder.
    *
-   * @param actionClass Action class.
-   * @return Action builder.
+   * @param actionClass action class
+   * @return action builder
    */
   public static ActionBuilder from(ActionDescription actionClass) {
     return new ActionBuilder(actionClass);
@@ -53,8 +50,8 @@ public final class ActionBuilder {
   /**
    * Returns a list of variables.
    *
-   * @param contextVariableDescriptions Variable classes.
-   * @return Variables.
+   * @param contextVariableDescriptions context variable descriptions
+   * @return variables
    */
   private static List<ContextVariable> buildVariableList(
     List<ContextVariableDescription> contextVariableDescriptions
@@ -68,8 +65,8 @@ public final class ActionBuilder {
   /**
    * Returns a list of events.
    *
-   * @param eventDescriptions Event classes.
-   * @return Events.
+   * @param eventDescriptions event descriptions
+   * @return events
    */
   private static List<Event> buildEvents(List<EventDescription> eventDescriptions) {
     return eventDescriptions
@@ -79,19 +76,19 @@ public final class ActionBuilder {
   }
 
   /**
-   * Returns a map of cases.
+   * Returns a map of arms.
    *
-   * @param cases Case classes.
-   * @return Cases.
-   * @throws IllegalArgumentException If an action name does not exist.
+   * @param arms match arm descriptions
+   * @return arms
+   * @throws IllegalArgumentException if an action name does not exist
    */
-  private Map<Expression, Action> buildCases(List<MatchCaseDescription> cases) {
+  private Map<Expression, Action> buildArms(List<MatchArmDescription> arms) {
     final Map<Expression, Action> ret = new HashMap<>();
 
-    for (final var casee : cases) {
+    for (final var arm : arms) {
       ret.put(
-        ExpressionBuilder.from(casee.getCase()).build(),
-        ActionBuilder.from(casee.getAction()).build()
+        ExpressionBuilder.from(arm.getOf()).build(),
+        ActionBuilder.from(arm.getAction()).build()
       );
     }
 
@@ -101,9 +98,9 @@ public final class ActionBuilder {
   /**
    * Builds the action.
    *
-   * @return The built action.
-   * @throws IllegalArgumentException      If an action name does not exist.
-   * @throws UnsupportedOperationException If an action is of an unknown type.
+   * @return the built action
+   * @throws IllegalArgumentException      if an action name does not exist
+   * @throws UnsupportedOperationException if an action is of an unknown type
    */
   public Action build() throws IllegalArgumentException, IllegalStateException {
     switch (actionDescription) {
@@ -140,11 +137,11 @@ public final class ActionBuilder {
         // Acquire the value expression
         final var valueExpression = ExpressionBuilder.from(match.getValue()).build();
 
-        // Acquire the cases
-        final var cases = buildCases(match.getCases());
+        // Acquire the arms
+        final var arms = buildArms(match.getArms());
 
         // Construct parameters
-        final var parameters = new MatchAction.Parameters(valueExpression, cases);
+        final var parameters = new MatchAction.Parameters(valueExpression, arms);
 
         // Construct the match action
         return new MatchAction(parameters);

@@ -16,7 +16,7 @@ stateMachines {
             delay = "100"
             action = new {
               event {
-                name = "update"
+                topic = "update"
                 channel = "internal"
               }
             }
@@ -38,7 +38,7 @@ stateMachines {
                 }
                 done {
                   new {
-                    name = "tob"
+                    topic = "tob"
                     channel = "internal"
                   }
                 }
@@ -73,7 +73,7 @@ stateMachines {
             guards {
               "v < 10"
             }
-            `else` = "c"
+            or = "c"
           }
         }
       }

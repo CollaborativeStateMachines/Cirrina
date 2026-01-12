@@ -87,7 +87,7 @@ public abstract class TransitionClassBuilder {
       if (transitionDescription.getEvent() != null) {
         return new OnTransitionClass(
           transitionDescription.getTarget(),
-          transitionDescription.getElse(),
+          transitionDescription.getOr(),
           resolveGuards.apply(transitionDescription.getGuards()),
           resolveActions.apply(transitionDescription.getActions()),
           transitionDescription.getEvent()
@@ -95,7 +95,7 @@ public abstract class TransitionClassBuilder {
       } else {
         return new TransitionClass(
           transitionDescription.getTarget(),
-          transitionDescription.getElse(),
+          transitionDescription.getOr(),
           resolveGuards.apply(transitionDescription.getGuards()),
           resolveActions.apply(transitionDescription.getActions())
         );

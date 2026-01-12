@@ -10,7 +10,7 @@ class StateMachine extends Csml.StateMachine {
       entry {
         new Csml.RaiseAction {
           event {
-            name = "ne1"
+            topic = "ne1"
             channel = "global"
           }
         }
