@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.CaseDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EvalDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.InvokeDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.MatchArmDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.MatchDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.RaiseDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutDescription;
@@ -79,19 +79,19 @@ public final class ActionBuilder {
   }
 
   /**
-   * Returns a map of arms.
+   * Returns a map of cases.
    *
-   * @param arms match arm descriptions
-   * @return arms
+   * @param cases match case descriptions
+   * @return cases
    * @throws IllegalArgumentException if an action name does not exist
    */
-  private Map<Expression, Action> buildArms(List<MatchArmDescription> arms) {
+  private Map<Expression, Action> buildCases(List<CaseDescription> cases) {
     final Map<Expression, Action> ret = new HashMap<>();
 
-    for (final var arm : arms) {
+    for (final var _case : cases) {
       ret.put(
-        ExpressionBuilder.from(arm.getOf()).build(),
-        ActionBuilder.from(arm.getAction()).build()
+        ExpressionBuilder.from(_case.getOf()).build(),
+        ActionBuilder.from(_case.getAction()).build()
       );
     }
 
@@ -139,11 +139,11 @@ public final class ActionBuilder {
         // Acquire the value expression
         final var valueExpression = ExpressionBuilder.from(match.getValue()).build();
 
-        // Acquire the arms
-        final var arms = buildArms(match.getArms());
+        // Acquire the cases
+        final var cases = buildCases(match.getCases());
 
         // Construct parameters
-        final var parameters = new MatchAction.Parameters(valueExpression, arms);
+        final var parameters = new MatchAction.Parameters(valueExpression, cases);
 
         // Construct the match action
         return new MatchAction(parameters);

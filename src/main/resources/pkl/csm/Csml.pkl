@@ -32,6 +32,19 @@ open class StateDescription {
   staticContext: Context?
 }
 
+open class InitialStateDescription extends StateDescription {
+  initial: Boolean = true
+}
+
+open class TerminalStateDescription extends StateDescription {
+  terminal: Boolean = true
+}
+
+open class SingletonStateDescription extends StateDescription {
+  initial: Boolean = true
+  terminal: Boolean = true
+}
+
 open class TransitionDescription {
   event: String?
   target: String?
@@ -76,7 +89,7 @@ open class TimeoutResetDescription extends ActionDescription {
   action: String
 }
 
-class MatchArmDescription {
+class CaseDescription {
   of: Expression
   action: ActionDescription
 }
@@ -84,24 +97,27 @@ class MatchArmDescription {
 open class MatchDescription extends ActionDescription {
   type: Type = "match"
   value: Expression
-  arms: Listing<MatchArmDescription>
+  cases: Listing<CaseDescription>
 }
 
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 
 class EventDescription {
   topic: String
-  channel: EventChannel
+  channel: EventChannel = "global"
   data: Context
 }
 
 typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
+typealias InitialState = InitialStateDescription
+typealias TerminalState = TerminalStateDescription
+typealias SingletonState = SingletonStateDescription
 typealias Transition = TransitionDescription
 typealias Action = ActionDescription
 typealias Eval = EvalDescription
 typealias Invoke = InvokeDescription
-typealias MatchArm = MatchArmDescription
+typealias Case = CaseDescription
 typealias Match = MatchDescription
 typealias Raise = RaiseDescription
 typealias Timeout = TimeoutDescription

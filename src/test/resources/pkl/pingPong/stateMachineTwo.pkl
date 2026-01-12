@@ -3,9 +3,8 @@ import "modulepath:/pkl/csm/Csml.pkl"
 class StateMachine extends Csml.StateMachine {
   name = "stateMachine2"
   states {
-    new {
+    new Csml.InitialState {
       name = "a"
-      initial = true
       entry {
         new Csml.Raise {
           event {
@@ -15,13 +14,13 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new {
+        new Csml.Transition {
           event = "e1"
           target = "b"
         }
       }
     }
-    new {
+    new Csml.State {
       name = "b"
       entry {
         new Csml.Eval {
@@ -35,13 +34,13 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new {
+        new Csml.Transition {
           event = "e3"
           target = "a"
         }
       }
       always {
-        new {
+        new Csml.Transition {
           target = "c"
           guards {
             "v >= 100"
@@ -49,9 +48,8 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new {
+    new Csml.TerminalState {
       name = "c"
-      terminal = true
     }
   }
 }

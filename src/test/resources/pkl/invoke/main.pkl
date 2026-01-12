@@ -4,17 +4,16 @@ import "modulepath:/pkl/csm/Csml.pkl"
 name = "invoke"
 version = "3.0.0"
 stateMachines {
-  new {
+  new Csml.StateMachine {
     name = "stateMachine1"
     states {
-      new {
+      new Csml.InitialState {
         name = "a"
-        initial = true
         after {
-          new {
+          new Csml.Timeout {
             name = "timeout"
             delay = "100"
-            action = new {
+            action = new Csml.Raise {
               event {
                 topic = "update"
                 channel = "internal"
@@ -23,7 +22,7 @@ stateMachines {
           }
         }
         on {
-          new {
+          new Csml.Transition {
             event = "update"
             target = "a"
             actions {
@@ -34,7 +33,7 @@ stateMachines {
                   ["v"] = "v"
                 }
                 done {
-                  new {
+                  new Csml.Event {
                     topic = "tob"
                     channel = "internal"
                   }
@@ -45,13 +44,13 @@ stateMachines {
               }
             }
           }
-          new {
+          new Csml.Transition {
             event = "tob"
             target = "b"
           }
         }
       }
-      new {
+      new Csml.State {
         name = "b"
         entry {
           new Csml.Eval {
@@ -59,7 +58,7 @@ stateMachines {
           }
         }
         always {
-          new {
+          new Csml.Transition {
             target = "a"
             guards {
               "v < 10"
@@ -68,9 +67,8 @@ stateMachines {
           }
         }
       }
-      new {
+      new Csml.TerminalState {
         name = "c"
-        terminal = true
       }
     }
   }

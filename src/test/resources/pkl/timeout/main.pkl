@@ -4,14 +4,13 @@ import "modulepath:/pkl/csm/Csml.pkl"
 name = "timeout"
 version = "3.0.0"
 stateMachines {
-  new {
+  new Csml.StateMachine {
     name = "stateMachine1"
     states {
-      new {
+      new Csml.InitialState {
         name = "a"
-        initial = true
         after {
-          new {
+          new Csml.Timeout {
             name = "timeout"
             delay = "100"
             action = new Csml.Raise {
@@ -23,20 +22,20 @@ stateMachines {
           }
         }
         on {
-          new {
+          new Csml.Transition {
             event = "update"
             target = "a"
             actions {
               new Csml.Match {
                 value = "v < 10"
-                arms {
-                  new {
+                cases {
+                  new Csml.Case {
                     of = "true"
                     action = new Csml.Eval {
                       expression = "v = v + 1"
                     }
                   }
-                  new {
+                  new Csml.Case {
                     of = "false"
                     action = new Csml.Raise {
                       event {
@@ -49,15 +48,14 @@ stateMachines {
               }
             }
           }
-          new {
+          new Csml.Transition {
             event = "tob"
             target = "b"
           }
         }
       }
-      new {
+      new Csml.TerminalState {
         name = "b"
-        terminal = true
       }
     }
   }

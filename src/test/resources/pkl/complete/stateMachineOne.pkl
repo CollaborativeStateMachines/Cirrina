@@ -7,14 +7,13 @@ class StateMachine extends Csml.StateMachine {
     new nestedStateMachineOne.StateMachine {}
   }
   states {
-    new {
+    new Csml.InitialState {
       name = "a"
-      initial = true
       after {
-        new {
+        new Csml.Timeout {
           name = "timeout"
           delay = "10"
-          action = new {
+          action = new Csml.Raise {
             event {
               topic = "e1"
               channel = "internal"
@@ -23,13 +22,13 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new {
+        new Csml.Transition {
           event = "e1"
           target = "b"
         }
       }
     }
-    new {
+    new Csml.State {
       name = "b"
       entry {
         new Csml.Invoke {
@@ -39,7 +38,7 @@ class StateMachine extends Csml.StateMachine {
             ["v"] = "v"
           }
           done {
-            new {
+            new Csml.Event {
               topic = "e2"
               channel = "internal"
             }
@@ -47,7 +46,7 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new {
+        new Csml.Transition {
           event = "e2"
           target = "c"
           actions {
@@ -58,16 +57,16 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new {
+    new Csml.State {
       name = "c"
       always {
-        new {
+        new Csml.Transition {
           target = "d"
           guards {
             "v >= 100"
           }
         }
-        new {
+        new Csml.Transition {
           target = "b"
           guards {
             "v < 100"
@@ -75,13 +74,13 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new {
+    new Csml.State {
       name = "d"
       after {
         new Csml.Timeout {
           name = "timeout"
           delay = "10"
-          action = new {
+          action = new Csml.Raise {
             event {
               topic = "e3"
               channel = "internal"
@@ -90,7 +89,7 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new {
+        new Csml.Transition {
           event = "e3"
           actions {
             new Csml.Eval {
@@ -98,14 +97,14 @@ class StateMachine extends Csml.StateMachine {
             }
             new Csml.Match {
               value = "v"
-              arms {
-                new {
+              cases {
+                new Csml.Case {
                   of = "0"
                   action = new Csml.TimeoutReset {
                     action = "timeout"
                   }
                 }
-                new {
+                new Csml.Case {
                   of = "0"
                   action = new Csml.Raise {
                     event {
@@ -118,15 +117,14 @@ class StateMachine extends Csml.StateMachine {
             }
           }
         }
-        new {
+        new Csml.Transition {
           event = "e4"
           target = "e"
         }
       }
     }
-    new {
+    new Csml.TerminalState {
       name = "e"
-      terminal = true
     }
   }
 }
