@@ -32,11 +32,8 @@ stateMachines {
                 arms {
                   new {
                     of = "true"
-                    action = new Csml.AssignAction {
-                      variable {
-                        name = "v"
-                        value = "v + 1"
-                      }
+                    action = new Csml.EvalAction {
+                      expression = "v = v + 1"
                     }
                   }
                   new {
@@ -66,10 +63,5 @@ stateMachines {
   }
 }
 persistentContext {
-  variables {
-    new {
-      name = "v"
-      value = "0"
-    }
-  }
+  ["v"] = "0"
 }

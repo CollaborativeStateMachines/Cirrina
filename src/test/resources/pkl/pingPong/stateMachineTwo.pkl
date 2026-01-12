@@ -24,11 +24,8 @@ class StateMachine extends Csml.StateMachine {
     new {
       name = "b"
       entry {
-        new Csml.AssignAction {
-          variable {
-            name = "v"
-            value = "v + 1"
-          }
+        new Csml.EvalAction {
+          expression = "v = v + 1"
         }
         new Csml.RaiseAction {
           event {

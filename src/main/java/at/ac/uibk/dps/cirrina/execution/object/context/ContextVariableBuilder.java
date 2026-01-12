@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.context;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
+import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import java.util.Optional;
 
 /**
@@ -9,56 +8,24 @@ import java.util.Optional;
  */
 public class ContextVariableBuilder {
 
-  /**
-   * The context variable class to build from.
-   */
-  private final Optional<ContextVariableDescription> contextVariableClass;
-
-  /**
-   * Name of the variable to build, has priority when set.
-   */
   private Optional<String> name = Optional.empty();
 
-  /**
-   * Value of the variable to build, has priority when set.
-   */
   private Optional<Object> value = Optional.empty();
 
-  private ContextVariableBuilder() {
-    this.contextVariableClass = Optional.empty();
-  }
-
-  /**
-   * Initializes a context variable builder.
-   *
-   * @param contextVariableDescription Context variable class.
-   */
-  private ContextVariableBuilder(ContextVariableDescription contextVariableDescription) {
-    this.contextVariableClass = Optional.of(contextVariableDescription);
-  }
+  private Optional<Expression> expression = Optional.empty();
 
   /**
    * Initializes a context variable builder.
    */
-  public static ContextVariableBuilder from() {
+  public static ContextVariableBuilder empty() {
     return new ContextVariableBuilder();
-  }
-
-  /**
-   * Creates a context variable builder.
-   *
-   * @param contextVariableDescription Context variable class.
-   * @return Context variable builder.
-   */
-  public static ContextVariableBuilder from(ContextVariableDescription contextVariableDescription) {
-    return new ContextVariableBuilder(contextVariableDescription);
   }
 
   /**
    * Specifies the name of the variable to build.
    *
-   * @param name Name
-   * @return This builder.
+   * @param name name
+   * @return this builder
    */
   public ContextVariableBuilder name(String name) {
     this.name = Optional.of(name);
@@ -68,8 +35,8 @@ public class ContextVariableBuilder {
   /**
    * Specifies the value of the variable to build.
    *
-   * @param value Value
-   * @return This builder.
+   * @param value value
+   * @return this builder
    */
   public ContextVariableBuilder value(Object value) {
     this.value = Optional.of(value);
@@ -77,21 +44,31 @@ public class ContextVariableBuilder {
   }
 
   /**
+   * Specifies the expression of the variable to build.
+   *
+   * @param expression expression
+   * @return this builder
+   */
+  public ContextVariableBuilder expression(Expression expression) {
+    this.expression = Optional.of(expression);
+    return this;
+  }
+
+  /**
    * Builds the context variable.
    *
-   * @return The built context variable.
+   * @return the built context variable
    */
   public ContextVariable build() {
-    // If the name and value are set, build based on them
+    // If the variable has a name and concrete value set, build a context variable with the name and the value object
     if (name.isPresent() && value.isPresent()) {
       return new ContextVariable(name.get(), value.get());
     }
-    // If the variable comes from a context variable class, build based on the class
-    else if (contextVariableClass.isPresent()) {
-      var lazyVariable = ExpressionBuilder.from(contextVariableClass.get().getValue()).build();
-      return new ContextVariable(contextVariableClass.get().getName(), lazyVariable);
+    // Otherwise, build a context variable where the value comes from the provided expression
+    else if (name.isPresent() && expression.isPresent()) {
+      return new ContextVariable(name.get(), expression);
     }
-    // If neither name and value nor context variable class is provided, throw an exception or handle it according to your use case
+    // If neither name and value nor context variable class is provided, throw an exception
     else {
       throw new IllegalStateException(
         "Name and value or context variable class must be provided to build the context variable."

@@ -141,31 +141,31 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   /**
    * Subscribes to all sources for a given event name.
    *
-   * @param eventName the event name to subscribe to
+   * @param subject the event name to subscribe to
    */
-  override fun subscribe(eventName: String) {
-    val subject = "*.$eventName"
+  override fun subscribe(subject: String) {
+    val subject = "*.$subject"
     synchronized(lock) {
       subscriptions.add(subject)
       runCatching {
           dispatcher?.subscribe(subject)
             ?: logger.atFiner().log("Dispatcher unavailable; queued subscription: $subject")
         }
-        .onFailure { _ -> logger.atWarning().log("Could not subscribe to $eventName") }
+        .onFailure { _ -> logger.atWarning().log("Could not subscribe to $subject") }
     }
   }
 
   /**
    * Unsubscribes from all sources for a given event name.
    *
-   * @param eventName the event name to unsubscribe from
+   * @param subject the event name to unsubscribe from
    */
-  override fun unsubscribe(eventName: String) {
-    val subject = "*.$eventName"
+  override fun unsubscribe(subject: String) {
+    val subject = "*.$subject"
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { _ -> logger.atWarning().log("Could not unsubscribe from $eventName") }
+        .onFailure { _ -> logger.atWarning().log("Could not unsubscribe from $subject") }
     }
   }
 
@@ -173,10 +173,10 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
    * Subscribes to a specific source and event.
    *
    * @param source the source of the event
-   * @param eventName the name of the event
+   * @param subject the name of the event
    */
-  override fun subscribe(source: String, eventName: String) {
-    val subject = "$source.$eventName"
+  override fun subscribe(source: String, subject: String) {
+    val subject = "$source.$subject"
     synchronized(lock) {
       subscriptions.add(subject)
       runCatching {
@@ -191,10 +191,10 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
    * Unsubscribes from a specific source and event.
    *
    * @param source the source of the event
-   * @param eventName the name of the event
+   * @param subject the name of the event
    */
-  override fun unsubscribe(source: String, eventName: String) {
-    val subject = "$source.$eventName"
+  override fun unsubscribe(source: String, subject: String) {
+    val subject = "$source.$subject"
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }

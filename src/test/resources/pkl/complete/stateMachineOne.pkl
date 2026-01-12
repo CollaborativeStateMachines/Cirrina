@@ -36,10 +36,7 @@ class StateMachine extends Csml.StateMachine {
           serviceType = "increment"
           isLocal = true
           input {
-            new {
-              name = "v"
-              value = "v"
-            }
+            ["v"] = "v"
           }
           done {
             new {
@@ -54,11 +51,8 @@ class StateMachine extends Csml.StateMachine {
           event = "e2"
           target = "c"
           actions {
-            new Csml.AssignAction {
-              variable = new {
-                name = "v"
-                value = "$v"
-              }
+            new Csml.EvalAction {
+              expression = "v = $v"
             }
           }
         }
@@ -99,11 +93,8 @@ class StateMachine extends Csml.StateMachine {
         new {
           event = "e3"
           actions {
-            new Csml.AssignAction {
-              variable = new {
-                name = "v"
-                value = "v - 1"
-              }
+            new Csml.EvalAction {
+              expression = "v = v - 1"
             }
             new Csml.MatchAction {
               value = "v"

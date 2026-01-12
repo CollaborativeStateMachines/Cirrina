@@ -5,6 +5,7 @@ import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_EVENTS_R
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_INVOCATIONS;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_STATE_MACHINE_INSTANCES;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_DATA_LATENCY;
+import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_EVAL_LATENCY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_INVOKE_LATENCY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_RAISE_LATENCY;
 import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_EVENT_RESPONSE_TIME_EXCLUSIVE;
@@ -144,9 +145,9 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     // Build the local context
     try {
       localContext = stateMachineClass
-        .getLocalContextClass()
+        .getLocalContextDescription()
         .map(ContextBuilder::from)
-        .orElseGet(ContextBuilder::from)
+        .orElseGet(ContextBuilder::empty)
         .inMemoryContext(true)
         .build();
     } catch (IOException ignored) {
@@ -172,6 +173,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
     gauges.addGauge(GAUGE_ACTION_DATA_LATENCY);
     gauges.addGauge(GAUGE_ACTION_INVOKE_LATENCY);
     gauges.addGauge(GAUGE_ACTION_RAISE_LATENCY);
+    gauges.addGauge(GAUGE_ACTION_EVAL_LATENCY);
 
     // Create counters
     counters = new Counters(meter, getId());

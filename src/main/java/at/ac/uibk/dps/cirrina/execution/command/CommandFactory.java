@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.command;
 
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
-import at.ac.uibk.dps.cirrina.execution.object.action.AssignAction;
+import at.ac.uibk.dps.cirrina.execution.object.action.EvalAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
@@ -18,8 +18,8 @@ public class CommandFactory {
 
   public ActionCommand createActionCommand(Action action) {
     switch (action) {
-      case AssignAction assignAction -> {
-        return new ActionAssignCommand(executionContext, assignAction);
+      case EvalAction evalAction -> {
+        return new ActionEvalCommand(executionContext, evalAction);
       }
       case InvokeAction invokeAction -> {
         return new ActionInvokeCommand(executionContext, invokeAction);

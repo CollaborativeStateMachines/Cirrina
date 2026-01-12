@@ -103,11 +103,6 @@ class Cirrina {
   private fun newEventHandler(): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.NATS -> newNatsEventHandler()
-      else ->
-        throw ConfigurationError.Unknown(
-          "Unknown event handler",
-          EnvironmentVariables.eventProvider.get(),
-        )
     }
 
   // Construct a new NATS event handler as configured.
@@ -118,11 +113,6 @@ class Cirrina {
   private fun newPersistentContext(): Context =
     when (EnvironmentVariables.contextProvider.get()) {
       PersistentContextProvider.ETCD -> newEtcdPersistentContext()
-      else ->
-        throw ConfigurationError.Unknown(
-          "persistent context",
-          EnvironmentVariables.contextProvider.get(),
-        )
     }
 
   // Construct a new Etcd persistent context as configured.

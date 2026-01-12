@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina.classes.state;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionGraph;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionGraphBuilder;
@@ -9,6 +8,7 @@ import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlVisitor;
 import jakarta.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -20,62 +20,31 @@ import java.util.stream.Stream;
  */
 public final class StateClass implements Exportable {
 
-  /**
-   * ID of the parent state machine class.
-   */
   private final UUID parentStateMachineClassId;
 
-  /**
-   * State name.
-   */
   private final String name;
 
-  /**
-   * Local context description, can be null in case the state has no declared local context.
-   */
-  private final @Nullable ContextDescription localContextDescription;
+  private final @Nullable Map<String, String> localContextDescription;
 
-  /**
-   * Flag that indicates whether this state is initial.
-   */
   private final boolean initial;
-
-  /**
-   * Flag that indicates whether this state is terminal.
-   */
   private final boolean terminal;
 
-  /**
-   * The entry action graph.
-   */
   private final ActionGraph entryActionGraph;
-
-  /**
-   * The exit action graph.
-   */
   private final ActionGraph exitActionGraph;
-
-  /**
-   * The while action graph.
-   */
   private final ActionGraph whileActionGraph;
-
-  /**
-   * The after action graph.
-   */
   private final ActionGraph afterActionGraph;
 
   /**
    * Initializes this state class instance.
    *
-   * @param baseParameters Parameters.
+   * @param baseParameters parameters
    */
   StateClass(BaseParameters baseParameters) {
     this.parentStateMachineClassId = baseParameters.parentStateMachineId;
 
     this.name = baseParameters.name;
 
-    this.localContextDescription = baseParameters.localContextClass;
+    this.localContextDescription = baseParameters.localContextDescription;
 
     this.initial = baseParameters.initial;
     this.terminal = baseParameters.terminal;
@@ -89,7 +58,7 @@ public final class StateClass implements Exportable {
   /**
    * Initializes this state class instance.
    *
-   * @param childParameters Parameters.
+   * @param childParameters parameters
    */
   StateClass(ChildParameters childParameters) {
     this.parentStateMachineClassId = childParameters.parentStateMachineId;
@@ -124,7 +93,7 @@ public final class StateClass implements Exportable {
   /**
    * Return a string representation.
    *
-   * @return String representation.
+   * @return string representation
    */
   @Override
   public String toString() {
@@ -134,7 +103,7 @@ public final class StateClass implements Exportable {
   /**
    * PlantUML visitor accept.
    *
-   * @param visitor PlantUML visitor.
+   * @param visitor PlantUML visitor
    */
   @Override
   public void accept(PlantUmlVisitor visitor) {
@@ -144,7 +113,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the is initial flag.
    *
-   * @return Is initial.
+   * @return is initial
    */
   public boolean isInitial() {
     return initial;
@@ -153,7 +122,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the is terminal flag.
    *
-   * @return Is terminal.
+   * @return is terminal
    */
   public boolean isTerminal() {
     return terminal;
@@ -162,7 +131,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the parent state machine ID.
    *
-   * @return Parent state machine ID.
+   * @return parent state machine ID
    */
   public UUID getParentStateMachineClassId() {
     return parentStateMachineClassId;
@@ -171,7 +140,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the state name.
    *
-   * @return State name.
+   * @return state name
    */
   public String getName() {
     return name;
@@ -180,16 +149,16 @@ public final class StateClass implements Exportable {
   /**
    * Returns the local context description.
    *
-   * @return Local context description.
+   * @return local context description
    */
-  public Optional<ContextDescription> getLocalContextDescription() {
+  public Optional<Map<String, String>> getLocalContextDescription() {
     return Optional.ofNullable(localContextDescription);
   }
 
   /**
    * Returns the entry action graph.
    *
-   * @return Entry action graph.
+   * @return entry action graph
    */
   public ActionGraph getEntryActionGraph() {
     return entryActionGraph;
@@ -198,7 +167,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the exit action graph.
    *
-   * @return Exit action graph.
+   * @return exit action graph
    */
   public ActionGraph getExitActionGraph() {
     return exitActionGraph;
@@ -207,7 +176,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the while action graph.
    *
-   * @return While action graph.
+   * @return while action graph
    */
   public ActionGraph getWhileActionGraph() {
     return whileActionGraph;
@@ -216,7 +185,7 @@ public final class StateClass implements Exportable {
   /**
    * Returns the after action graph.
    *
-   * @return After action graph.
+   * @return after action graph
    */
   public ActionGraph getAfterActionGraph() {
     return afterActionGraph;
@@ -225,9 +194,9 @@ public final class StateClass implements Exportable {
   /**
    * Returns the actions of a specific type.
    *
-   * @param type Action type class.
-   * @param <T>  Action type.
-   * @return Actions of type.
+   * @param type action type class
+   * @param <T>  action type
+   * @return actions of type
    */
   public <T> List<T> getActionsOfType(Class<T> type) {
     return Stream.of(entryActionGraph, exitActionGraph, whileActionGraph, afterActionGraph)
@@ -239,20 +208,20 @@ public final class StateClass implements Exportable {
   /**
    * Base state parameters.
    *
-   * @param parentStateMachineId ID of the parent state machine class.
-   * @param name                 Name of the state.
-   * @param localContextClass    Local context class.
-   * @param initial              Is initial.
-   * @param terminal             Is terminal.
-   * @param entryActions         Entry actions.
-   * @param exitActions          Exit actions.
-   * @param whileActions         While actions.
-   * @param afterActions         After actions.
+   * @param parentStateMachineId ID of the parent state machine class
+   * @param name                    name of the state
+   * @param localContextDescription local context description
+   * @param initial                 is initial
+   * @param terminal                is terminal
+   * @param entryActions            entry actions
+   * @param exitActions             exit actions
+   * @param whileActions            while actions
+   * @param afterActions            after actions
    */
   record BaseParameters(
     UUID parentStateMachineId,
     String name,
-    @Nullable ContextDescription localContextClass,
+    @Nullable Map<String, String> localContextDescription,
     boolean initial,
     boolean terminal,
     List<Action> entryActions,
@@ -264,14 +233,14 @@ public final class StateClass implements Exportable {
   /**
    * Child state parameters.
    *
-   * @param parentStateMachineId ID of the parent state machine class.
-   * @param initial              Is initial.
-   * @param terminal             Is terminal.
-   * @param entryActions         Entry actions.
-   * @param exitActions          Exit actions.
-   * @param whileActions         While actions.
-   * @param afterActions         After actions.
-   * @param baseStateClass       Base state class.
+   * @param parentStateMachineId ID of the parent state machine class
+   * @param initial              is initial
+   * @param terminal             is terminal
+   * @param entryActions         entry actions
+   * @param exitActions          exit actions
+   * @param whileActions         while actions
+   * @param afterActions         after actions
+   * @param baseStateClass       base state class
    */
   record ChildParameters(
     UUID parentStateMachineId,

@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.classes.statemachine;
 import at.ac.uibk.dps.cirrina.classes.state.StateClass;
 import at.ac.uibk.dps.cirrina.classes.transition.OnTransitionClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextDescription;
 import at.ac.uibk.dps.cirrina.execution.object.action.EventRaisingAction;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.io.plantuml.Exportable;
@@ -11,6 +10,7 @@ import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlVisitor;
 import jakarta.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -26,35 +26,23 @@ public final class StateMachineClass
   extends DirectedPseudograph<StateClass, TransitionClass>
   implements Exportable {
 
-  /**
-   * The state machine class ID.
-   */
   private final UUID id = UUID.randomUUID();
 
-  /**
-   * The collection of nested state machine classes.
-   */
   private final List<StateMachineClass> nestedStateMachineClasses;
 
-  /**
-   * The name.
-   */
   private final String name;
 
-  /**
-   * The local context class, can be null in case no local context has been declared.
-   */
-  private final @Nullable ContextDescription localContextClass;
+  private final @Nullable Map<String, String> localContextDescription;
 
   /**
    * Initializes this state machine class instance.
    *
-   * @param parameters Parameters.
+   * @param parameters parameters
    */
   StateMachineClass(Parameters parameters) {
     super(TransitionClass.class);
     this.name = parameters.name;
-    this.localContextClass = parameters.localContextClass;
+    this.localContextDescription = parameters.localContextDescription;
     this.nestedStateMachineClasses = Collections.unmodifiableList(
       parameters.nestedStateMachineClasses
     );
@@ -63,7 +51,7 @@ public final class StateMachineClass
   /**
    * Return a string representation.
    *
-   * @return String representation.
+   * @return string representation
    */
   @Override
   public String toString() {
@@ -73,7 +61,7 @@ public final class StateMachineClass
   /**
    * PlantUML visitor accept.
    *
-   * @param visitor PlantUML visitor.
+   * @param visitor PlantUML visitor
    */
   @Override
   public void accept(PlantUmlVisitor visitor) {
@@ -83,9 +71,9 @@ public final class StateMachineClass
   /**
    * Returns a state by its name. If not one state is known with the supplied name, empty is returned.
    *
-   * @param stateName Name of the state to return.
-   * @return The state with the supplied name or empty.
-   * @throws IllegalArgumentException In case multiple states were found for the supplied name.
+   * @param stateName name of the state to return
+   * @return the state with the supplied name or empty
+   * @throws IllegalArgumentException in case multiple states were found for the supplied name
    */
   public Optional<StateClass> findStateClassByName(String stateName) {
     // Attempt to match the provided name to a known state
@@ -103,9 +91,9 @@ public final class StateMachineClass
   /**
    * Returns the transitions from a state that are triggered by a given event name.
    *
-   * @param fromStateClass From state.
-   * @param eventName      The event name.
-   * @return The list of on-transitions.
+   * @param fromStateClass from state
+   * @param eventName      the event name
+   * @return the list of on-transitions
    */
   public List<OnTransitionClass> findOnTransitionsFromStateByEventName(
     StateClass fromStateClass,
@@ -122,8 +110,8 @@ public final class StateMachineClass
   /**
    * Returns the transitions from a state that are not event-triggered.
    *
-   * @param fromStateClass From state.
-   * @return The list of always-transitions.
+   * @param fromStateClass from state
+   * @return the list of always-transitions
    */
   public List<TransitionClass> findAlwaysTransitionsFromState(StateClass fromStateClass) {
     return outgoingEdgesOf(fromStateClass)
@@ -135,7 +123,7 @@ public final class StateMachineClass
   /**
    * Returns the collection of nested state machine classes.
    *
-   * @return Nested state machine classes.
+   * @return nested state machine classes
    */
   public List<StateMachineClass> getNestedStateMachineClasses() {
     return nestedStateMachineClasses;
@@ -144,7 +132,7 @@ public final class StateMachineClass
   /**
    * Returns the ID.
    *
-   * @return ID.
+   * @return ID
    */
   public UUID getId() {
     return id;
@@ -153,7 +141,7 @@ public final class StateMachineClass
   /**
    * Returns the name.
    *
-   * @return Name.
+   * @return name
    */
   public String getName() {
     return name;
@@ -162,16 +150,16 @@ public final class StateMachineClass
   /**
    * Returns the local context class or empty.
    *
-   * @return Local context class or empty.
+   * @return local context class or empty
    */
-  public Optional<ContextDescription> getLocalContextClass() {
-    return Optional.ofNullable(localContextClass);
+  public Optional<Map<String, String>> getLocalContextDescription() {
+    return Optional.ofNullable(localContextDescription);
   }
 
   /**
    * Returns the initial state of this state machine.
    *
-   * @return Initial state.
+   * @return initial state
    */
   public StateClass getInitialState() {
     return vertexSet().stream().filter(StateClass::isInitial).findFirst().get();
@@ -180,7 +168,7 @@ public final class StateMachineClass
   /**
    * Returns the collection of events handled by this state machine.
    *
-   * @return Events handled by this state machine.
+   * @return events handled by this state machine
    */
   public List<String> getInputEvents() {
     return edgeSet()
@@ -193,7 +181,7 @@ public final class StateMachineClass
   /**
    * Returns the events that may be raised from this state machine.
    *
-   * @return Output events.
+   * @return output events
    */
   public List<Event> getOutputEvents() {
     return Stream.concat(
@@ -211,13 +199,13 @@ public final class StateMachineClass
   /**
    * Parameters for the construction of a state machine class.
    *
-   * @param name                      Name.
-   * @param localContextClass         Local context class or empty if none declared.
-   * @param nestedStateMachineClasses Nested state machine classes.
+   * @param name                      name
+   * @param localContextDescription   local context description or empty if none declared
+   * @param nestedStateMachineClasses nested state machine classes
    */
   record Parameters(
     String name,
-    @Nullable ContextDescription localContextClass,
+    @Nullable Map<String, String> localContextDescription,
     List<StateMachineClass> nestedStateMachineClasses
   ) {}
 }

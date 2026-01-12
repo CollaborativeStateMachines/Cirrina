@@ -1,8 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.AssignActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.EvalActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.InvokeActionDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.MatchActionDescription;
@@ -50,15 +49,19 @@ public final class ActionBuilder {
   /**
    * Returns a list of variables.
    *
-   * @param contextVariableDescriptions context variable descriptions
+   * @param context context
    * @return variables
    */
-  private static List<ContextVariable> buildVariableList(
-    List<ContextVariableDescription> contextVariableDescriptions
-  ) {
-    return contextVariableDescriptions
+  private static List<ContextVariable> buildVariableList(Map<String, String> context) {
+    return context
+      .entrySet()
       .stream()
-      .map(c -> ContextVariableBuilder.from(c).build())
+      .map(varEntry ->
+        ContextVariableBuilder.empty()
+          .name(varEntry.getKey())
+          .expression(ExpressionBuilder.from(varEntry.getValue()).build())
+          .build()
+      )
       .toList();
   }
 
@@ -104,15 +107,15 @@ public final class ActionBuilder {
    */
   public Action build() throws IllegalArgumentException, IllegalStateException {
     switch (actionDescription) {
-      case AssignActionDescription assign -> {
-        // Acquire the context variable
-        final var contextVariable = ContextVariableBuilder.from(assign.getVariable()).build();
+      case EvalActionDescription eval -> {
+        // Acquire the expression
+        final var expression = ExpressionBuilder.from(eval.getExpression()).build();
 
         // Construct parameters
-        final var parameters = new AssignAction.Parameters(contextVariable);
+        final var parameters = new EvalAction.Parameters(expression);
 
         // Construct the assign action
-        return new AssignAction(parameters);
+        return new EvalAction(parameters);
       }
       case InvokeActionDescription invoke -> {
         // Acquire the input variables
@@ -126,8 +129,7 @@ public final class ActionBuilder {
           invoke.getServiceType(),
           invoke.isIsLocal(),
           input,
-          done,
-          invoke.getOutput()
+          done
         );
 
         // Construct the invoke action

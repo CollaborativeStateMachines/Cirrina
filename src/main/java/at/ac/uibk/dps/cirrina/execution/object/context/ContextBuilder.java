@@ -1,59 +1,59 @@
 package at.ac.uibk.dps.cirrina.execution.object.context;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextDescription;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Context builder, builder for various context implementations.
  */
 public class ContextBuilder {
 
-  private final @Nullable ContextDescription contextClass;
+  private final @Nullable Map<String, String> contextDescription;
 
   private Context context;
 
   /**
-   * Initializes this context builder object.
+   * Initializes this builder object.
    */
   private ContextBuilder() {
-    this.contextClass = null;
+    this.contextDescription = null;
   }
 
   /**
-   * Initializes this context builder object.
+   * Initializes this builder object.
    *
-   * @param contextDescription Context class.
+   * @param contextDescription context class
    */
-  private ContextBuilder(ContextDescription contextDescription) {
-    this.contextClass = contextDescription;
+  private ContextBuilder(Map<String, String> contextDescription) {
+    this.contextDescription = contextDescription;
   }
 
   /**
    * Construct a builder from nothing.
    *
-   * @return Context builder.
+   * @return this builder
    */
-  public static ContextBuilder from() {
+  public static ContextBuilder empty() {
     return new ContextBuilder();
   }
 
   /**
    * Construct a builder from a context class.
    *
-   * @param contextDescription Context class.
-   * @return Context builder.
+   * @param contextDescription context description
+   * @return this builder
    */
-  public static ContextBuilder from(ContextDescription contextDescription) {
+  public static ContextBuilder from(Map<String, String> contextDescription) {
     return new ContextBuilder(contextDescription);
   }
 
   /**
    * Build an in-memory context.
    *
-   * @param isLocal True if this context is local, otherwise false.
-   * @return This builder.
+   * @param isLocal true if this context is local, otherwise false
+   * @return this builder
    */
   public ContextBuilder inMemoryContext(boolean isLocal) {
     context = new InMemoryContext(isLocal);
@@ -71,13 +71,13 @@ public class ContextBuilder {
     assert context != null;
 
     // Add all variables contained within the context class to the newly created context, only do this if there is a class
-    if (contextClass != null) {
-      for (var contextVariable : contextClass.getVariables()) {
+    if (contextDescription != null) {
+      for (var varEntry : contextDescription.entrySet()) {
         // Build the value expression
-        var expression = ExpressionBuilder.from(contextVariable.getValue()).build();
+        var expression = ExpressionBuilder.from(varEntry.getValue()).build();
 
         // Acquire the variable name
-        var name = contextVariable.getName();
+        var name = varEntry.getKey();
 
         // Acquire the variable value
         // We pass an empty extent here, I don't think that it makes too much sense to provide anything other than an empty extent here,

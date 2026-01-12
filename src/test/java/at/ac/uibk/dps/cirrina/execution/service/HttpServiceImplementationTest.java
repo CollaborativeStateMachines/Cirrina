@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
@@ -121,17 +120,15 @@ public class HttpServiceImplementationTest {
     List.of(HttpMethod.POST, HttpMethod.GET)
       .stream()
       .forEach(method -> {
-        // First variable
-        final var varOne = new ContextVariableDescription("varOne", "5");
-
-        // Second variable
-        final var varTwo = new ContextVariableDescription("varTwo", "6");
-
         // Success
         assertDoesNotThrow(() -> {
           final var variables = new ArrayList<ContextVariable>();
-          variables.add(ContextVariableBuilder.from(varOne).build().evaluate(new Extent()));
-          variables.add(ContextVariableBuilder.from(varTwo).build().evaluate(new Extent()));
+          variables.add(
+            ContextVariableBuilder.empty().name("varOne").value(5).build().evaluate(new Extent())
+          );
+          variables.add(
+            ContextVariableBuilder.empty().name("varTwo").value(6).build().evaluate(new Extent())
+          );
 
           final var service = new HttpServiceImplementation(
             new Parameters("http", false, "http", "localhost", 8000, "/plus", HttpMethod.POST)

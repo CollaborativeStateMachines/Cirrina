@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.io.plantuml;
 
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
-import at.ac.uibk.dps.cirrina.execution.object.action.AssignAction;
+import at.ac.uibk.dps.cirrina.execution.object.action.EvalAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
@@ -14,7 +14,7 @@ public class ActionColors {
 
   public static String getActionColor(Action action) {
     return switch (action) {
-      case AssignAction assignAction -> "#27AE60"; // Green
+      case EvalAction evalAction -> "#27AE60"; // Green
       case InvokeAction invokeAction -> "#1F618D"; // Blue
       case MatchAction matchAction -> "#1ABC9C"; // Turquoise
       case RaiseAction raiseAction -> "#9B59B6"; // Purple

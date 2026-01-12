@@ -31,10 +31,7 @@ stateMachines {
                 serviceType = "increment"
                 isLocal = true
                 input {
-                  new {
-                    name = "v"
-                    value = "v"
-                  }
+                  ["v"] = "v"
                 }
                 done {
                   new {
@@ -43,11 +40,8 @@ stateMachines {
                   }
                 }
               }
-              new Csml.AssignAction {
-                variable {
-                  name = "e"
-                  value = "e + 1"
-                }
+              new Csml.EvalAction {
+                expression = "e = e + 1"
               }
             }
           }
@@ -60,11 +54,8 @@ stateMachines {
       new {
         name = "b"
         entry {
-          new Csml.AssignAction {
-            variable {
-              name = "v"
-              value = "$v"
-            }
+          new Csml.EvalAction {
+            expression = "v = $v"
           }
         }
         always {

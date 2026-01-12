@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import org.pkl.config.java.mapper.NonNull
 
 internal class NatsEventHandlerTest {
 
@@ -42,16 +41,7 @@ internal class NatsEventHandlerTest {
 
       // Create an event
       val e1 = run {
-        EventBuilder.from(
-            Csml.EventDescription(
-              "e1",
-              channel,
-              listOf<@NonNull Csml.ContextVariableDescription?>(
-                Csml.ContextVariableDescription("varName", "5")
-              ),
-            )
-          )
-          .build()
+        EventBuilder.from(Csml.EventDescription("e1", channel, mapOf("varName" to "5"))).build()
       }
 
       // Connect the event handler to the NATS server

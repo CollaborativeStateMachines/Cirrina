@@ -7,14 +7,6 @@ stateMachines {
   new stateMachineOne.StateMachine {}
 }
 persistentContext {
-  variables {
-    new {
-      name = "b"
-      value = "true"
-    }
-    new {
-      name = "v"
-      value = "0"
-    }
-  }
+  ["b"] = "true"
+  ["v"] = "0"
 }

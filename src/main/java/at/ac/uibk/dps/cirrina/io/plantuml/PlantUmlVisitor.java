@@ -5,7 +5,7 @@ import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass;
 import at.ac.uibk.dps.cirrina.classes.transition.OnTransitionClass;
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
 import at.ac.uibk.dps.cirrina.execution.object.action.Action;
-import at.ac.uibk.dps.cirrina.execution.object.action.AssignAction;
+import at.ac.uibk.dps.cirrina.execution.object.action.EvalAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
 import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
@@ -125,13 +125,12 @@ public class PlantUmlVisitor {
 
   public void visit(Action action) {
     switch (action) {
-      case AssignAction a -> actionBuilder.append(
+      case EvalAction a -> actionBuilder.append(
         String.format(
-          "<color:%s>%s{%s = %s}()</color>",
+          "<color:%s>%s{%s}()</color>",
           ActionColors.getActionColor(a),
-          "Assign",
-          a.getVariable().name(),
-          a.getVariable().value()
+          "Eval",
+          a.getExpression()
         )
       );
       case InvokeAction a -> actionBuilder.append(

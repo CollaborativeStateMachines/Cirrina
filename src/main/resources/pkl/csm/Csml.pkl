@@ -3,18 +3,19 @@ module at.ac.uibk.dps.cirrina.csm.Csml
 
 typealias Version = "3.0.0"
 typealias Expression = String
+typealias Context = Mapping<String, Expression>
 
 name: String
 version: Version
 stateMachines: Listing<StateMachineDescription>
-localContext: ContextDescription?
-persistentContext: ContextDescription?
+localContext: Context?
+persistentContext: Context?
 
 open class StateMachineDescription {
   name: String
   states: Listing<StateDescription>
   stateMachines: Listing<StateMachineDescription>
-  localContext: ContextDescription?
+  localContext: Context?
 }
 
 open class StateDescription {
@@ -27,8 +28,8 @@ open class StateDescription {
   after: Listing<TimeoutActionDescription>
   on: Listing<TransitionDescription>
   always: Listing<TransitionDescription>
-  localContext: ContextDescription
-  staticContext: ContextDescription
+  localContext: Context?
+  staticContext: Context?
 }
 
 open class TransitionDescription {
@@ -45,18 +46,17 @@ abstract class ActionDescription {
 
 typealias Type = "invoke"|"assign"|"raise"|"timeout"|"timeoutReset"|"match"
 
-open class AssignActionDescription extends ActionDescription {
+open class EvalActionDescription extends ActionDescription {
   type: Type = "assign"
-  variable: ContextVariableDescription
+  expression: Expression
 }
 
 open class InvokeActionDescription extends ActionDescription {
   type: Type = "invoke"
   serviceType: String
   isLocal: Boolean = false
-  input: Listing<ContextVariableDescription>
+  input: Context
   done: Listing<EventDescription>
-  output: Listing<ContextVariableReferenceDescription>
 }
 
 class MatchArmDescription {
@@ -92,27 +92,14 @@ typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 class EventDescription {
   topic: String
   channel: EventChannel
-  data: Listing<ContextVariableDescription>
-}
-
-class ContextDescription {
-  variables: Listing<ContextVariableDescription>
-}
-
-class ContextVariableDescription {
-  name: String
-  value: Expression
-}
-
-class ContextVariableReferenceDescription {
-  reference: String
+  data: Context
 }
 
 typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
 typealias Transition = TransitionDescription
 typealias Action = ActionDescription
-typealias AssignAction = AssignActionDescription
+typealias EvalAction = EvalActionDescription
 typealias InvokeAction = InvokeActionDescription
 typealias MatchArm = MatchArmDescription
 typealias MatchAction = MatchActionDescription
@@ -120,6 +107,3 @@ typealias RaiseAction = RaiseActionDescription
 typealias TimeoutAction = TimeoutActionDescription
 typealias TimeoutResetAction = TimeoutResetActionDescription
 typealias Event = EventDescription
-typealias Context = ContextDescription
-typealias ContextVariable = ContextVariableDescription
-typealias ContextVariableReference = ContextVariableReferenceDescription
