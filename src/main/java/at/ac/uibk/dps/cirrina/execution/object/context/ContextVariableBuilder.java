@@ -66,7 +66,7 @@ public class ContextVariableBuilder {
     }
     // Otherwise, build a context variable where the value comes from the provided expression
     else if (name.isPresent() && expression.isPresent()) {
-      return new ContextVariable(name.get(), expression);
+      return new ContextVariable(name.get(), expression.get());
     }
     // If neither name and value nor context variable class is provided, throw an exception
     else {
