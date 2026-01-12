@@ -7,10 +7,10 @@ class StateMachine extends Csml.StateMachine {
       name = "a"
       initial = true
       entry {
-        new Csml.EvalAction {
+        new Csml.Eval {
           expression = "v = v + 1"
         }
-        new Csml.RaiseAction {
+        new Csml.Raise {
           event {
             topic = "e1"
             channel = "global"
@@ -27,7 +27,7 @@ class StateMachine extends Csml.StateMachine {
     new {
       name = "b"
       entry {
-        new Csml.RaiseAction {
+        new Csml.Raise {
           event {
             topic = "e3"
             channel = "global"

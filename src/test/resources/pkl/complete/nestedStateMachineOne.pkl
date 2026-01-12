@@ -8,7 +8,7 @@ class StateMachine extends Csml.StateMachine {
       initial = true
       terminal = true
       entry {
-        new Csml.RaiseAction {
+        new Csml.Raise {
           event {
             topic = "ne1"
             channel = "global"

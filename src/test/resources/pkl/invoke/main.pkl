@@ -27,7 +27,7 @@ stateMachines {
             event = "update"
             target = "a"
             actions {
-              new Csml.InvokeAction {
+              new Csml.Invoke {
                 serviceType = "increment"
                 isLocal = true
                 input {
@@ -40,7 +40,7 @@ stateMachines {
                   }
                 }
               }
-              new Csml.EvalAction {
+              new Csml.Eval {
                 expression = "e = e + 1"
               }
             }
@@ -54,7 +54,7 @@ stateMachines {
       new {
         name = "b"
         entry {
-          new Csml.EvalAction {
+          new Csml.Eval {
             expression = "v = $v"
           }
         }

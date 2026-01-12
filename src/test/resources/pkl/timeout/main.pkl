@@ -14,7 +14,7 @@ stateMachines {
           new {
             name = "timeout"
             delay = "100"
-            action = new Csml.RaiseAction {
+            action = new Csml.Raise {
               event {
                 topic = "update"
                 channel = "internal"
@@ -27,18 +27,18 @@ stateMachines {
             event = "update"
             target = "a"
             actions {
-              new Csml.MatchAction {
+              new Csml.Match {
                 value = "v < 10"
                 arms {
                   new {
                     of = "true"
-                    action = new Csml.EvalAction {
+                    action = new Csml.Eval {
                       expression = "v = v + 1"
                     }
                   }
                   new {
                     of = "false"
-                    action = new Csml.RaiseAction {
+                    action = new Csml.Raise {
                       event {
                         topic = "tob"
                         channel = "internal"

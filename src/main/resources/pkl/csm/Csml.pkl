@@ -25,7 +25,7 @@ open class StateDescription {
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
   while: Listing<ActionDescription>
-  after: Listing<TimeoutActionDescription>
+  after: Listing<TimeoutDescription>
   on: Listing<TransitionDescription>
   always: Listing<TransitionDescription>
   localContext: Context?
@@ -44,14 +44,9 @@ abstract class ActionDescription {
   type: Type
 }
 
-typealias Type = "invoke"|"assign"|"raise"|"timeout"|"timeoutReset"|"match"
+typealias Type = "invoke"|"eval"|"raise"|"timeout"|"timeoutReset"|"match"
 
-open class EvalActionDescription extends ActionDescription {
-  type: Type = "assign"
-  expression: Expression
-}
-
-open class InvokeActionDescription extends ActionDescription {
+open class InvokeDescription extends ActionDescription {
   type: Type = "invoke"
   serviceType: String
   isLocal: Boolean = false
@@ -59,32 +54,37 @@ open class InvokeActionDescription extends ActionDescription {
   done: Listing<EventDescription>
 }
 
+open class EvalDescription extends ActionDescription {
+  type: Type = "eval"
+  expression: Expression
+}
+
+open class RaiseDescription extends ActionDescription {
+  type: Type = "raise"
+  event: EventDescription
+}
+
+open class TimeoutDescription extends ActionDescription {
+  type: Type = "timeout"
+  name: String
+  delay: Expression
+  action: RaiseDescription
+}
+
+open class TimeoutResetDescription extends ActionDescription {
+  type: Type = "timeoutReset"
+  action: String
+}
+
 class MatchArmDescription {
   of: Expression
   action: ActionDescription
 }
 
-open class MatchActionDescription extends ActionDescription {
+open class MatchDescription extends ActionDescription {
   type: Type = "match"
   value: Expression
   arms: Listing<MatchArmDescription>
-}
-
-open class RaiseActionDescription extends ActionDescription {
-  type: Type = "raise"
-  event: EventDescription
-}
-
-open class TimeoutActionDescription extends ActionDescription {
-  type: Type = "timeout"
-  name: String
-  delay: Expression
-  action: RaiseActionDescription
-}
-
-open class TimeoutResetActionDescription extends ActionDescription {
-  type: Type = "timeoutReset"
-  action: String
 }
 
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
@@ -99,11 +99,11 @@ typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
 typealias Transition = TransitionDescription
 typealias Action = ActionDescription
-typealias EvalAction = EvalActionDescription
-typealias InvokeAction = InvokeActionDescription
+typealias Eval = EvalDescription
+typealias Invoke = InvokeDescription
 typealias MatchArm = MatchArmDescription
-typealias MatchAction = MatchActionDescription
-typealias RaiseAction = RaiseActionDescription
-typealias TimeoutAction = TimeoutActionDescription
-typealias TimeoutResetAction = TimeoutResetActionDescription
+typealias Match = MatchDescription
+typealias Raise = RaiseDescription
+typealias Timeout = TimeoutDescription
+typealias TimeoutReset = TimeoutResetDescription
 typealias Event = EventDescription

@@ -1,14 +1,14 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.EvalActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.EvalDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.InvokeActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.MatchActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.InvokeDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.MatchArmDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.RaiseActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutResetActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.MatchDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.RaiseDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutResetDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
@@ -107,7 +107,7 @@ public final class ActionBuilder {
    */
   public Action build() throws IllegalArgumentException, IllegalStateException {
     switch (actionDescription) {
-      case EvalActionDescription eval -> {
+      case EvalDescription eval -> {
         // Acquire the expression
         final var expression = ExpressionBuilder.from(eval.getExpression()).build();
 
@@ -117,7 +117,7 @@ public final class ActionBuilder {
         // Construct the assign action
         return new EvalAction(parameters);
       }
-      case InvokeActionDescription invoke -> {
+      case InvokeDescription invoke -> {
         // Acquire the input variables
         final var input = buildVariableList(invoke.getInput());
 
@@ -135,7 +135,7 @@ public final class ActionBuilder {
         // Construct the invoke action
         return new InvokeAction(parameters);
       }
-      case MatchActionDescription match -> {
+      case MatchDescription match -> {
         // Acquire the value expression
         final var valueExpression = ExpressionBuilder.from(match.getValue()).build();
 
@@ -148,7 +148,7 @@ public final class ActionBuilder {
         // Construct the match action
         return new MatchAction(parameters);
       }
-      case RaiseActionDescription raise -> {
+      case RaiseDescription raise -> {
         // Acquire the event
         final var event = EventBuilder.from(raise.getEvent()).build();
 
@@ -158,7 +158,7 @@ public final class ActionBuilder {
         // Construct the raise action
         return new RaiseAction(parameters);
       }
-      case TimeoutActionDescription timeout -> {
+      case TimeoutDescription timeout -> {
         // Acquire the action name, for timeout actions, the name is always required
         final var name = Optional.ofNullable(timeout.getName()).orElseThrow(() ->
           new IllegalArgumentException("Timeout action name is not provided")
@@ -176,7 +176,7 @@ public final class ActionBuilder {
         // Construct the timeout action
         return new TimeoutAction(parameters);
       }
-      case TimeoutResetActionDescription timeoutReset -> {
+      case TimeoutResetDescription timeoutReset -> {
         // Construct parameters
         final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getAction());
 

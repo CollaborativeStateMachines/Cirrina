@@ -32,7 +32,7 @@ class StateMachine extends Csml.StateMachine {
     new {
       name = "b"
       entry {
-        new Csml.InvokeAction {
+        new Csml.Invoke {
           serviceType = "increment"
           isLocal = true
           input {
@@ -51,7 +51,7 @@ class StateMachine extends Csml.StateMachine {
           event = "e2"
           target = "c"
           actions {
-            new Csml.EvalAction {
+            new Csml.Eval {
               expression = "v = $v"
             }
           }
@@ -78,7 +78,7 @@ class StateMachine extends Csml.StateMachine {
     new {
       name = "d"
       after {
-        new Csml.TimeoutAction {
+        new Csml.Timeout {
           name = "timeout"
           delay = "10"
           action = new {
@@ -93,21 +93,21 @@ class StateMachine extends Csml.StateMachine {
         new {
           event = "e3"
           actions {
-            new Csml.EvalAction {
+            new Csml.Eval {
               expression = "v = v - 1"
             }
-            new Csml.MatchAction {
+            new Csml.Match {
               value = "v"
               arms {
                 new {
                   of = "0"
-                  action = new Csml.TimeoutResetAction {
+                  action = new Csml.TimeoutReset {
                     action = "timeout"
                   }
                 }
                 new {
                   of = "0"
-                  action = new Csml.RaiseAction {
+                  action = new Csml.Raise {
                     event {
                       topic = "e4"
                       channel = "internal"
