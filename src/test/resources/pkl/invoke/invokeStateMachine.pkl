@@ -26,16 +26,8 @@ sm = new csml.StateMachine {
       }
     }
     ["b"] = new csml.State {
-      entry {
-        new csml.Eval { expression = "v = $v" }
-      }
-      always {
-        new csml.Transition {
-          to = "a"
-          iif { "v < 10" }
-          or = "c"
-        }
-      }
+      entry { new csml.Eval { expression = "v = $v" } }
+      always { new csml.Transition { to = "a"; iif { "v < 10" }; or = "c" } }
     }
     ["c"] = new csml.Terminal {}
   }

@@ -2,6 +2,4 @@ amends "modulepath:/pkl/csm/csml.pkl"
 import "noopStateMachine.pkl"
 
 version = "4.0.0"
-stateMachines {
-  ["stateMachine"] = noopStateMachine.sm
-}
+stateMachines { ["stateMachine"] = noopStateMachine.sm }

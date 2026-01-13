@@ -16,10 +16,7 @@ sm = new csml.StateMachine {
             new csml.Match {
               value = "v < 10"
               cases {
-                new csml.Case {
-                  of = "true"
-                  then = new csml.Eval { expression = "v = v + 1" }
-                }
+                new csml.Case { of = "true"; then = new csml.Eval { expression = "v = v + 1" } }
                 new csml.Case {
                   of = "false"
                   then = new csml.Raise {

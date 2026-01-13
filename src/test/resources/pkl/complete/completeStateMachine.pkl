@@ -2,9 +2,7 @@ import "modulepath:/pkl/csm/csml.pkl"
 import "nestedStateMachine.pkl"
 
 sm = new csml.StateMachine {
-  stateMachines {
-    ["nestedStateMachine"] = nestedStateMachine.sm
-  }
+  stateMachines { ["nestedStateMachine"] = nestedStateMachine.sm }
   states {
     ["a"] = new csml.Initial {
       after {

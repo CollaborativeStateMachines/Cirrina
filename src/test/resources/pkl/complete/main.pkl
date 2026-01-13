@@ -2,10 +2,5 @@ amends "modulepath:/pkl/csm/csml.pkl"
 import "completeStateMachine.pkl"
 
 version = "4.0.0"
-stateMachines {
-  ["completeStateMachine"] = completeStateMachine.sm
-}
-persistent {
-  ["b"] = "true"
-  ["v"] = "0"
-}
+stateMachines { ["completeStateMachine"] = completeStateMachine.sm }
+persistent { ["b"] = "true"; ["v"] = "0" }
