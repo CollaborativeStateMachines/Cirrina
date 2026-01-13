@@ -1,38 +1,38 @@
-import "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/csml.pkl"
 
-sm = new Csml.StateMachine {
+sm = new csml.StateMachine {
   states {
-    ["a"] = new Csml.Initial {
+    ["a"] = new csml.Initial {
       after {
-        ["timeout"] = new Csml.Timeout {
+        ["timeout"] = new csml.Timeout {
           delay = "100"
-          do = new Csml.Raise { event = new Csml.Internal { topic = "update" } }
+          do = new csml.Raise { event = new csml.Internal { topic = "update" } }
         }
       }
       on {
-        ["update"] = new Csml.Transition {
+        ["update"] = new csml.Transition {
           to = "a"
           do {
-            new Csml.Match {
+            new csml.Match {
               value = "v < 10"
               cases {
-                new Csml.Case {
+                new csml.Case {
                   of = "true"
-                  then = new Csml.Eval { expression = "v = v + 1" }
+                  then = new csml.Eval { expression = "v = v + 1" }
                 }
-                new Csml.Case {
+                new csml.Case {
                   of = "false"
-                  then = new Csml.Raise {
-                    event = new Csml.Internal { topic = "tob" }
+                  then = new csml.Raise {
+                    event = new csml.Internal { topic = "tob" }
                   }
                 }
               }
             }
           }
         }
-        ["tob"] = new Csml.Transition { to = "b" }
+        ["tob"] = new csml.Transition { to = "b" }
       }
     }
-    ["b"] = new Csml.Terminal {}
+    ["b"] = new csml.Terminal {}
   }
 }

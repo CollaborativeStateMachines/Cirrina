@@ -1,42 +1,42 @@
-import "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/csml.pkl"
 
-sm = new Csml.StateMachine {
+sm = new csml.StateMachine {
   states {
-    ["a"] = new Csml.Initial {
+    ["a"] = new csml.Initial {
       after {
-        ["timeout"] = new Csml.Timeout {
+        ["timeout"] = new csml.Timeout {
           delay = "100"
-          do = new Csml.Raise { event = new Csml.Internal { topic = "update" } }
+          do = new csml.Raise { event = new csml.Internal { topic = "update" } }
         }
       }
       on {
-        ["update"] = new Csml.Transition {
+        ["update"] = new csml.Transition {
           to = "a"
           do {
-            new Csml.Invoke {
+            new csml.Invoke {
               type = "increment"
               mode = "local"
               input { ["v"] = "v" }
-              raises { new Csml.Internal { topic = "tob" } }
+              raises { new csml.Internal { topic = "tob" } }
             }
-            new Csml.Eval { expression = "e = e + 1" }
+            new csml.Eval { expression = "e = e + 1" }
           }
         }
-        ["tob"] = new Csml.Transition { to = "b" }
+        ["tob"] = new csml.Transition { to = "b" }
       }
     }
-    ["b"] = new Csml.State {
+    ["b"] = new csml.State {
       entry {
-        new Csml.Eval { expression = "v = $v" }
+        new csml.Eval { expression = "v = $v" }
       }
       always {
-        new Csml.Transition {
+        new csml.Transition {
           to = "a"
           iif { "v < 10" }
           or = "c"
         }
       }
     }
-    ["c"] = new Csml.Terminal {}
+    ["c"] = new csml.Terminal {}
   }
 }

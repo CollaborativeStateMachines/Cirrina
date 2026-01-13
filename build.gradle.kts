@@ -27,8 +27,8 @@ pkl {
   javaCodeGenerators {
     register("pklGenJava") {
       sourceModules.addAll(
-        "src/main/resources/pkl/csm/Csml.pkl",
-        "src/main/resources/pkl/csm/ServiceImplementationBindings.pkl",
+        "src/main/resources/pkl/csm/csml.pkl",
+        "src/main/resources/pkl/csm/bindings.pkl",
       )
       generateGetters.set(true)
       generateJavadoc.set(true)

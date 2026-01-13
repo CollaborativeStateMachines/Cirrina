@@ -1,4 +1,4 @@
-amends "modulepath:/pkl/csm/Csml.pkl"
+amends "modulepath:/pkl/csm/csml.pkl"
 import "invokeStateMachine.pkl"
 
 version = "4.0.0"

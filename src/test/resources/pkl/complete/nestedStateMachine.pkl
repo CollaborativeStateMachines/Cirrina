@@ -1,9 +1,9 @@
-import "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/csml.pkl"
 
-sm = new Csml.StateMachine {
+sm = new csml.StateMachine {
   states {
-    ["a"] = new Csml.Singleton {
-      entry { new Csml.Raise { event = new Csml.Global { topic = "ne1" } } }
+    ["a"] = new csml.Singleton {
+      entry { new csml.Raise { event = new csml.Global { topic = "ne1" } } }
     }
   }
 }

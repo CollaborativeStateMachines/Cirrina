@@ -1,7 +1,7 @@
-import "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/csml.pkl"
 
-sm = new Csml.StateMachine {
+sm = new csml.StateMachine {
   states {
-    ["a"] = new Csml.Singleton {}
+    ["a"] = new csml.Singleton {}
   }
 }

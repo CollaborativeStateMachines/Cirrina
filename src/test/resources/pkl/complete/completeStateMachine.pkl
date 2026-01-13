@@ -1,73 +1,73 @@
-import "modulepath:/pkl/csm/Csml.pkl"
+import "modulepath:/pkl/csm/csml.pkl"
 import "nestedStateMachine.pkl"
 
-sm = new Csml.StateMachine {
+sm = new csml.StateMachine {
   stateMachines {
     ["nestedStateMachine"] = nestedStateMachine.sm
   }
   states {
-    ["a"] = new Csml.Initial {
+    ["a"] = new csml.Initial {
       after {
-        ["timeout"] = new Csml.Timeout {
+        ["timeout"] = new csml.Timeout {
           delay = "10"
-          do = new Csml.Raise { event = new Csml.Internal { topic = "e1" } }
+          do = new csml.Raise { event = new csml.Internal { topic = "e1" } }
         }
       }
       on {
-        ["e1"] = new Csml.Transition { to = "b" }
+        ["e1"] = new csml.Transition { to = "b" }
       }
     }
-    ["b"] = new Csml.State {
+    ["b"] = new csml.State {
       entry {
-        new Csml.Invoke {
+        new csml.Invoke {
           type = "increment"
           mode = "local"
           input { ["v"] = "v" }
-          raises { new Csml.Internal { topic = "e2" } }
+          raises { new csml.Internal { topic = "e2" } }
         }
       }
       on {
-        ["e2"] = new Csml.Transition {
+        ["e2"] = new csml.Transition {
           to = "c"
-          do { new Csml.Eval { expression = "v = $v" } }
+          do { new csml.Eval { expression = "v = $v" } }
         }
       }
     }
-    ["c"] = new Csml.State {
+    ["c"] = new csml.State {
       always {
-        new Csml.Transition { to = "d"; iif { "v >= 100" } }
-        new Csml.Transition { to = "b"; iif { "v < 100" } }
+        new csml.Transition { to = "d"; iif { "v >= 100" } }
+        new csml.Transition { to = "b"; iif { "v < 100" } }
       }
     }
-    ["d"] = new Csml.State {
+    ["d"] = new csml.State {
       after {
-        ["timeout"] = new Csml.Timeout {
+        ["timeout"] = new csml.Timeout {
           delay = "10"
-          do = new Csml.Raise { event = new Csml.Internal { topic = "e3" } }
+          do = new csml.Raise { event = new csml.Internal { topic = "e3" } }
         }
       }
       on {
-        ["e3"] = new Csml.Transition {
+        ["e3"] = new csml.Transition {
           do {
-            new Csml.Eval { expression = "v = v - 1" }
-            new Csml.Match {
+            new csml.Eval { expression = "v = v - 1" }
+            new csml.Match {
               value = "v"
               cases {
-                new Csml.Case {
+                new csml.Case {
                   of = "0"
-                  then = new Csml.Reset { name = "timeout" }
+                  then = new csml.Reset { name = "timeout" }
                 }
-                new Csml.Case {
+                new csml.Case {
                   of = "0"
-                  then = new Csml.Raise { event = new Csml.Internal { topic = "e4" } }
+                  then = new csml.Raise { event = new csml.Internal { topic = "e4" } }
                 }
               }
             }
           }
         }
-        ["e4"] = new Csml.Transition { to = "e" }
+        ["e4"] = new csml.Transition { to = "e" }
       }
     }
-    ["e"] = new Csml.Terminal {}
+    ["e"] = new csml.Terminal {}
   }
 }
