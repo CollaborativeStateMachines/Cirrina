@@ -7,13 +7,13 @@ typealias Context = Mapping<String, Expression>
 
 version: Version
 stateMachines: Mapping<String, StateMachineDescription>
-localContext: Context?
-persistentContext: Context?
+`local`: Context?
+persistent: Context?
 
 open class StateMachineDescription {
   states: Mapping<String, StateDescription>
   stateMachines: Mapping<String, StateMachineDescription>
-  localContext: Context?
+  `local`: Context?
 }
 
 open class StateDescription {
@@ -22,29 +22,29 @@ open class StateDescription {
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
   while: Listing<ActionDescription>
-  after: Listing<TimeoutDescription>
+  after: Mapping<String, TimeoutDescription>
   on: Mapping<String, TransitionDescription>
   always: Listing<TransitionDescription>
-  localContext: Context?
-  staticContext: Context?
+  `local`: Context?
+  static: Context?
 }
 
-class InitialStateDescription extends StateDescription {
+class InitialDescription extends StateDescription {
   initial: Boolean = true
 }
 
-class TerminalStateDescription extends StateDescription {
+class TerminalDescription extends StateDescription {
   terminal: Boolean = true
 }
 
-class SingletonStateDescription extends StateDescription {
+class SingletonDescription extends StateDescription {
   initial: Boolean = true
   terminal: Boolean = true
 }
 
 class TransitionDescription {
   to: String?
-  guards: Listing<Expression>
+  iif: Listing<Expression>
   do: Listing<ActionDescription>
   or: String?
 }
@@ -53,12 +53,12 @@ abstract class ActionDescription {
   type: Type
 }
 
-typealias Type = "invoke"|"eval"|"raise"|"timeout"|"timeoutReset"|"match"
+typealias Type = "invoke"|"eval"|"raise"|"timeout"|"reset"|"match"
 
 class InvokeDescription extends ActionDescription {
   type: Type = "invoke"
   serviceType: String
-  isLocal: Boolean = false
+  `local`: Boolean = false
   input: Context
   raises: Listing<EventDescription>
 }
@@ -75,13 +75,12 @@ class RaiseDescription extends ActionDescription {
 
 class TimeoutDescription extends ActionDescription {
   type: Type = "timeout"
-  name: String
   delay: Expression
   do: RaiseDescription
 }
 
-class TimeoutResetDescription extends ActionDescription {
-  type: Type = "timeoutReset"
+class ResetDescription extends ActionDescription {
+  type: Type = "reset"
   name: String
 }
 
@@ -106,9 +105,9 @@ class EventDescription {
 
 typealias StateMachine = StateMachineDescription
 typealias State = StateDescription
-typealias InitialState = InitialStateDescription
-typealias TerminalState = TerminalStateDescription
-typealias SingletonState = SingletonStateDescription
+typealias Initial = InitialDescription
+typealias Terminal = TerminalDescription
+typealias Singleton = SingletonDescription
 typealias Transition = TransitionDescription
 typealias Action = ActionDescription
 typealias Eval = EvalDescription
@@ -117,5 +116,5 @@ typealias Case = CaseDescription
 typealias Match = MatchDescription
 typealias Raise = RaiseDescription
 typealias Timeout = TimeoutDescription
-typealias TimeoutReset = TimeoutResetDescription
+typealias Reset = ResetDescription
 typealias Event = EventDescription

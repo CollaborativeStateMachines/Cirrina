@@ -173,9 +173,7 @@ public final class CollaborativeStateMachineClassBuilder {
     // Construct a local context from the persistent context description, such that we can easily acquire the context variables
     Context persistentContext;
     try {
-      persistentContext = ContextBuilder.from(csml.getPersistentContext())
-        .inMemoryContext(true)
-        .build();
+      persistentContext = ContextBuilder.from(csml.getPersistent()).inMemoryContext(true).build();
     } catch (IOException ignored) {
       throw new IllegalStateException();
     }

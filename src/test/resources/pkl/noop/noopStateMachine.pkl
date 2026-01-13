@@ -2,6 +2,6 @@ import "modulepath:/pkl/csm/Csml.pkl"
 
 class StateMachine extends Csml.StateMachine {
   states {
-    ["a"] = new Csml.SingletonState {}
+    ["a"] = new Csml.Singleton {}
   }
 }

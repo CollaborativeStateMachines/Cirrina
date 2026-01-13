@@ -5,7 +5,7 @@ version = "3.0.0"
 stateMachines {
   ["stateMachine1"] = new stateMachineOne.StateMachine {}
 }
-persistentContext {
+persistent {
   ["b"] = "true"
   ["v"] = "0"
 }

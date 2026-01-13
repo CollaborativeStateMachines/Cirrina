@@ -79,7 +79,7 @@ public class TransitionClassBuilder {
       return new OnTransitionClass(
         transitionDescription.getTo(),
         transitionDescription.getOr(),
-        resolveGuards.apply(transitionDescription.getGuards()),
+        resolveGuards.apply(transitionDescription.getIif()),
         resolveActions.apply(transitionDescription.getDo()),
         event
       );
@@ -87,7 +87,7 @@ public class TransitionClassBuilder {
       return new TransitionClass(
         transitionDescription.getTo(),
         transitionDescription.getOr(),
-        resolveGuards.apply(transitionDescription.getGuards()),
+        resolveGuards.apply(transitionDescription.getIif()),
         resolveActions.apply(transitionDescription.getDo())
       );
     }

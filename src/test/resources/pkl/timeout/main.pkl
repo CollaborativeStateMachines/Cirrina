@@ -5,10 +5,9 @@ version = "3.0.0"
 stateMachines {
   ["stateMachine1"] = new Csml.StateMachine {
     states {
-      ["a"] = new Csml.InitialState {
+      ["a"] = new Csml.Initial {
         after {
-          new Csml.Timeout {
-            name = "timeout"
+          ["timeout"] = new Csml.Timeout {
             delay = "100"
             do = new Csml.Raise {
               event = new Csml.Event {
@@ -49,10 +48,10 @@ stateMachines {
           }
         }
       }
-      ["b"] = new Csml.TerminalState {}
+      ["b"] = new Csml.Terminal {}
     }
   }
 }
-persistentContext {
+persistent {
   ["v"] = "0"
 }

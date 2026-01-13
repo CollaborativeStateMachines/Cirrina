@@ -6,10 +6,9 @@ class StateMachine extends Csml.StateMachine {
     ["nestedStateMachine1"] = new nestedStateMachineOne.StateMachine {}
   }
   states {
-    ["a"] = new Csml.InitialState {
+    ["a"] = new Csml.Initial {
       after {
-        new Csml.Timeout {
-          name = "timeout"
+        ["timeout"] = new Csml.Timeout {
           delay = "10"
           do = new Csml.Raise {
             event = new Csml.Event {
@@ -29,7 +28,7 @@ class StateMachine extends Csml.StateMachine {
       entry {
         new Csml.Invoke {
           serviceType = "increment"
-          isLocal = true
+          `local` = true
           input {
             ["v"] = "v"
           }
@@ -56,13 +55,13 @@ class StateMachine extends Csml.StateMachine {
       always {
         new Csml.Transition {
           to = "d"
-          guards {
+          iif {
             "v >= 100"
           }
         }
         new Csml.Transition {
           to = "b"
-          guards {
+          iif {
             "v < 100"
           }
         }
@@ -70,8 +69,7 @@ class StateMachine extends Csml.StateMachine {
     }
     ["d"] = new Csml.State {
       after {
-        new Csml.Timeout {
-          name = "timeout"
+        ["timeout"] = new Csml.Timeout {
           delay = "10"
           do = new Csml.Raise {
             event = new Csml.Event {
@@ -92,7 +90,7 @@ class StateMachine extends Csml.StateMachine {
               cases {
                 new Csml.Case {
                   of = "0"
-                  then = new Csml.TimeoutReset {
+                  then = new Csml.Reset {
                     name = "timeout"
                   }
                 }
@@ -114,6 +112,6 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    ["e"] = new Csml.TerminalState {}
+    ["e"] = new Csml.Terminal {}
   }
 }

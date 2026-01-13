@@ -79,7 +79,7 @@ public final class StateMachineClassBuilder {
 
     var parameters = new StateMachineClass.Parameters(
       name,
-      stateMachineDescription.getLocalContext(),
+      stateMachineDescription.getLocal(),
       nestedStateMachines
     );
 

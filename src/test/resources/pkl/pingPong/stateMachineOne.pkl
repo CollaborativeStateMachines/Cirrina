@@ -2,7 +2,7 @@ import "modulepath:/pkl/csm/Csml.pkl"
 
 class StateMachine extends Csml.StateMachine {
   states {
-    ["a"] = new Csml.InitialState {
+    ["a"] = new Csml.Initial {
       entry {
         new Csml.Eval {
           expression = "v = v + 1"
@@ -37,12 +37,12 @@ class StateMachine extends Csml.StateMachine {
       always {
         new Csml.Transition {
           to = "c"
-          guards {
+          iif {
             "v >= 100"
           }
         }
       }
     }
-    ["c"] = new Csml.TerminalState {}
+    ["c"] = new Csml.Terminal {}
   }
 }

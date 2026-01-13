@@ -7,14 +7,15 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.InvokeDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.MatchDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.RaiseDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ResetDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutResetDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
+import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import java.util.Optional;
 public final class ActionBuilder {
 
   private final ActionDescription actionDescription;
+
+  private @Nullable String name;
 
   /**
    * Initializes an action builder.
@@ -44,6 +47,11 @@ public final class ActionBuilder {
    */
   public static ActionBuilder from(ActionDescription actionClass) {
     return new ActionBuilder(actionClass);
+  }
+
+  public ActionBuilder withName(String name) {
+    this.name = name;
+    return this;
   }
 
   /**
@@ -127,7 +135,7 @@ public final class ActionBuilder {
         // Construct parameters
         final var parameters = new InvokeAction.Parameters(
           invoke.getServiceType(),
-          invoke.isIsLocal(),
+          invoke.isLocal(),
           input,
           done
         );
@@ -160,7 +168,7 @@ public final class ActionBuilder {
       }
       case TimeoutDescription timeout -> {
         // Acquire the action name, for timeout actions, the name is always required
-        final var name = Optional.ofNullable(timeout.getName()).orElseThrow(() ->
+        Optional.ofNullable(name).orElseThrow(() ->
           new IllegalArgumentException("Timeout action name is not provided")
         );
 
@@ -176,7 +184,7 @@ public final class ActionBuilder {
         // Construct the timeout action
         return new TimeoutAction(parameters);
       }
-      case TimeoutResetDescription timeoutReset -> {
+      case ResetDescription timeoutReset -> {
         // Construct parameters
         final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getName());
 

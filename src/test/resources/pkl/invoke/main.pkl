@@ -5,10 +5,9 @@ version = "3.0.0"
 stateMachines {
   ["stateMachine1"] = new Csml.StateMachine {
     states {
-      ["a"] = new Csml.InitialState {
+      ["a"] = new Csml.Initial {
         after {
-          new Csml.Timeout {
-            name = "timeout"
+          ["timeout"] = new Csml.Timeout {
             delay = "100"
             do = new Csml.Raise {
               event = new Csml.Event {
@@ -24,7 +23,7 @@ stateMachines {
             do {
               new Csml.Invoke {
                 serviceType = "increment"
-                isLocal = true
+                `local` = true
                 input {
                   ["v"] = "v"
                 }
@@ -54,14 +53,14 @@ stateMachines {
         always {
           new Csml.Transition {
             to = "a"
-            guards {
+            iif {
               "v < 10"
             }
             or = "c"
           }
         }
       }
-      ["c"] = new Csml.TerminalState {}
+      ["c"] = new Csml.Terminal {}
     }
   }
 }

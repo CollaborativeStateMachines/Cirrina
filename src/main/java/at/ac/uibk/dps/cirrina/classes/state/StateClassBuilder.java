@@ -6,9 +6,10 @@ import at.ac.uibk.dps.cirrina.execution.object.action.Action;
 import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
 import jakarta.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class StateClassBuilder {
 
@@ -42,38 +43,47 @@ public class StateClassBuilder {
     return this;
   }
 
-  /**
-   * Builds the state class.
-   *
-   * @return State class.
-   * @throws IllegalArgumentException If an action name does not exist.
-   * @throws IllegalArgumentException If an after action is not a timeout action.
-   */
   public StateClass build() throws IllegalArgumentException {
-    // Resolve actions
-    final Function<List<? extends ActionDescription>, List<Action>> resolveActions = (List<
-      ? extends ActionDescription
-    > actions) ->
-      actions
-        .stream()
-        .map(actionDescription -> ActionBuilder.from(actionDescription).build())
-        .toList();
+    final BiFunction<ActionDescription, String, Action> resolveAction = (desc, name) -> {
+      final var builder = ActionBuilder.from(desc);
+      if (name != null && !name.isBlank()) {
+        builder.withName(name);
+      }
+      return builder.build();
+    };
 
-    final var entryActions = resolveActions.apply(stateDescription.getEntry());
-    final var exitActions = resolveActions.apply(stateDescription.getExit());
-    final var whileActions = resolveActions.apply(stateDescription.getWhile());
-    final var afterActions = resolveActions.apply(stateDescription.getAfter());
+    final var entryActions = stateDescription
+      .getEntry()
+      .stream()
+      .map(desc -> resolveAction.apply(desc, null))
+      .toList();
+
+    final var exitActions = stateDescription
+      .getExit()
+      .stream()
+      .map(desc -> resolveAction.apply(desc, null))
+      .toList();
+
+    final var whileActions = stateDescription
+      .getWhile()
+      .stream()
+      .map(desc -> resolveAction.apply(desc, null))
+      .toList();
+
+    final List<Action> afterActions = new ArrayList<>();
+    stateDescription
+      .getAfter()
+      .forEach((name, desc) -> afterActions.add(resolveAction.apply(desc, name)));
 
     if (!afterActions.stream().allMatch(TimeoutAction.class::isInstance)) {
       throw new IllegalArgumentException("After action is not a timeout action");
     }
 
-    // Create the state class
     return new StateClass(
       new StateClass.BaseParameters(
         parentStateMachineId,
         name,
-        stateDescription.getLocalContext(),
+        stateDescription.getLocal(),
         stateDescription.isInitial(),
         stateDescription.isTerminal(),
         entryActions,
