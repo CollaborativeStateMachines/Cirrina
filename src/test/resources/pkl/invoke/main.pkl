@@ -9,12 +9,7 @@ stateMachines {
         after {
           ["timeout"] = new Csml.Timeout {
             delay = "100"
-            do = new Csml.Raise {
-              event = new Csml.Event {
-                topic = "update"
-                channel = "internal"
-              }
-            }
+            do = new Csml.Raise { event = new Csml.Internal { topic = "update" } }
           }
         }
         on {
@@ -24,38 +19,23 @@ stateMachines {
               new Csml.Invoke {
                 serviceType = "increment"
                 `local` = true
-                input {
-                  ["v"] = "v"
-                }
-                raises {
-                  new Csml.Event {
-                    topic = "tob"
-                    channel = "internal"
-                  }
-                }
+                input { ["v"] = "v" }
+                raises { new Csml.Internal { topic = "tob" } }
               }
-              new Csml.Eval {
-                expression = "e = e + 1"
-              }
+              new Csml.Eval { expression = "e = e + 1" }
             }
           }
-          ["tob"] = new Csml.Transition {
-            to = "b"
-          }
+          ["tob"] = new Csml.Transition { to = "b" }
         }
       }
       ["b"] = new Csml.State {
         entry {
-          new Csml.Eval {
-            expression = "v = $v"
-          }
+          new Csml.Eval { expression = "v = $v" }
         }
         always {
           new Csml.Transition {
             to = "a"
-            iif {
-              "v < 10"
-            }
+            iif { "v < 10" }
             or = "c"
           }
         }

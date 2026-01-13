@@ -79,7 +79,7 @@ public final class ActionBuilder {
    * @param eventDescriptions event descriptions
    * @return events
    */
-  private static List<Event> buildEvents(List<EventDescription> eventDescriptions) {
+  private static List<Event> buildEvents(List<? extends EventDescription> eventDescriptions) {
     return eventDescriptions
       .stream()
       .map(e -> EventBuilder.from(e).build())

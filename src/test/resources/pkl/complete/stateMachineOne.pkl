@@ -10,18 +10,11 @@ class StateMachine extends Csml.StateMachine {
       after {
         ["timeout"] = new Csml.Timeout {
           delay = "10"
-          do = new Csml.Raise {
-            event = new Csml.Event {
-              topic = "e1"
-              channel = "internal"
-            }
-          }
+          do = new Csml.Raise { event = new Csml.Internal { topic = "e1" } }
         }
       }
       on {
-        ["e1"] = new Csml.Transition {
-          to = "b"
-        }
+        ["e1"] = new Csml.Transition { to = "b" }
       }
     }
     ["b"] = new Csml.State {
@@ -29,87 +22,50 @@ class StateMachine extends Csml.StateMachine {
         new Csml.Invoke {
           serviceType = "increment"
           `local` = true
-          input {
-            ["v"] = "v"
-          }
-          raises {
-            new Csml.Event {
-              topic = "e2"
-              channel = "internal"
-            }
-          }
+          input { ["v"] = "v" }
+          raises { new Csml.Internal { topic = "e2" } }
         }
       }
       on {
         ["e2"] = new Csml.Transition {
           to = "c"
-          do {
-            new Csml.Eval {
-              expression = "v = $v"
-            }
-          }
+          do { new Csml.Eval { expression = "v = $v" } }
         }
       }
     }
     ["c"] = new Csml.State {
       always {
-        new Csml.Transition {
-          to = "d"
-          iif {
-            "v >= 100"
-          }
-        }
-        new Csml.Transition {
-          to = "b"
-          iif {
-            "v < 100"
-          }
-        }
+        new Csml.Transition { to = "d"; iif { "v >= 100" } }
+        new Csml.Transition { to = "b"; iif { "v < 100" } }
       }
     }
     ["d"] = new Csml.State {
       after {
         ["timeout"] = new Csml.Timeout {
           delay = "10"
-          do = new Csml.Raise {
-            event = new Csml.Event {
-              topic = "e3"
-              channel = "internal"
-            }
-          }
+          do = new Csml.Raise { event = new Csml.Internal { topic = "e3" } }
         }
       }
       on {
         ["e3"] = new Csml.Transition {
           do {
-            new Csml.Eval {
-              expression = "v = v - 1"
-            }
+            new Csml.Eval { expression = "v = v - 1" }
             new Csml.Match {
               value = "v"
               cases {
                 new Csml.Case {
                   of = "0"
-                  then = new Csml.Reset {
-                    name = "timeout"
-                  }
+                  then = new Csml.Reset { name = "timeout" }
                 }
                 new Csml.Case {
                   of = "0"
-                  then = new Csml.Raise {
-                    event = new Csml.Event {
-                      topic = "e4"
-                      channel = "internal"
-                    }
-                  }
+                  then = new Csml.Raise { event = new Csml.Internal { topic = "e4" } }
                 }
               }
             }
           }
         }
-        ["e4"] = new Csml.Transition {
-          to = "e"
-        }
+        ["e4"] = new Csml.Transition { to = "e" }
       }
     }
     ["e"] = new Csml.Terminal {}

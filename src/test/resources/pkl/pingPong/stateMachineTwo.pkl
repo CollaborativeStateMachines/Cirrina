@@ -4,43 +4,22 @@ class StateMachine extends Csml.StateMachine {
   states {
     ["a"] = new Csml.Initial {
       entry {
-        new Csml.Raise {
-          event = new Csml.Event {
-            topic = "e4"
-            channel = "global"
-          }
-        }
+        new Csml.Raise { event = new Csml.Global { topic = "e4" } }
       }
       on {
-        ["e1"] = new Csml.Transition {
-          to = "b"
-        }
+        ["e1"] = new Csml.Transition { to = "b" }
       }
     }
     ["b"] = new Csml.State {
       entry {
-        new Csml.Eval {
-          expression = "v = v + 1"
-        }
-        new Csml.Raise {
-          event = new Csml.Event {
-            topic = "e2"
-            channel = "global"
-          }
-        }
+        new Csml.Eval { expression = "v = v + 1" }
+        new Csml.Raise { event = new Csml.Global { topic = "e2" } }
       }
       on {
-        ["e3"] = new Csml.Transition {
-          to = "a"
-        }
+        ["e3"] = new Csml.Transition { to = "a" }
       }
       always {
-        new Csml.Transition {
-          to = "c"
-          iif {
-            "v >= 100"
-          }
-        }
+        new Csml.Transition { to = "c"; iif { "v >= 100" } }
       }
     }
     ["c"] = new Csml.Terminal {}

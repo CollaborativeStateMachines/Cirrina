@@ -3,14 +3,7 @@ import "modulepath:/pkl/csm/Csml.pkl"
 class StateMachine extends Csml.StateMachine {
   states {
     ["a"] = new Csml.Singleton {
-      entry {
-        new Csml.Raise {
-          event = new Csml.Event {
-            topic = "ne1"
-            channel = "global"
-          }
-        }
-      }
+      entry { new Csml.Raise { event = new Csml.Global { topic = "ne1" } } }
     }
   }
 }

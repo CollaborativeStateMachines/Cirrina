@@ -9,12 +9,7 @@ stateMachines {
         after {
           ["timeout"] = new Csml.Timeout {
             delay = "100"
-            do = new Csml.Raise {
-              event = new Csml.Event {
-                topic = "update"
-                channel = "internal"
-              }
-            }
+            do = new Csml.Raise { event = new Csml.Internal { topic = "update" } }
           }
         }
         on {
@@ -26,32 +21,23 @@ stateMachines {
                 cases {
                   new Csml.Case {
                     of = "true"
-                    then = new Csml.Eval {
-                      expression = "v = v + 1"
-                    }
+                    then = new Csml.Eval { expression = "v = v + 1" }
                   }
                   new Csml.Case {
                     of = "false"
                     then = new Csml.Raise {
-                      event = new Csml.Event {
-                        topic = "tob"
-                        channel = "internal"
-                      }
+                      event = new Csml.Internal { topic = "tob" }
                     }
                   }
                 }
               }
             }
           }
-          ["tob"] = new Csml.Transition {
-            to = "b"
-          }
+          ["tob"] = new Csml.Transition { to = "b" }
         }
       }
       ["b"] = new Csml.Terminal {}
     }
   }
 }
-persistent {
-  ["v"] = "0"
-}
+persistent { ["v"] = "0" }

@@ -97,10 +97,22 @@ class MatchDescription extends ActionDescription {
 
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 
-class EventDescription {
+open class EventDescription {
   topic: String
-  channel: EventChannel = "global"
+  channel: EventChannel
   data: Context
+}
+
+class InternalDescription extends EventDescription {
+  channel: EventChannel = "internal"
+}
+
+class ExternalDescription extends EventDescription {
+  channel: EventChannel = "external"
+}
+
+class GlobalDescription extends EventDescription {
+  channel: EventChannel = "global"
 }
 
 typealias StateMachine = StateMachineDescription
@@ -118,3 +130,6 @@ typealias Raise = RaiseDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
 typealias Event = EventDescription
+typealias Internal = InternalDescription
+typealias External = ExternalDescription
+typealias Global = GlobalDescription
