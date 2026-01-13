@@ -15,14 +15,14 @@ import org.jgrapht.graph.DirectedPseudograph
 class CollaborativeStateMachineClass
 internal constructor(
   /** The collection of persistent context variables. */
-  val persistentContextVariables: MutableList<ContextVariable>
+  val persistentContextVariables: List<ContextVariable>
 ) : DirectedPseudograph<StateMachineClass, Event>(Event::class.java) {
 
   /**
    * Returns a state machine class by its name.
    *
-   * @param name Name of the state machine to return.
-   * @return The state machine with the supplied name or null if none or multiple are found.
+   * @param name name of the state machine to return.
+   * @return the state machine with the supplied name or null if none or multiple are found.
    */
   fun findStateMachineClassByName(name: String): StateMachineClass? {
     val matches = vertexSet().filter { it.name == name }
