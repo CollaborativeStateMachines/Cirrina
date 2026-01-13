@@ -2,7 +2,7 @@ amends "modulepath:/pkl/csm/Csml.pkl"
 import "pingStateMachine.pkl"
 import "pongStateMachine.pkl"
 
-version = "3.0.0"
+version = "4.0.0"
 stateMachines {
   ["pingStateMachine"] = pingStateMachine.sm
   ["pongStateMachine"] = pongStateMachine.sm

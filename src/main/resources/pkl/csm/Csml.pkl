@@ -1,7 +1,7 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
 module at.ac.uibk.dps.cirrina.csm.Csml
 
-typealias Version = "3.0.0"
+typealias Version = "4.0.0"
 typealias Expression = String
 typealias Context = Mapping<String, Expression>
 

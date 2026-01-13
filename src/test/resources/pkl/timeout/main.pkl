@@ -1,7 +1,7 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
 import "timeoutStateMachine.pkl"
 
-version = "3.0.0"
+version = "4.0.0"
 stateMachines {
   ["timeoutStateMachine"] = timeoutStateMachine.sm
 }
