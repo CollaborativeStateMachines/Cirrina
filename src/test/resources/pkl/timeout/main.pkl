@@ -19,9 +19,8 @@ stateMachines {
           }
         }
         on {
-          new Csml.Transition {
-            event = "update"
-            target = "a"
+          ["update"] = new Csml.Transition {
+            to = "a"
             actions {
               new Csml.Match {
                 value = "v < 10"
@@ -45,9 +44,8 @@ stateMachines {
               }
             }
           }
-          new Csml.Transition {
-            event = "tob"
-            target = "b"
+          ["tob"] = new Csml.Transition {
+            to = "b"
           }
         }
       }

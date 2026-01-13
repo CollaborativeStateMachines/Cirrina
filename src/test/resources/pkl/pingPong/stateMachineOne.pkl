@@ -15,9 +15,8 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new Csml.Transition {
-          event = "e2"
-          target = "b"
+        ["e2"] = new Csml.Transition {
+          to = "b"
         }
       }
     }
@@ -31,14 +30,13 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new Csml.Transition {
-          event = "e4"
-          target = "a"
+        ["e4"] = new Csml.Transition {
+          to = "a"
         }
       }
       always {
         new Csml.Transition {
-          target = "c"
+          to = "c"
           guards {
             "v >= 100"
           }

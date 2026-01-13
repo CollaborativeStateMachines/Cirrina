@@ -20,9 +20,8 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new Csml.Transition {
-          event = "e1"
-          target = "b"
+        ["e1"] = new Csml.Transition {
+          to = "b"
         }
       }
     }
@@ -43,9 +42,8 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new Csml.Transition {
-          event = "e2"
-          target = "c"
+        ["e2"] = new Csml.Transition {
+          to = "c"
           actions {
             new Csml.Eval {
               expression = "v = $v"
@@ -57,13 +55,13 @@ class StateMachine extends Csml.StateMachine {
     ["c"] = new Csml.State {
       always {
         new Csml.Transition {
-          target = "d"
+          to = "d"
           guards {
             "v >= 100"
           }
         }
         new Csml.Transition {
-          target = "b"
+          to = "b"
           guards {
             "v < 100"
           }
@@ -84,8 +82,7 @@ class StateMachine extends Csml.StateMachine {
         }
       }
       on {
-        new Csml.Transition {
-          event = "e3"
+        ["e3"] = new Csml.Transition {
           actions {
             new Csml.Eval {
               expression = "v = v - 1"
@@ -112,9 +109,8 @@ class StateMachine extends Csml.StateMachine {
             }
           }
         }
-        new Csml.Transition {
-          event = "e4"
-          target = "e"
+        ["e4"] = new Csml.Transition {
+          to = "e"
         }
       }
     }

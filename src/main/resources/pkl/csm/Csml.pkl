@@ -23,28 +23,27 @@ open class StateDescription {
   exit: Listing<ActionDescription>
   while: Listing<ActionDescription>
   after: Listing<TimeoutDescription>
-  on: Listing<TransitionDescription>
+  on: Mapping<String, TransitionDescription>
   always: Listing<TransitionDescription>
   localContext: Context?
   staticContext: Context?
 }
 
-open class InitialStateDescription extends StateDescription {
+class InitialStateDescription extends StateDescription {
   initial: Boolean = true
 }
 
-open class TerminalStateDescription extends StateDescription {
+class TerminalStateDescription extends StateDescription {
   terminal: Boolean = true
 }
 
-open class SingletonStateDescription extends StateDescription {
+class SingletonStateDescription extends StateDescription {
   initial: Boolean = true
   terminal: Boolean = true
 }
 
-open class TransitionDescription {
-  event: String?
-  target: String?
+class TransitionDescription {
+  to: String?
   guards: Listing<Expression>
   actions: Listing<ActionDescription>
   or: String?
@@ -56,7 +55,7 @@ abstract class ActionDescription {
 
 typealias Type = "invoke"|"eval"|"raise"|"timeout"|"timeoutReset"|"match"
 
-open class InvokeDescription extends ActionDescription {
+class InvokeDescription extends ActionDescription {
   type: Type = "invoke"
   serviceType: String
   isLocal: Boolean = false
@@ -64,24 +63,24 @@ open class InvokeDescription extends ActionDescription {
   done: Listing<EventDescription>
 }
 
-open class EvalDescription extends ActionDescription {
+class EvalDescription extends ActionDescription {
   type: Type = "eval"
   expression: Expression
 }
 
-open class RaiseDescription extends ActionDescription {
+class RaiseDescription extends ActionDescription {
   type: Type = "raise"
   event: EventDescription
 }
 
-open class TimeoutDescription extends ActionDescription {
+class TimeoutDescription extends ActionDescription {
   type: Type = "timeout"
   name: String
   delay: Expression
   action: RaiseDescription
 }
 
-open class TimeoutResetDescription extends ActionDescription {
+class TimeoutResetDescription extends ActionDescription {
   type: Type = "timeoutReset"
   action: String
 }
@@ -91,7 +90,7 @@ class CaseDescription {
   action: ActionDescription
 }
 
-open class MatchDescription extends ActionDescription {
+class MatchDescription extends ActionDescription {
   type: Type = "match"
   value: Expression
   cases: Listing<CaseDescription>

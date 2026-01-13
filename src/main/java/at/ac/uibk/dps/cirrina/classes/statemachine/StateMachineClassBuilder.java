@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * StateClass machine builder. Builds a state machine based on a state machine class.
@@ -114,59 +114,42 @@ public final class StateMachineClassBuilder {
     // Attempt to add edges
     stateMachineDescription
       .getStates()
-      .entrySet()
-      .forEach(stateEntry -> {
+      .forEach((key, value) -> {
         // Acquire source node, this is expected to always succeed as we use the previously created state
-        var sourceStateClass = stateMachine.findStateClassByName(stateEntry.getKey()).get();
+        var sourceStateClass = stateMachine.findStateClassByName(key).get();
 
-        Consumer<List<? extends TransitionDescription>> processTransitions = on -> {
-          for (var transitionClass : on) {
-            // Acquire the target node, if the target is not provided, this is a self-transition
-            var targetStateClass = Optional.ofNullable(transitionClass.getTarget())
-              .map(targetName ->
-                stateMachine
-                  .findStateClassByName(targetName)
-                  .orElseThrow(() ->
-                    new IllegalArgumentException(
-                      "Transition has an invalid target state '%s'".formatted(targetName)
-                    )
+        BiConsumer<String, TransitionDescription> processTransitionEntry = (event, description) -> {
+          var targetStateClass = Optional.ofNullable(description.getTo())
+            .map(targetName ->
+              stateMachine
+                .findStateClassByName(targetName)
+                .orElseThrow(() ->
+                  new IllegalArgumentException(
+                    "Transition '%s' has an invalid target state '%s'".formatted(name, targetName)
                   )
-              )
-              .orElse(sourceStateClass);
-
-            // Attempt to add an edge to the state machine graph that resembles the transition
-            if (
-              !stateMachine.addEdge(
-                sourceStateClass,
-                targetStateClass,
-                TransitionClassBuilder.from(transitionClass).build()
-              )
-            ) {
-              throw new IllegalArgumentException(
-                "The edge between states '%s' and '%s' is illegal in '%s'".formatted(
-                  sourceStateClass.getName(),
-                  targetStateClass.getName(),
-                  name
                 )
-              );
-            }
+            )
+            .orElse(sourceStateClass);
+
+          var builder = TransitionClassBuilder.from(description);
+
+          if (event != null) {
+            builder.withEvent(event);
+          }
+
+          if (!stateMachine.addEdge(sourceStateClass, targetStateClass, builder.build())) {
+            throw new IllegalArgumentException(
+              "The edge '%s' between '%s' and '%s' is illegal".formatted(
+                name,
+                sourceStateClass.getName(),
+                targetStateClass.getName()
+              )
+            );
           }
         };
 
-        // TODO: This is actually allowed, depending on the guard conditions
-        /* // Ensure that "on" transitions have distinct events
-          var hasDuplicateEdges = stateClass.getOn().stream()
-              .collect(Collectors.groupingBy(OnTransitionDescription::getEvent, Collectors.counting())).entrySet().stream()
-              .anyMatch(entry -> entry.getValue() > 1);
-          if (hasDuplicateEdges) {
-            throw new IllegalArgumentException(
-                "Multiple outwards transitions with the same event in '%s'".formatted(stateMachineDescription.name));
-          }*/
-
-        processTransitions.accept(stateEntry.getValue().getOn());
-
-        // Attempt to add edges corresponding to the "always" transitions, these transitions are optional
-        processTransitions.accept(stateEntry.getValue().getAlways());
+        value.getOn().forEach(processTransitionEntry);
+        value.getAlways().forEach(desc -> processTransitionEntry.accept(null, desc));
       });
 
     return stateMachine;
