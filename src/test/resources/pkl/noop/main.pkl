@@ -1,8 +1,7 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
 import "noopStateMachine.pkl"
 
-name = "noop"
 version = "3.0.0"
 stateMachines {
-  new noopStateMachine.StateMachine {}
+  ["stateMachine"] = new noopStateMachine.StateMachine {}
 }

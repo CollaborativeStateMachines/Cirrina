@@ -1,10 +1,8 @@
 import "modulepath:/pkl/csm/Csml.pkl"
 
 class StateMachine extends Csml.StateMachine {
-  name = "nestedStateMachine1"
   states {
-    new Csml.SingletonState {
-      name = "a"
+    ["a"] = new Csml.SingletonState {
       entry {
         new Csml.Raise {
           event {

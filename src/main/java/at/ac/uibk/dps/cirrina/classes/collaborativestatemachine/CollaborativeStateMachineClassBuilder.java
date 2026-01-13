@@ -50,8 +50,13 @@ public final class CollaborativeStateMachineClassBuilder {
   private void buildVertices(CollaborativeStateMachineClass collaborativeStateMachineClass) {
     csml
       .getStateMachines()
+      .entrySet()
       .stream()
-      .map(stateMachineClass -> StateMachineClassBuilder.from(stateMachineClass).build())
+      .map(stateMachineEntry ->
+        StateMachineClassBuilder.from(stateMachineEntry.getValue()) // Value is the state machine description
+          .withName(stateMachineEntry.getKey()) // Key is the name of the state machine
+          .build()
+      )
       .forEach(collaborativeStateMachineClass::addVertex);
   }
 
@@ -177,7 +182,6 @@ public final class CollaborativeStateMachineClassBuilder {
 
     try {
       final var collaborativeStateMachine = new CollaborativeStateMachineClass(
-        csml.getName(),
         persistentContext != null ? persistentContext.getAll() : List.of()
       );
 

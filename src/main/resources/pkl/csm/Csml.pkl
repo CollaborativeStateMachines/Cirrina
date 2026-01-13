@@ -5,21 +5,18 @@ typealias Version = "3.0.0"
 typealias Expression = String
 typealias Context = Mapping<String, Expression>
 
-name: String
 version: Version
-stateMachines: Listing<StateMachineDescription>
+stateMachines: Mapping<String, StateMachineDescription>
 localContext: Context?
 persistentContext: Context?
 
 open class StateMachineDescription {
-  name: String
-  states: Listing<StateDescription>
-  stateMachines: Listing<StateMachineDescription>
+  states: Mapping<String, StateDescription>
+  stateMachines: Mapping<String, StateMachineDescription>
   localContext: Context?
 }
 
 open class StateDescription {
-  name: String
   initial: Boolean = false
   terminal: Boolean = false
   entry: Listing<ActionDescription>

@@ -2,13 +2,11 @@ import "modulepath:/pkl/csm/Csml.pkl"
 import "nestedStateMachineOne.pkl"
 
 class StateMachine extends Csml.StateMachine {
-  name = "stateMachine1"
   stateMachines {
-    new nestedStateMachineOne.StateMachine {}
+    ["nestedStateMachine1"] = new nestedStateMachineOne.StateMachine {}
   }
   states {
-    new Csml.InitialState {
-      name = "a"
+    ["a"] = new Csml.InitialState {
       after {
         new Csml.Timeout {
           name = "timeout"
@@ -28,8 +26,7 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new Csml.State {
-      name = "b"
+    ["b"] = new Csml.State {
       entry {
         new Csml.Invoke {
           serviceType = "increment"
@@ -57,8 +54,7 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new Csml.State {
-      name = "c"
+    ["c"] = new Csml.State {
       always {
         new Csml.Transition {
           target = "d"
@@ -74,8 +70,7 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new Csml.State {
-      name = "d"
+    ["d"] = new Csml.State {
       after {
         new Csml.Timeout {
           name = "timeout"
@@ -123,8 +118,6 @@ class StateMachine extends Csml.StateMachine {
         }
       }
     }
-    new Csml.TerminalState {
-      name = "e"
-    }
+    ["e"] = new Csml.TerminalState {}
   }
 }

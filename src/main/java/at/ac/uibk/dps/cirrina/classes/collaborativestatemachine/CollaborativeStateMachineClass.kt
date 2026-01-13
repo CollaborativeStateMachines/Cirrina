@@ -14,11 +14,8 @@ import org.jgrapht.graph.DirectedPseudograph
  */
 class CollaborativeStateMachineClass
 internal constructor(
-  // The name of the collaborative state machine.
-  private val name: String,
-
   /** The collection of persistent context variables. */
-  val persistentContextVariables: MutableList<ContextVariable>,
+  val persistentContextVariables: MutableList<ContextVariable>
 ) : DirectedPseudograph<StateMachineClass, Event>(Event::class.java) {
 
   /**
@@ -35,6 +32,4 @@ internal constructor(
   /** Returns the collection of state machine classes. */
   val stateMachineClasses: List<StateMachineClass>
     get() = vertexSet().toList()
-
-  override fun toString(): String = name
 }

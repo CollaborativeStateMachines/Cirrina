@@ -1,14 +1,11 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
 import "modulepath:/pkl/csm/Csml.pkl"
 
-name = "timeout"
 version = "3.0.0"
 stateMachines {
-  new Csml.StateMachine {
-    name = "stateMachine1"
+  ["stateMachine1"] = new Csml.StateMachine {
     states {
-      new Csml.InitialState {
-        name = "a"
+      ["a"] = new Csml.InitialState {
         after {
           new Csml.Timeout {
             name = "timeout"
@@ -54,9 +51,7 @@ stateMachines {
           }
         }
       }
-      new Csml.TerminalState {
-        name = "b"
-      }
+      ["b"] = new Csml.TerminalState {}
     }
   }
 }
