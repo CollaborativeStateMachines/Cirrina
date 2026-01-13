@@ -3,5 +3,5 @@ import "noopStateMachine.pkl"
 
 version = "3.0.0"
 stateMachines {
-  ["stateMachine"] = new noopStateMachine.StateMachine {}
+  ["stateMachine"] = noopStateMachine.sm
 }

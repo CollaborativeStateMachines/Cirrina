@@ -80,11 +80,11 @@ class CompleteTest {
               val services = ServiceImplementationBuilder.from(listOf(service)).build()
               val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
-              // Create and run the runtime using one state machine (stateMachine1)
+              // Create and run the runtime using one state machine (completeStateMachine)
               val runtime =
                 Runtime(
                     DefaultDescriptions.complete,
-                    listOf("stateMachine1"),
+                    listOf("completeStateMachine"),
                     loggingOpenTelemetry(),
                     serviceImplementationSelector,
                     eventHandler,
@@ -95,10 +95,10 @@ class CompleteTest {
               // Retrieve all state machine instances registered with the runtime
               val allStateMachines = runtime.stateMachines.toMutableList()
 
-              // Should be "stateMachine1"
+              // Should be "completeStateMachine"
               assertEquals(
                 allStateMachines.first().getStateMachineClass().toString(),
-                "stateMachine1",
+                "completeStateMachine",
               )
 
               allStateMachines.removeAt(0)
@@ -366,7 +366,7 @@ class CompleteTest {
           val runtime =
             Runtime(
                 DefaultDescriptions.complete,
-                listOf("stateMachine1"),
+                listOf("completeStateMachine"),
                 loggingOpenTelemetry(),
                 serviceImplementationSelector,
                 eventHandler,
@@ -381,14 +381,14 @@ class CompleteTest {
 
           val importantSubstrings =
             arrayOf(
-              "stateMachine1",
+              "completeStateMachine",
               "state \"a\"",
               "state \"b\"",
               "state \"e\"",
               "[*] -->",
               "--> [*]",
               "Invoke{increment}",
-              "nestedStateMachine1",
+              "nestedStateMachine",
             )
 
           for (string in importantSubstrings) {

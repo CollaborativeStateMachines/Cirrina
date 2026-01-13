@@ -1,9 +1,9 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
-import "stateMachineOne.pkl"
-import "stateMachineTwo.pkl"
+import "pingStateMachine.pkl"
+import "pongStateMachine.pkl"
 
 version = "3.0.0"
 stateMachines {
-  ["stateMachine1"] = new stateMachineOne.StateMachine {}
-  ["stateMachine2"] = new stateMachineTwo.StateMachine {}
+  ["pingStateMachine"] = pingStateMachine.sm
+  ["pongStateMachine"] = pongStateMachine.sm
 }

@@ -1,6 +1,6 @@
 import "modulepath:/pkl/csm/Csml.pkl"
 
-class StateMachine extends Csml.StateMachine {
+sm = new Csml.StateMachine {
   states {
     ["a"] = new Csml.Initial {
       entry {

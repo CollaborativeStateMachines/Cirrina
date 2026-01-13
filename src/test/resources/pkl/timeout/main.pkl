@@ -1,43 +1,8 @@
 amends "modulepath:/pkl/csm/Csml.pkl"
-import "modulepath:/pkl/csm/Csml.pkl"
+import "timeoutStateMachine.pkl"
 
 version = "3.0.0"
 stateMachines {
-  ["stateMachine1"] = new Csml.StateMachine {
-    states {
-      ["a"] = new Csml.Initial {
-        after {
-          ["timeout"] = new Csml.Timeout {
-            delay = "100"
-            do = new Csml.Raise { event = new Csml.Internal { topic = "update" } }
-          }
-        }
-        on {
-          ["update"] = new Csml.Transition {
-            to = "a"
-            do {
-              new Csml.Match {
-                value = "v < 10"
-                cases {
-                  new Csml.Case {
-                    of = "true"
-                    then = new Csml.Eval { expression = "v = v + 1" }
-                  }
-                  new Csml.Case {
-                    of = "false"
-                    then = new Csml.Raise {
-                      event = new Csml.Internal { topic = "tob" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-          ["tob"] = new Csml.Transition { to = "b" }
-        }
-      }
-      ["b"] = new Csml.Terminal {}
-    }
-  }
+  ["timeoutStateMachine"] = timeoutStateMachine.sm
 }
 persistent { ["v"] = "0" }

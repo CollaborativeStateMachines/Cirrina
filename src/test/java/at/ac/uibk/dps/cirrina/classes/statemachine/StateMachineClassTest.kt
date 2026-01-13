@@ -22,13 +22,13 @@ class StateMachineClassTest {
             CsmParser.parseCsml(DefaultDescriptions.complete)
           )
           .build()
-          .findStateMachineClassByName("stateMachine1")!!
+          .findStateMachineClassByName("completeStateMachine")!!
     }
   }
 
   @Test
   fun testGetName() {
-    assertEquals("stateMachine1", stateMachineClass.name)
+    assertEquals("completeStateMachine", stateMachineClass.name)
   }
 
   @Test
@@ -80,6 +80,6 @@ class StateMachineClassTest {
 
   @Test
   fun testToString() {
-    assertEquals("stateMachine1", stateMachineClass.toString())
+    assertEquals("completeStateMachine", stateMachineClass.toString())
   }
 }

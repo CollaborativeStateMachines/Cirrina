@@ -1,9 +1,9 @@
 import "modulepath:/pkl/csm/Csml.pkl"
-import "nestedStateMachineOne.pkl"
+import "nestedStateMachine.pkl"
 
-class StateMachine extends Csml.StateMachine {
+sm = new Csml.StateMachine {
   stateMachines {
-    ["nestedStateMachine1"] = new nestedStateMachineOne.StateMachine {}
+    ["nestedStateMachine"] = nestedStateMachine.sm
   }
   states {
     ["a"] = new Csml.Initial {

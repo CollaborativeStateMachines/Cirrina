@@ -10,7 +10,7 @@ stateMachines: Mapping<String, StateMachineDescription>
 transient: Context?
 persistent: Context?
 
-open class StateMachineDescription {
+class StateMachineDescription {
   states: Mapping<String, StateDescription>
   stateMachines: Mapping<String, StateMachineDescription>
   transient: Context?
