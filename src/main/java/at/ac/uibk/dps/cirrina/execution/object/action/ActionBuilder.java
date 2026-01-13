@@ -134,8 +134,8 @@ public final class ActionBuilder {
 
         // Construct parameters
         final var parameters = new InvokeAction.Parameters(
-          invoke.getServiceType(),
-          invoke.isLocal(),
+          invoke.getType(),
+          invoke.getMode(),
           input,
           done
         );
@@ -191,9 +191,7 @@ public final class ActionBuilder {
         // Construct the timeout reset action
         return new TimeoutResetAction(parameters);
       }
-      default -> throw new UnsupportedOperationException(
-        "Action type '%s' is not known".formatted(actionDescription.getType())
-      );
+      default -> throw new UnsupportedOperationException("Action type is not known");
     }
   }
 }

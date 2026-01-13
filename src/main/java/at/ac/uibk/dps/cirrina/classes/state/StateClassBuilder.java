@@ -83,7 +83,7 @@ public class StateClassBuilder {
       new StateClass.BaseParameters(
         parentStateMachineId,
         name,
-        stateDescription.getLocal(),
+        stateDescription.getTransient(),
         stateDescription.isInitial(),
         stateDescription.isTerminal(),
         entryActions,

@@ -7,13 +7,13 @@ typealias Context = Mapping<String, Expression>
 
 version: Version
 stateMachines: Mapping<String, StateMachineDescription>
-`local`: Context?
+transient: Context?
 persistent: Context?
 
 open class StateMachineDescription {
   states: Mapping<String, StateDescription>
   stateMachines: Mapping<String, StateMachineDescription>
-  `local`: Context?
+  transient: Context?
 }
 
 open class StateDescription {
@@ -25,7 +25,7 @@ open class StateDescription {
   after: Mapping<String, TimeoutDescription>
   on: Mapping<String, TransitionDescription>
   always: Listing<TransitionDescription>
-  `local`: Context?
+  transient: Context?
   static: Context?
 }
 
@@ -49,38 +49,31 @@ class TransitionDescription {
   or: String?
 }
 
-abstract class ActionDescription {
-  type: Type
-}
+abstract class ActionDescription {}
 
-typealias Type = "invoke"|"eval"|"raise"|"timeout"|"reset"|"match"
+typealias InvocationMode = "local"|"remote"
 
 class InvokeDescription extends ActionDescription {
-  type: Type = "invoke"
-  serviceType: String
-  `local`: Boolean = false
+  type: String
+  mode: InvocationMode = "remote"
   input: Context
   raises: Listing<EventDescription>
 }
 
 class EvalDescription extends ActionDescription {
-  type: Type = "eval"
   expression: Expression
 }
 
 class RaiseDescription extends ActionDescription {
-  type: Type = "raise"
   event: EventDescription
 }
 
 class TimeoutDescription extends ActionDescription {
-  type: Type = "timeout"
   delay: Expression
   do: RaiseDescription
 }
 
 class ResetDescription extends ActionDescription {
-  type: Type = "reset"
   name: String
 }
 
@@ -90,7 +83,6 @@ class CaseDescription {
 }
 
 class MatchDescription extends ActionDescription {
-  type: Type = "match"
   value: Expression
   cases: Listing<CaseDescription>
 }
@@ -115,20 +107,29 @@ class GlobalDescription extends EventDescription {
   channel: EventChannel = "global"
 }
 
+// Alias definitions
 typealias StateMachine = StateMachineDescription
+
 typealias State = StateDescription
 typealias Initial = InitialDescription
 typealias Terminal = TerminalDescription
 typealias Singleton = SingletonDescription
+
 typealias Transition = TransitionDescription
+
+// Action aliases
 typealias Action = ActionDescription
 typealias Eval = EvalDescription
 typealias Invoke = InvokeDescription
+
 typealias Case = CaseDescription
 typealias Match = MatchDescription
+
 typealias Raise = RaiseDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
+
+// Event aliases
 typealias Event = EventDescription
 typealias Internal = InternalDescription
 typealias External = ExternalDescription

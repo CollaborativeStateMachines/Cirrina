@@ -20,8 +20,8 @@ class StateMachine extends Csml.StateMachine {
     ["b"] = new Csml.State {
       entry {
         new Csml.Invoke {
-          serviceType = "increment"
-          `local` = true
+          type = "increment"
+          mode = "local"
           input { ["v"] = "v" }
           raises { new Csml.Internal { topic = "e2" } }
         }

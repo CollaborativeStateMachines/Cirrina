@@ -17,8 +17,8 @@ stateMachines {
             to = "a"
             do {
               new Csml.Invoke {
-                serviceType = "increment"
-                `local` = true
+                type = "increment"
+                mode = "local"
                 input { ["v"] = "v" }
                 raises { new Csml.Internal { topic = "tob" } }
               }

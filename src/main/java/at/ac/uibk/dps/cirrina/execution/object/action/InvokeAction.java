@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
+import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import java.util.List;
@@ -12,7 +13,7 @@ public final class InvokeAction extends Action implements EventRaisingAction {
 
   private final String serviceType;
 
-  private final boolean isLocal;
+  private final InvocationMode mode;
 
   private final List<ContextVariable> input;
 
@@ -20,7 +21,7 @@ public final class InvokeAction extends Action implements EventRaisingAction {
 
   InvokeAction(Parameters parameters) {
     this.serviceType = parameters.serviceType();
-    this.isLocal = parameters.isLocal();
+    this.mode = parameters.mode();
     this.input = parameters.input();
     this.done = parameters.done();
   }
@@ -29,8 +30,8 @@ public final class InvokeAction extends Action implements EventRaisingAction {
     return serviceType;
   }
 
-  public boolean isLocal() {
-    return isLocal;
+  public InvocationMode getMode() {
+    return mode;
   }
 
   public List<ContextVariable> getInput() {
@@ -49,7 +50,7 @@ public final class InvokeAction extends Action implements EventRaisingAction {
 
   public record Parameters(
     String serviceType,
-    boolean isLocal,
+    InvocationMode mode,
     List<ContextVariable> input,
     List<Event> done
   ) {}

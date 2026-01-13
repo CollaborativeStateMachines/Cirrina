@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
+import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.ArrayList;
@@ -11,7 +12,7 @@ public class RandomServiceImplementationSelector extends ServiceImplementationSe
   /**
    * Initializes this service implementation selector.
    *
-   * @param serviceImplementations Known service implementations.
+   * @param serviceImplementations known service implementations
    */
   public RandomServiceImplementationSelector(
     Multimap<String, ServiceImplementation> serviceImplementations
@@ -22,15 +23,18 @@ public class RandomServiceImplementationSelector extends ServiceImplementationSe
   /**
    * Selects, given the known service implementations, a random matching service implementation.
    *
-   * @param name  Name of the requested service implementation.
-   * @param local Whether the local implementation is required to be a local service implementation.
-   * @return Selected service implementation.
+   * @param name name of the requested service implementation
+   * @param mode the invocation mode
+   * @return selected service implementation
    */
   @Override
-  public Optional<ServiceImplementation> select(String name, boolean local) {
-    final var serviceImplementationsWithName = new ArrayList<ServiceImplementation>(
-      local
-        ? Multimaps.filterValues(serviceImplementations, ServiceImplementation::isLocal).get(name)
+  public Optional<ServiceImplementation> select(String name, InvocationMode mode) {
+    final var serviceImplementationsWithName = new ArrayList<>(
+      mode == InvocationMode.LOCAL
+        ? Multimaps.filterValues(
+          serviceImplementations,
+          serviceImplementation -> serviceImplementation != null && serviceImplementation.isLocal()
+        ).get(name)
         : serviceImplementations.get(name)
     );
 

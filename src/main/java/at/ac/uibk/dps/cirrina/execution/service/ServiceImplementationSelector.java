@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service;
 
+import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
 import com.google.common.collect.Multimap;
 import java.util.Optional;
 
@@ -10,7 +11,7 @@ public abstract class ServiceImplementationSelector {
   /**
    * Initializes this service implementation selector.
    *
-   * @param serviceImplementations Known service implementations.
+   * @param serviceImplementations known service implementations
    */
   public ServiceImplementationSelector(
     Multimap<String, ServiceImplementation> serviceImplementations
@@ -21,9 +22,9 @@ public abstract class ServiceImplementationSelector {
   /**
    * Selects, given the known service implementations, a matching service implementation.
    *
-   * @param name  Name of the requested service implementation.
-   * @param local Whether the local implementation is required to be a local service implementation.
-   * @return Selected service implementation.
+   * @param name name of the requested service implementation
+   * @param mode the invocation mode
+   * @return selected service implementation
    */
-  public abstract Optional<ServiceImplementation> select(String name, boolean local);
+  public abstract Optional<ServiceImplementation> select(String name, InvocationMode mode);
 }

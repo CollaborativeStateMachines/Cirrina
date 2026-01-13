@@ -111,11 +111,11 @@ public final class ActionInvokeCommand extends ActionCommand {
    */
   private ServiceImplementation selectServiceImplementation() {
     final var serviceType = invokeAction.getServiceType();
-    final var isLocal = invokeAction.isLocal();
+    final var mode = invokeAction.getMode();
     final var serviceImplementationSelector = executionContext.serviceImplementationSelector();
 
     return serviceImplementationSelector
-      .select(serviceType, isLocal)
+      .select(serviceType, mode)
       .orElseThrow(() ->
         new IllegalArgumentException(
           "Could not find a service implementation for the service type '%s'".formatted(serviceType)
