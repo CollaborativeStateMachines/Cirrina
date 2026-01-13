@@ -8,7 +8,7 @@ class StateMachine extends Csml.StateMachine {
           expression = "v = v + 1"
         }
         new Csml.Raise {
-          event {
+          event = new Csml.Event {
             topic = "e1"
             channel = "global"
           }
@@ -23,7 +23,7 @@ class StateMachine extends Csml.StateMachine {
     ["b"] = new Csml.State {
       entry {
         new Csml.Raise {
-          event {
+          event = new Csml.Event {
             topic = "e3"
             channel = "global"
           }

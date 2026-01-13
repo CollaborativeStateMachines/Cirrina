@@ -80,7 +80,7 @@ public class TransitionClassBuilder {
         transitionDescription.getTo(),
         transitionDescription.getOr(),
         resolveGuards.apply(transitionDescription.getGuards()),
-        resolveActions.apply(transitionDescription.getActions()),
+        resolveActions.apply(transitionDescription.getDo()),
         event
       );
     } else {
@@ -88,7 +88,7 @@ public class TransitionClassBuilder {
         transitionDescription.getTo(),
         transitionDescription.getOr(),
         resolveGuards.apply(transitionDescription.getGuards()),
-        resolveActions.apply(transitionDescription.getActions())
+        resolveActions.apply(transitionDescription.getDo())
       );
     }
   }

@@ -91,7 +91,7 @@ public final class ActionBuilder {
     for (final var _case : cases) {
       ret.put(
         ExpressionBuilder.from(_case.getOf()).build(),
-        ActionBuilder.from(_case.getAction()).build()
+        ActionBuilder.from(_case.getThen()).build()
       );
     }
 
@@ -122,7 +122,7 @@ public final class ActionBuilder {
         final var input = buildVariableList(invoke.getInput());
 
         // Acquire the done events
-        final var done = buildEvents(invoke.getDone());
+        final var done = buildEvents(invoke.getRaises());
 
         // Construct parameters
         final var parameters = new InvokeAction.Parameters(
@@ -168,7 +168,7 @@ public final class ActionBuilder {
         final var delayExpression = ExpressionBuilder.from(timeout.getDelay()).build();
 
         // Acquire the timeout action
-        final var timeoutAction = ActionBuilder.from(timeout.getAction()).build();
+        final var timeoutAction = ActionBuilder.from(timeout.getDo()).build();
 
         // Construct parameters
         final var parameters = new TimeoutAction.Parameters(name, delayExpression, timeoutAction);
@@ -178,7 +178,7 @@ public final class ActionBuilder {
       }
       case TimeoutResetDescription timeoutReset -> {
         // Construct parameters
-        final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getAction());
+        final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getName());
 
         // Construct the timeout reset action
         return new TimeoutResetAction(parameters);

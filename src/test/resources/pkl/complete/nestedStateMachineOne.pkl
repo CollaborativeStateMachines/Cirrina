@@ -5,7 +5,7 @@ class StateMachine extends Csml.StateMachine {
     ["a"] = new Csml.SingletonState {
       entry {
         new Csml.Raise {
-          event {
+          event = new Csml.Event {
             topic = "ne1"
             channel = "global"
           }

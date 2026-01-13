@@ -11,8 +11,8 @@ class StateMachine extends Csml.StateMachine {
         new Csml.Timeout {
           name = "timeout"
           delay = "10"
-          action = new Csml.Raise {
-            event {
+          do = new Csml.Raise {
+            event = new Csml.Event {
               topic = "e1"
               channel = "internal"
             }
@@ -33,7 +33,7 @@ class StateMachine extends Csml.StateMachine {
           input {
             ["v"] = "v"
           }
-          done {
+          raises {
             new Csml.Event {
               topic = "e2"
               channel = "internal"
@@ -44,7 +44,7 @@ class StateMachine extends Csml.StateMachine {
       on {
         ["e2"] = new Csml.Transition {
           to = "c"
-          actions {
+          do {
             new Csml.Eval {
               expression = "v = $v"
             }
@@ -73,8 +73,8 @@ class StateMachine extends Csml.StateMachine {
         new Csml.Timeout {
           name = "timeout"
           delay = "10"
-          action = new Csml.Raise {
-            event {
+          do = new Csml.Raise {
+            event = new Csml.Event {
               topic = "e3"
               channel = "internal"
             }
@@ -83,7 +83,7 @@ class StateMachine extends Csml.StateMachine {
       }
       on {
         ["e3"] = new Csml.Transition {
-          actions {
+          do {
             new Csml.Eval {
               expression = "v = v - 1"
             }
@@ -92,14 +92,14 @@ class StateMachine extends Csml.StateMachine {
               cases {
                 new Csml.Case {
                   of = "0"
-                  action = new Csml.TimeoutReset {
-                    action = "timeout"
+                  then = new Csml.TimeoutReset {
+                    name = "timeout"
                   }
                 }
                 new Csml.Case {
                   of = "0"
-                  action = new Csml.Raise {
-                    event {
+                  then = new Csml.Raise {
+                    event = new Csml.Event {
                       topic = "e4"
                       channel = "internal"
                     }

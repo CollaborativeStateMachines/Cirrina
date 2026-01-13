@@ -10,8 +10,8 @@ stateMachines {
           new Csml.Timeout {
             name = "timeout"
             delay = "100"
-            action = new Csml.Raise {
-              event {
+            do = new Csml.Raise {
+              event = new Csml.Event {
                 topic = "update"
                 channel = "internal"
               }
@@ -21,20 +21,20 @@ stateMachines {
         on {
           ["update"] = new Csml.Transition {
             to = "a"
-            actions {
+            do {
               new Csml.Match {
                 value = "v < 10"
                 cases {
                   new Csml.Case {
                     of = "true"
-                    action = new Csml.Eval {
+                    then = new Csml.Eval {
                       expression = "v = v + 1"
                     }
                   }
                   new Csml.Case {
                     of = "false"
-                    action = new Csml.Raise {
-                      event {
+                    then = new Csml.Raise {
+                      event = new Csml.Event {
                         topic = "tob"
                         channel = "internal"
                       }

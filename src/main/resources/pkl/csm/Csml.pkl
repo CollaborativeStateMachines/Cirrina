@@ -45,7 +45,7 @@ class SingletonStateDescription extends StateDescription {
 class TransitionDescription {
   to: String?
   guards: Listing<Expression>
-  actions: Listing<ActionDescription>
+  do: Listing<ActionDescription>
   or: String?
 }
 
@@ -60,7 +60,7 @@ class InvokeDescription extends ActionDescription {
   serviceType: String
   isLocal: Boolean = false
   input: Context
-  done: Listing<EventDescription>
+  raises: Listing<EventDescription>
 }
 
 class EvalDescription extends ActionDescription {
@@ -77,17 +77,17 @@ class TimeoutDescription extends ActionDescription {
   type: Type = "timeout"
   name: String
   delay: Expression
-  action: RaiseDescription
+  do: RaiseDescription
 }
 
 class TimeoutResetDescription extends ActionDescription {
   type: Type = "timeoutReset"
-  action: String
+  name: String
 }
 
 class CaseDescription {
   of: Expression
-  action: ActionDescription
+  then: ActionDescription
 }
 
 class MatchDescription extends ActionDescription {
