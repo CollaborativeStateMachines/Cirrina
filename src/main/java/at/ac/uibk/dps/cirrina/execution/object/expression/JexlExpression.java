@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.object.expression;
 
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.HashMap;
@@ -61,7 +62,7 @@ public class JexlExpression extends Expression {
     namespaces.put("math", Math.class); // Enable math methods, e.g. math:sin(x), math:min(x, y), math:random()
     namespaces.put("std", Stdlib.class);
 
-    var features = new JexlFeatures().sideEffectGlobal(false).sideEffect(false);
+    var features = new JexlFeatures().sideEffectGlobal(true).sideEffect(true);
 
     return new JexlBuilder()
       .arithmetic(new CsmlArithmetic(true))
@@ -109,7 +110,13 @@ public class JexlExpression extends Expression {
     }
 
     @Override
-    public void set(String key, Object value) {}
+    public void set(String key, Object value) {
+      try {
+        extent.trySet(key, value);
+      } catch (IOException e) {
+        throw new NoSuchElementException(String.format("Variable not found: %s", key));
+      }
+    }
 
     @Override
     public boolean has(String key) {

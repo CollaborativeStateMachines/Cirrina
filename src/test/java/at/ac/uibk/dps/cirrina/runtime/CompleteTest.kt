@@ -12,14 +12,10 @@ import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.io.plantuml.CollaborativeStateMachineExporter
-import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlExporter
 import at.ac.uibk.dps.cirrina.utils.BuildVersion
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
-import java.io.StringWriter
 import java.time.Duration
-import kotlin.jvm.optionals.getOrNull
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -80,11 +76,11 @@ class CompleteTest {
               val services = ServiceImplementationBuilder.from(listOf(service)).build()
               val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
-              // Create and run the runtime using one state machine (stateMachine1)
+              // Create and run the runtime using one state machine (completeStateMachine)
               val runtime =
                 Runtime(
                     DefaultDescriptions.complete,
-                    listOf("stateMachine1"),
+                    listOf("completeStateMachine"),
                     loggingOpenTelemetry(),
                     serviceImplementationSelector,
                     eventHandler,
@@ -95,10 +91,10 @@ class CompleteTest {
               // Retrieve all state machine instances registered with the runtime
               val allStateMachines = runtime.stateMachines.toMutableList()
 
-              // Should be "stateMachine1"
+              // Should be "completeStateMachine"
               assertEquals(
                 allStateMachines.first().getStateMachineClass().toString(),
-                "stateMachine1",
+                "completeStateMachine",
               )
 
               allStateMachines.removeAt(0)
@@ -111,24 +107,17 @@ class CompleteTest {
                 allStateMachines
                   .first()
                   .getStateMachineClass()
-                  .findStateClassByName("a")
-                  .getOrNull()
+                  .findStateClassByName("a")!!
                   .toString(),
                 "a",
               )
 
               // Should not have state b
-              assertNull(
-                allStateMachines
-                  .first()
-                  .getStateMachineClass()
-                  .findStateClassByName("b")
-                  .getOrNull()
-              )
+              assertNull(allStateMachines.first().getStateMachineClass().findStateClassByName("b"))
 
-              // This test counts up to 100, and down to 0, so the final value should be 0
-              assertEquals(context.get("v"), 0)
+              assertEquals(context.get("v"), 100)
               assertEquals(context.get("b"), true)
+              assertEquals(context.get("e"), true)
             } finally {
               server.stop(1)
             }
@@ -337,74 +326,5 @@ class CompleteTest {
     // Should be different
     assertFalse(otherService.equals(service) || service.equals(otherService))
     assertNotEquals(otherService.toString(), service.toString())
-  }
-
-  @Test
-  fun testPlantUml() {
-    MockEventHandler().use { eventHandler ->
-      InMemoryContext(false).use { context ->
-        val server = mockHttpServer { input ->
-          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
-          listOf(ContextVariable("v", (v.value as Int) + 1))
-        }
-        try {
-          val service =
-            ServiceImplementationBindings.HttpServiceImplementationBinding(
-              "increment",
-              true,
-              ServiceImplementationBindings.Type.HTTP,
-              "http",
-              "localhost",
-              8000,
-              "/increment",
-              ServiceImplementationBindings.HttpMethod.GET,
-            )
-
-          val services = ServiceImplementationBuilder.from(listOf(service)).build()
-          val serviceImplementationSelector = RandomServiceImplementationSelector(services)
-
-          val runtime =
-            Runtime(
-                DefaultDescriptions.complete,
-                listOf("stateMachine1"),
-                loggingOpenTelemetry(),
-                serviceImplementationSelector,
-                eventHandler,
-                context,
-              )
-              .apply { run() }
-
-          val plantUmlExporter = PlantUmlExporter()
-          plantUmlExporter.withStateMachine(runtime.stateMachines.first().getStateMachineClass())
-
-          val export = plantUmlExporter.getPlantUml()
-
-          val importantSubstrings =
-            arrayOf(
-              "stateMachine1",
-              "state \"a\"",
-              "state \"b\"",
-              "state \"e\"",
-              "[*] -->",
-              "--> [*]",
-              "Invoke{increment}",
-              "nestedStateMachine1",
-            )
-
-          for (string in importantSubstrings) {
-            assertTrue(export.contains(string))
-          }
-
-          assertDoesNotThrow {
-            CollaborativeStateMachineExporter.export(
-              StringWriter(),
-              runtime.stateMachines.first().getStateMachineClass(),
-            )
-          }
-        } finally {
-          server.stop(1)
-        }
-      }
-    }
   }
 }

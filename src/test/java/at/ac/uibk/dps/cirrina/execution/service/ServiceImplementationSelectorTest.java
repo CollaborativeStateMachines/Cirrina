@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod;
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpServiceImplementationBinding;
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.ServiceImplementationBinding;
@@ -100,7 +101,7 @@ class ServiceImplementationSelectorTest {
     final var serviceSelector = new RandomServiceImplementationSelector(services);
 
     assertDoesNotThrow(() -> {
-      var selected = serviceSelector.select("A", false);
+      var selected = serviceSelector.select("A", InvocationMode.REMOTE);
     });
 
     // TODO: Add additional tests

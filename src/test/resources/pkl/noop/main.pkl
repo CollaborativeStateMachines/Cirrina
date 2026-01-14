@@ -1,8 +1,5 @@
-amends "modulepath:/pkl/csm/Csml.pkl"
+amends "modulepath:/pkl/csm/csml.pkl"
 import "noopStateMachine.pkl"
 
-name = "noop"
-version = "3.0.0"
-stateMachines {
-  new noopStateMachine.StateMachine {}
-}
+version = "4.0.0"
+stateMachines { ["stateMachine"] = noopStateMachine.sm }

@@ -83,7 +83,7 @@ class InvokeTest {
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
         Runtime(
             DefaultDescriptions.invoke,
-            listOf("stateMachine1"),
+            listOf("invokeStateMachine"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,

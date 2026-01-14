@@ -58,7 +58,7 @@ class TimeoutTest {
         // Create and run the runtime using one state machine (stateMachine1)
         Runtime(
             DefaultDescriptions.timeout,
-            listOf("stateMachine1"),
+            listOf("timeoutStateMachine"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,

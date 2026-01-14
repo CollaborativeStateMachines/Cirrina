@@ -70,7 +70,6 @@ public final class ActionInvokeCommand extends ActionCommand {
                 serviceImplementation.getInformationString()
               );
           } else {
-            assignServiceOutput(output, extent);
             raiseEvents(output, eventListener, eventHandler);
             measurePerformance(start, serviceImplementation);
           }
@@ -112,47 +111,16 @@ public final class ActionInvokeCommand extends ActionCommand {
    */
   private ServiceImplementation selectServiceImplementation() {
     final var serviceType = invokeAction.getServiceType();
-    final var isLocal = invokeAction.isLocal();
+    final var mode = invokeAction.getMode();
     final var serviceImplementationSelector = executionContext.serviceImplementationSelector();
 
     return serviceImplementationSelector
-      .select(serviceType, isLocal)
+      .select(serviceType, mode)
       .orElseThrow(() ->
         new IllegalArgumentException(
           "Could not find a service implementation for the service type '%s'".formatted(serviceType)
         )
       );
-  }
-
-  /**
-   * Assign service output to the provided output context variables
-   *
-   * @param output Service output.
-   * @param extent Extent.
-   */
-  private void assignServiceOutput(List<ContextVariable> output, Extent extent) {
-    for (final var outputReference : invokeAction.getOutput()) {
-      output
-        .stream()
-        .filter(variable -> variable.name().equals(outputReference.getReference()))
-        .findFirst()
-        .ifPresentOrElse(
-          outputVariable -> {
-            try {
-              extent.trySet(outputReference.getReference(), outputVariable.value());
-            } catch (Exception e) {
-              logger
-                .atWarning()
-                .withCause(e)
-                .log("Failed to assign service output to variable '%s'", outputReference);
-            }
-          },
-          () ->
-            logger
-              .atWarning()
-              .log("Service output does not contain expected variable '%s'", outputReference)
-        );
-    }
   }
 
   /**

@@ -1,0 +1,9 @@
+import "modulepath:/pkl/csm/csml.pkl"
+
+sm = new csml.StateMachine {
+  states {
+    ["a"] = new csml.Singleton {
+      entry { new csml.Raise { event = new csml.Global { topic = "ne1" } } }
+    }
+  }
+}

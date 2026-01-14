@@ -1,22 +1,21 @@
 package at.ac.uibk.dps.cirrina.execution.object.action;
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.AssignActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.CreateActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.CaseDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.EvalDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.InvokeActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.MatchActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.MatchCaseDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.RaiseActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutResetActionDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.InvokeDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.MatchDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.RaiseDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.ResetDescription;
+import at.ac.uibk.dps.cirrina.csm.Csml.TimeoutDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.event.Event;
 import at.ac.uibk.dps.cirrina.execution.object.event.EventBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
 import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
+import jakarta.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,15 +26,14 @@ import java.util.Optional;
  */
 public final class ActionBuilder {
 
-  /**
-   * The action class to build from.
-   */
   private final ActionDescription actionDescription;
+
+  private @Nullable String name;
 
   /**
    * Initializes an action builder.
    *
-   * @param actionDescription Action class.
+   * @param actionDescription action description
    */
   private ActionBuilder(ActionDescription actionDescription) {
     this.actionDescription = actionDescription;
@@ -44,35 +42,44 @@ public final class ActionBuilder {
   /**
    * Creates an action builder.
    *
-   * @param actionClass Action class.
-   * @return Action builder.
+   * @param actionClass action class
+   * @return action builder
    */
   public static ActionBuilder from(ActionDescription actionClass) {
     return new ActionBuilder(actionClass);
   }
 
+  public ActionBuilder withName(String name) {
+    this.name = name;
+    return this;
+  }
+
   /**
    * Returns a list of variables.
    *
-   * @param contextVariableDescriptions Variable classes.
-   * @return Variables.
+   * @param context context
+   * @return variables
    */
-  private static List<ContextVariable> buildVariableList(
-    List<ContextVariableDescription> contextVariableDescriptions
-  ) {
-    return contextVariableDescriptions
+  private static List<ContextVariable> buildVariableList(Map<String, String> context) {
+    return context
+      .entrySet()
       .stream()
-      .map(c -> ContextVariableBuilder.from(c).build())
+      .map(varEntry ->
+        ContextVariableBuilder.empty()
+          .name(varEntry.getKey())
+          .expression(ExpressionBuilder.from(varEntry.getValue()).build())
+          .build()
+      )
       .toList();
   }
 
   /**
    * Returns a list of events.
    *
-   * @param eventDescriptions Event classes.
-   * @return Events.
+   * @param eventDescriptions event descriptions
+   * @return events
    */
-  private static List<Event> buildEvents(List<EventDescription> eventDescriptions) {
+  private static List<Event> buildEvents(List<? extends EventDescription> eventDescriptions) {
     return eventDescriptions
       .stream()
       .map(e -> EventBuilder.from(e).build())
@@ -82,17 +89,17 @@ public final class ActionBuilder {
   /**
    * Returns a map of cases.
    *
-   * @param cases Case classes.
-   * @return Cases.
-   * @throws IllegalArgumentException If an action name does not exist.
+   * @param cases match case descriptions
+   * @return cases
+   * @throws IllegalArgumentException if an action name does not exist
    */
-  private Map<Expression, Action> buildCases(List<MatchCaseDescription> cases) {
+  private Map<Expression, Action> buildCases(List<CaseDescription> cases) {
     final Map<Expression, Action> ret = new HashMap<>();
 
-    for (final var casee : cases) {
+    for (final var _case : cases) {
       ret.put(
-        ExpressionBuilder.from(casee.getCase()).build(),
-        ActionBuilder.from(casee.getAction()).build()
+        ExpressionBuilder.from(_case.getOf()).build(),
+        ActionBuilder.from(_case.getThen()).build()
       );
     }
 
@@ -102,67 +109,60 @@ public final class ActionBuilder {
   /**
    * Builds the action.
    *
-   * @return The built action.
-   * @throws IllegalArgumentException      If an action name does not exist.
-   * @throws UnsupportedOperationException If an action is of an unknown type.
+   * @return the built action
+   * @throws IllegalArgumentException      if an action name does not exist
+   * @throws UnsupportedOperationException if an action is of an unknown type
    */
   public Action build() throws IllegalArgumentException, IllegalStateException {
     switch (actionDescription) {
-      case AssignActionDescription assign -> {
-        // Acquire the context variable
-        final var contextVariable = ContextVariableBuilder.from(assign.getVariable()).build();
+      case EvalDescription eval -> {
+        // Acquire the expression
+        final var expression = ExpressionBuilder.from(eval.getExpression()).build();
 
         // Construct parameters
-        final var parameters = new AssignAction.Parameters(contextVariable);
+        final var parameters = new EvalAction.Parameters(expression);
 
         // Construct the assign action
-        return new AssignAction(parameters);
+        return new EvalAction(parameters);
       }
-      case CreateActionDescription create -> {
-        final var contextVariable = ContextVariableBuilder.from(create.getVariable()).build();
-
-        // Construct parameters
-        final var parameters = new CreateAction.Parameters(
-          contextVariable,
-          create.isIsPersistent()
-        );
-
-        // Construct the create action
-        return new CreateAction(parameters);
-      }
-      case InvokeActionDescription invoke -> {
+      case InvokeDescription invoke -> {
         // Acquire the input variables
         final var input = buildVariableList(invoke.getInput());
 
         // Acquire the done events
-        final var done = buildEvents(invoke.getDone());
+        final var done = buildEvents(invoke.getRaises());
 
         // Construct parameters
         final var parameters = new InvokeAction.Parameters(
-          invoke.getServiceType(),
-          invoke.isIsLocal(),
+          invoke.getType(),
+          invoke.getMode(),
           input,
-          done,
-          invoke.getOutput()
+          done
         );
 
         // Construct the invoke action
         return new InvokeAction(parameters);
       }
-      case MatchActionDescription match -> {
+      case MatchDescription match -> {
         // Acquire the value expression
         final var valueExpression = ExpressionBuilder.from(match.getValue()).build();
 
         // Acquire the cases
         final var cases = buildCases(match.getCases());
 
+        // Acquire the default
+        final var defaultAction = Optional.ofNullable(match.getDefault())
+          .map(ActionBuilder::from)
+          .map(ActionBuilder::build)
+          .orElse(null);
+
         // Construct parameters
-        final var parameters = new MatchAction.Parameters(valueExpression, cases);
+        final var parameters = new MatchAction.Parameters(valueExpression, cases, defaultAction);
 
         // Construct the match action
         return new MatchAction(parameters);
       }
-      case RaiseActionDescription raise -> {
+      case RaiseDescription raise -> {
         // Acquire the event
         final var event = EventBuilder.from(raise.getEvent()).build();
 
@@ -172,9 +172,9 @@ public final class ActionBuilder {
         // Construct the raise action
         return new RaiseAction(parameters);
       }
-      case TimeoutActionDescription timeout -> {
+      case TimeoutDescription timeout -> {
         // Acquire the action name, for timeout actions, the name is always required
-        final var name = Optional.ofNullable(timeout.getName()).orElseThrow(() ->
+        Optional.ofNullable(name).orElseThrow(() ->
           new IllegalArgumentException("Timeout action name is not provided")
         );
 
@@ -182,7 +182,7 @@ public final class ActionBuilder {
         final var delayExpression = ExpressionBuilder.from(timeout.getDelay()).build();
 
         // Acquire the timeout action
-        final var timeoutAction = ActionBuilder.from(timeout.getAction()).build();
+        final var timeoutAction = ActionBuilder.from(timeout.getDo()).build();
 
         // Construct parameters
         final var parameters = new TimeoutAction.Parameters(name, delayExpression, timeoutAction);
@@ -190,16 +190,14 @@ public final class ActionBuilder {
         // Construct the timeout action
         return new TimeoutAction(parameters);
       }
-      case TimeoutResetActionDescription timeoutReset -> {
+      case ResetDescription timeoutReset -> {
         // Construct parameters
-        final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getAction());
+        final var parameters = new TimeoutResetAction.Parameters(timeoutReset.getName());
 
         // Construct the timeout reset action
         return new TimeoutResetAction(parameters);
       }
-      default -> throw new UnsupportedOperationException(
-        "Action type '%s' is not known".formatted(actionDescription.getType())
-      );
+      default -> throw new UnsupportedOperationException("Action type is not known");
     }
   }
 }

@@ -24,10 +24,10 @@ data class EnvironmentVariable<T>(
       value != null -> mapper(value)
       default != null -> default
       required ->
-        throw EnvironmentVariableError.Missing("Missing required environment variable: $name")
+        throw EnvironmentVariableError.Missing("missing required environment variable: $name")
       else ->
         throw EnvironmentVariableError.Missing(
-          "Environment variable '$name' is missing but not marked required"
+          "environment variable '$name' is missing but not marked required"
         )
     }
   }

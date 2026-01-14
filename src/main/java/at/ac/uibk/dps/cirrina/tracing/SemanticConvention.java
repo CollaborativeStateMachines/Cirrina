@@ -22,13 +22,10 @@ public class SemanticConvention {
   public static final String GAUGE_ACTION_DATA_LATENCY = "cirrina.action.data_latency_ms";
   public static final String GAUGE_ACTION_INVOKE_LATENCY = "cirrina.action.invoke_latency_ms";
   public static final String GAUGE_ACTION_RAISE_LATENCY = "cirrina.action.raise_latency_ms";
+  public static final String GAUGE_ACTION_EVAL_LATENCY = "cirrina.action.eval_latency_ms";
 
   // Gauge attributes
   public static final String GAUGE_ATTR_EVENT_CHANNEL = "cirrina.event.channel";
-
-  public static final String GAUGE_ATTR_DATA_OPERATION = "cirrina.data.operation";
-  public static final String GAUGE_ATTR_DATA_LOCALITY = "cirrina.data.locality";
-  public static final String GAUGE_ATTR_DATA_SIZE = "cirrina.data.size";
 
   public static final String GAUGE_ATTR_INVOCATION_LOCALITY = "cirrina.invocation.locality";
 

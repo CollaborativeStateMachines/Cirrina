@@ -1,0 +1,57 @@
+import "modulepath:/pkl/csm/csml.pkl"
+import "nestedStateMachine.pkl"
+
+sm = new csml.StateMachine {
+  stateMachines { ["nestedStateMachine"] = nestedStateMachine.sm }
+  states {
+    ["a"] = new csml.Initial {
+      after {
+        ["timeout"] = new csml.Timeout {
+          delay = "10"; do = new csml.Raise { event = new csml.Internal { topic = "e1" } }
+        }
+      }
+      on { ["e1"] = new csml.Transition { to = "b" } }
+    }
+    ["b"] = new csml.State {
+      entry {
+        new csml.Invoke {
+          type = "increment"
+          mode = "local"
+          input { ["v"] = "x" }
+          raises { new csml.Internal { topic = "e2" } }
+        }
+      }
+      exit {
+        new csml.Eval { expression = "e = true" }
+      }
+      on {
+        ["e2"] = new csml.Transition { to = "c"; do { new csml.Eval { expression = "x = $v" } } }
+      }
+    }
+    ["c"] = new csml.State {
+      always { new csml.Transition { to = "d"; iif { "x == 100" }; or = "b" } }
+    }
+    ["d"] = new csml.State {
+      static { ["d"] = "100" }
+      entry {
+        new csml.Eval { expression = "v = x" }
+        new csml.Eval { expression = "d = d - 1" }
+        new csml.Match {
+          value = "d"
+          cases {
+            new csml.Case {
+              of = "0"; then = new csml.Raise { event = new csml.Internal { topic = "e3" } }
+            }
+          }
+          default = new csml.Raise { event = new csml.Internal { topic = "e4" } }
+        }
+      }
+      on {
+        ["e3"] = new csml.Transition { to = "e" }
+        ["e4"] = new csml.Transition { to = "d" }
+      }
+    }
+    ["e"] = new csml.Terminal { entry { new csml.Eval { expression = "b = true" } } }
+  }
+  transient { ["x"] = "0" }
+}

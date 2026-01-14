@@ -27,6 +27,8 @@ public final class ActionMatchCommand extends ActionCommand {
       final var commandFactory = new CommandFactory(executionContext);
 
       // Find matching conditions and append the commands to the set of new commands
+      var found = false;
+
       for (var entry : matchAction.getCase().entrySet()) {
         final var caseValue = entry.getKey().execute(extent);
         final var caseAction = entry.getValue();
@@ -36,7 +38,16 @@ public final class ActionMatchCommand extends ActionCommand {
           final var command = commandFactory.createActionCommand(caseAction);
 
           commands.add(command);
+
+          found = true;
         }
+      }
+
+      // If no matching case has been found, we execute the default if it exists
+      if (!found) {
+        final var command = commandFactory.createActionCommand(matchAction.getDefault());
+
+        commands.add(command);
       }
     } catch (UnsupportedOperationException e) {
       logger.atWarning().log("Could not execute match action");

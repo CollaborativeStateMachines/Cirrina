@@ -6,29 +6,42 @@ import at.ac.uibk.dps.cirrina.execution.command.CommandFactory;
 import at.ac.uibk.dps.cirrina.execution.command.Scope;
 import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
 import at.ac.uibk.dps.cirrina.execution.object.context.Context;
+import at.ac.uibk.dps.cirrina.execution.object.context.ContextBuilder;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
-import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
 import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachine;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 
 public final class State implements Scope {
 
-  private final Context localContext = new InMemoryContext(true);
+  private final Context staticContext;
 
   private final StateClass stateClassObject;
 
   private final StateMachine parent;
 
   public State(StateClass stateClassObject, StateMachine parent) {
+    // Build the static context
+    try {
+      staticContext = Optional.ofNullable(stateClassObject.getStaticContextDescription())
+        .map(ContextBuilder::from)
+        .orElseGet(ContextBuilder::empty)
+        .inMemoryContext(true)
+        .build();
+    } catch (IOException ignored) {
+      throw new IllegalStateException(); // This should not happen
+    }
+
     this.stateClassObject = stateClassObject;
     this.parent = parent;
   }
 
   @Override
   public Extent getExtent() {
-    return parent.getExtent().extend(localContext);
+    return parent.getExtent().extend(staticContext);
   }
 
   @Override

@@ -60,7 +60,7 @@ class PingPongTest {
         // 2 is not yet created, it will not receive the event as the event mocking is very simple
         Runtime(
             DefaultDescriptions.pingPong,
-            listOf("stateMachine2", "stateMachine1"),
+            listOf("pingStateMachine", "pongStateMachine"),
             loggingOpenTelemetry(),
             serviceImplementationSelector,
             mockEventHandler,

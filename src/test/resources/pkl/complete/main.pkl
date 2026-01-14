@@ -1,8 +1,6 @@
-amends "modulepath:/pkl/csm/Csml.pkl"
-import "stateMachineOne.pkl"
+amends "modulepath:/pkl/csm/csml.pkl"
+import "completeStateMachine.pkl"
 
-name = "complete"
-version = "3.0.0"
-stateMachines {
-  new stateMachineOne.StateMachine {}
-}
+version = "4.0.0"
+stateMachines { ["completeStateMachine"] = completeStateMachine.sm }
+persistent { ["b"] = "false"; ["v"] = "0"; ["e"] = "false" }

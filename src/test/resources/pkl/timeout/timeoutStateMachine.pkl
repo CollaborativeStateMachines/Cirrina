@@ -1,0 +1,33 @@
+import "modulepath:/pkl/csm/csml.pkl"
+
+sm = new csml.StateMachine {
+  states {
+    ["a"] = new csml.Initial {
+      after {
+        ["timeout"] = new csml.Timeout {
+          delay = "100"
+          do = new csml.Raise { event = new csml.Internal { topic = "update" } }
+        }
+      }
+      on {
+        ["update"] = new csml.Transition {
+          to = "a"
+          do {
+            new csml.Match {
+              value = "v < 10"
+              cases {
+                new csml.Case { of = "true"; then = new csml.Eval { expression = "v = v + 1" } }
+                new csml.Case {
+                  of = "false"
+                  then = new csml.Raise { event = new csml.Internal { topic = "tob" } }
+                }
+              }
+            }
+          }
+        }
+        ["tob"] = new csml.Transition { to = "b" }
+      }
+    }
+    ["b"] = new csml.Terminal {}
+  }
+}

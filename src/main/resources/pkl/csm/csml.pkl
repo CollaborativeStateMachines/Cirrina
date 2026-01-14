@@ -1,0 +1,136 @@
+@ModuleInfo { minPklVersion = "0.29.0" }
+module at.ac.uibk.dps.cirrina.csm.Csml
+
+typealias Version = "4.0.0"
+typealias Expression = String
+typealias Context = Mapping<String, Expression>
+
+version: Version
+stateMachines: Mapping<String, StateMachineDescription>
+transient: Context?
+persistent: Context?
+
+class StateMachineDescription {
+  states: Mapping<String, StateDescription>
+  stateMachines: Mapping<String, StateMachineDescription>
+  transient: Context?
+}
+
+open class StateDescription {
+  initial: Boolean = false
+  terminal: Boolean = false
+  entry: Listing<ActionDescription>
+  exit: Listing<ActionDescription>
+  while: Listing<ActionDescription>
+  after: Mapping<String, TimeoutDescription>
+  on: Mapping<String, TransitionDescription>
+  always: Listing<TransitionDescription>
+  static: Context?
+}
+
+class InitialDescription extends StateDescription {
+  initial: Boolean = true
+}
+
+class TerminalDescription extends StateDescription {
+  terminal: Boolean = true
+}
+
+class SingletonDescription extends StateDescription {
+  initial: Boolean = true
+  terminal: Boolean = true
+}
+
+class TransitionDescription {
+  to: String?
+  iif: Listing<Expression>
+  do: Listing<ActionDescription>
+  or: String?
+}
+
+abstract class ActionDescription {}
+
+typealias InvocationMode = "local"|"remote"
+
+class InvokeDescription extends ActionDescription {
+  type: String
+  mode: InvocationMode = "remote"
+  input: Context
+  raises: Listing<EventDescription>
+}
+
+class EvalDescription extends ActionDescription {
+  expression: Expression
+}
+
+class RaiseDescription extends ActionDescription {
+  event: EventDescription
+}
+
+class TimeoutDescription extends ActionDescription {
+  delay: Expression
+  do: RaiseDescription
+}
+
+class ResetDescription extends ActionDescription {
+  name: String
+}
+
+class CaseDescription {
+  of: Expression
+  then: ActionDescription
+}
+
+class MatchDescription extends ActionDescription {
+  value: Expression
+  cases: Listing<CaseDescription>
+  default: ActionDescription?
+}
+
+typealias EventChannel = "internal"|"external"|"global"|"peripheral"
+
+open class EventDescription {
+  topic: String
+  channel: EventChannel
+  data: Context
+}
+
+class InternalDescription extends EventDescription {
+  channel: EventChannel = "internal"
+}
+
+class ExternalDescription extends EventDescription {
+  channel: EventChannel = "external"
+}
+
+class GlobalDescription extends EventDescription {
+  channel: EventChannel = "global"
+}
+
+// Alias definitions
+typealias StateMachine = StateMachineDescription
+
+typealias State = StateDescription
+typealias Initial = InitialDescription
+typealias Terminal = TerminalDescription
+typealias Singleton = SingletonDescription
+
+typealias Transition = TransitionDescription
+
+// Action aliases
+typealias Action = ActionDescription
+typealias Eval = EvalDescription
+typealias Invoke = InvokeDescription
+
+typealias Case = CaseDescription
+typealias Match = MatchDescription
+
+typealias Raise = RaiseDescription
+typealias Timeout = TimeoutDescription
+typealias Reset = ResetDescription
+
+// Event aliases
+typealias Event = EventDescription
+typealias Internal = InternalDescription
+typealias External = ExternalDescription
+typealias Global = GlobalDescription

@@ -1,10 +1,11 @@
 package at.ac.uibk.dps.cirrina.execution.object.event;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ContextVariableDescription;
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
 import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
+import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Event builder, used to build event objects.
@@ -35,12 +36,16 @@ public class EventBuilder {
     return new EventBuilder(eventDescription);
   }
 
-  private static List<ContextVariable> buildVariableList(
-    List<ContextVariableDescription> contextVariableDescriptions
-  ) {
-    return contextVariableDescriptions
+  private static List<ContextVariable> buildVariableList(Map<String, String> context) {
+    return context
+      .entrySet()
       .stream()
-      .map(c -> ContextVariableBuilder.from(c).build())
+      .map(varEntry ->
+        ContextVariableBuilder.empty()
+          .name(varEntry.getKey()) // The key is the variable name
+          .expression(ExpressionBuilder.from(varEntry.getValue()).build()) // The value is the expression
+          .build()
+      )
       .toList();
   }
 
@@ -51,7 +56,7 @@ public class EventBuilder {
    */
   public Event build() {
     return new Event(
-      eventDescription.getName(),
+      eventDescription.getTopic(),
       eventDescription.getChannel(),
       buildVariableList(eventDescription.getData())
     );

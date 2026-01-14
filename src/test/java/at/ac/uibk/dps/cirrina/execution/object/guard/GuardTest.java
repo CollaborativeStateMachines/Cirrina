@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import at.ac.uibk.dps.cirrina.csm.Csml.GuardDescription;
 import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
 import at.ac.uibk.dps.cirrina.execution.object.context.InMemoryContext;
 import org.junit.jupiter.api.Test;
@@ -20,23 +19,17 @@ class GuardTest {
       var extent = new Extent(context);
 
       assertDoesNotThrow(() -> {
-        var guardClass = new GuardDescription("v==5");
-
-        var guard = GuardBuilder.from(guardClass).build();
+        var guard = GuardBuilder.from("v==5").build();
 
         assertTrue(guard.evaluate(extent));
 
-        guardClass = new GuardDescription("v==6");
-
-        guard = GuardBuilder.from(guardClass).build();
+        guard = GuardBuilder.from("v==6").build();
 
         assertFalse(guard.evaluate(extent));
       });
 
       assertThrows(IllegalArgumentException.class, () -> {
-        var guardClass = new GuardDescription("v");
-
-        var guard = GuardBuilder.from(guardClass).build();
+        var guard = GuardBuilder.from("v").build();
 
         guard.evaluate(extent);
       });

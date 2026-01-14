@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.classes.statemachine
 
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
-import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
+import at.ac.uibk.dps.cirrina.io.CsmParser
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -22,13 +22,14 @@ class StateMachineClassTest {
             CsmParser.parseCsml(DefaultDescriptions.complete)
           )
           .build()
-          .findStateMachineClassByName("stateMachine1")!!
+          .getOrThrow()
+          .findStateMachineClassByName("completeStateMachine")!!
     }
   }
 
   @Test
   fun testGetName() {
-    assertEquals("stateMachine1", stateMachineClass.name)
+    assertEquals("completeStateMachine", stateMachineClass.name)
   }
 
   @Test
@@ -45,31 +46,31 @@ class StateMachineClassTest {
   fun testGetStateByName() {
     assertDoesNotThrow { stateMachineClass.findStateClassByName("state1") }
     assertDoesNotThrow { stateMachineClass.findStateClassByName("state2") }
-    assertTrue(stateMachineClass.findStateClassByName("nonExisting").isEmpty)
+    assertNull(stateMachineClass.findStateClassByName("nonExisting"))
   }
 
   @Test
   fun testGetActionByName() {
     assertDoesNotThrow { stateMachineClass.findStateClassByName("action1") }
-    assertTrue(stateMachineClass.findStateClassByName("nonExisting").isEmpty)
+    assertNull(stateMachineClass.findStateClassByName("nonExisting"))
   }
 
   @Test
   fun testFindStateByName() {
     assertDoesNotThrow {
-      assertEquals("a", stateMachineClass.findStateClassByName("a").get().name)
-      assertFalse(stateMachineClass.findStateClassByName("nonExisting").isPresent)
+      assertEquals("a", stateMachineClass.findStateClassByName("a")?.name)
+      assertNull(stateMachineClass.findStateClassByName("nonExisting"))
     }
   }
 
   @Test
   fun testFindTransitionByEventName() {
     assertDoesNotThrow {
-      val stateA = stateMachineClass.findStateClassByName("a").get()
+      val stateA = stateMachineClass.findStateClassByName("a")!!
       val transitions = stateMachineClass.findOnTransitionsFromStateByEventName(stateA, "e1")
 
       assertEquals(1, transitions.size)
-      assertEquals("b", transitions.first().targetStateName.get())
+      assertEquals("b", transitions.first().to)
 
       assertEquals(
         0,
@@ -80,6 +81,6 @@ class StateMachineClassTest {
 
   @Test
   fun testToString() {
-    assertEquals("stateMachine1", stateMachineClass.toString())
+    assertEquals("completeStateMachine", stateMachineClass.toString())
   }
 }
