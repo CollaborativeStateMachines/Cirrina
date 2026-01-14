@@ -6,11 +6,10 @@ import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import java.io.IOException
 
 /**
- * Collaborative state machine builder, responsible for constructing a
- * [CollaborativeStateMachineClass] based on a [Csml] description.
+ * [CollaborativeStateMachineClass] builder. Builds a [CollaborativeStateMachineClass] based on a
+ * [Csml].
  *
  * TODO: Add unit test for built graph.
  */
@@ -32,51 +31,39 @@ class CollaborativeStateMachineClassBuilder private constructor(private val csml
    * Builds and returns a [CollaborativeStateMachineClass].
    *
    * @return the fully constructed collaborative state machine class.
-   * @throws IllegalStateException if the context or state machine components cannot be initialized.
    */
-  fun build(): CollaborativeStateMachineClass {
-    val persistentContext =
-      try {
-        ContextBuilder.from(csml.persistent).inMemoryContext(true).build()
-      } catch (e: IOException) {
-        throw IllegalStateException("Failed to build persistent context", e)
-      }
+  fun build(): Result<CollaborativeStateMachineClass> = runCatching {
+    val context = ContextBuilder.from(csml.persistent).inMemoryContext(true).build()
 
-    return try {
-      CollaborativeStateMachineClass(persistentContext?.all ?: emptyList()).apply {
-        buildVertices(this)
-        buildEdges(this)
-      }
-    } catch (e: IOException) {
-      throw IllegalStateException("Failed to initialize collaborative state machine", e)
+    CollaborativeStateMachineClass(context?.all ?: emptyList()).apply {
+      buildVertices(this)
+      buildEdges(this)
     }
   }
 
-  // Maps the nested state machine definitions into vertices for the collaborative graph
   private fun buildVertices(collaborativeStateMachineClass: CollaborativeStateMachineClass) {
     csml.stateMachines.entries
       .map { (name, description) ->
         StateMachineClassBuilder.from(description).withName(name).build()
       }
-      .forEach { collaborativeStateMachineClass.addVertex(it) }
+      .forEach { collaborativeStateMachineClass.addVertex(it.getOrThrow()) }
   }
 
-  // Orchestrates the connection logic between different state machine vertices
   private fun buildEdges(collaborativeStateMachineClass: CollaborativeStateMachineClass) {
     val vertices = collaborativeStateMachineClass.vertexSet()
 
-    // Apply the mapping to the graph
     vertices
       .flatMap { source -> source.outputEvents.map { event -> source to event } }
-      .associateWith { (source, event) -> findTargetStateMachines(source, event, vertices) }
+      .associateWith { (source, event) ->
+        findTargetForRaisedEventStateMachines(source, event, vertices)
+      }
       .forEach { (sourceEventPair, targets) ->
         val (source, event) = sourceEventPair
         targets.forEach { target -> collaborativeStateMachineClass.addEdge(source, target, event) }
       }
   }
 
-  // Filter logic to determine which state machines react to a specific raised event
-  private fun findTargetStateMachines(
+  private fun findTargetForRaisedEventStateMachines(
     source: StateMachineClass,
     raisedEvent: Event,
     allVertices: Set<StateMachineClass>,

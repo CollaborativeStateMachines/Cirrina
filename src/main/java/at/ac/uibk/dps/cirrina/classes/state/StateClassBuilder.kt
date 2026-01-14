@@ -1,96 +1,70 @@
-package at.ac.uibk.dps.cirrina.classes.state;
+package at.ac.uibk.dps.cirrina.classes.state
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription;
-import at.ac.uibk.dps.cirrina.execution.object.action.Action;
-import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
-import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
-import jakarta.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.BiFunction;
+import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
+import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
+import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
+import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 
-public class StateClassBuilder {
+/** [StateClass] builder. Builds a [StateClass] based on a [StateDescription]. */
+class StateClassBuilder private constructor(private val stateDescription: StateDescription) {
 
-  private final UUID parentStateMachineId;
+  companion object {
+    /**
+     * Construct a state class builder from a state description.
+     *
+     * @param stateDescription state description.
+     * @return state class builder.
+     */
+    fun from(stateDescription: StateDescription): StateClassBuilder =
+      StateClassBuilder(stateDescription)
+  }
 
-  private final StateDescription stateDescription;
+  private var name: String? = null
 
-  private @Nullable String name;
-
-  private StateClassBuilder(UUID parentStateMachineId, StateDescription stateDescription) {
-    this.parentStateMachineId = parentStateMachineId;
-    this.stateDescription = stateDescription;
+  /**
+   * Sets the name of the state.
+   *
+   * @param name state name.
+   * @return this builder instance.
+   */
+  fun withName(name: String): StateClassBuilder {
+    this.name = name
+    return this
   }
 
   /**
-   * Construct a state class builder from a state description without a base state class.
+   * Builds and returns a [StateClass].
    *
-   * @param parentStateMachineId This must be removed.
-   * @param stateDescription     State description.
-   * @return State class builder.
+   * @return the fully constructed state class.
    */
-  public static StateClassBuilder from(
-    UUID parentStateMachineId,
-    StateDescription stateDescription
-  ) {
-    return new StateClassBuilder(parentStateMachineId, stateDescription);
-  }
-
-  public StateClassBuilder withName(String name) {
-    this.name = name;
-    return this;
-  }
-
-  public StateClass build() throws IllegalArgumentException {
-    final BiFunction<ActionDescription, String, Action> resolveAction = (desc, name) -> {
-      final var builder = ActionBuilder.from(desc);
-      if (name != null && !name.isBlank()) {
-        builder.withName(name);
-      }
-      return builder.build();
-    };
-
-    final var entryActions = stateDescription
-      .getEntry()
-      .stream()
-      .map(desc -> resolveAction.apply(desc, null))
-      .toList();
-
-    final var exitActions = stateDescription
-      .getExit()
-      .stream()
-      .map(desc -> resolveAction.apply(desc, null))
-      .toList();
-
-    final var whileActions = stateDescription
-      .getWhile()
-      .stream()
-      .map(desc -> resolveAction.apply(desc, null))
-      .toList();
-
-    final List<Action> afterActions = new ArrayList<>();
-    stateDescription
-      .getAfter()
-      .forEach((name, desc) -> afterActions.add(resolveAction.apply(desc, name)));
-
-    if (!afterActions.stream().allMatch(TimeoutAction.class::isInstance)) {
-      throw new IllegalArgumentException("After action is not a timeout action");
+  fun build(): Result<StateClass> = runCatching {
+    // resolves an action description into an action object
+    fun resolveAction(desc: ActionDescription, actionName: String? = null): Action {
+      val builder = ActionBuilder.from(desc)
+      actionName?.takeUnless { it.isBlank() }?.let { builder.withName(it) }
+      return builder.build()
     }
 
-    return new StateClass(
-      new StateClass.BaseParameters(
-        parentStateMachineId,
-        name,
-        stateDescription.getTransient(),
-        stateDescription.isInitial(),
-        stateDescription.isTerminal(),
+    val entryActions = stateDescription.entry.map { resolveAction(it) }
+    val exitActions = stateDescription.exit.map { resolveAction(it) }
+    val whileActions = stateDescription.`while`.map { resolveAction(it) }
+    val afterActions = stateDescription.after.map { (name, desc) -> resolveAction(desc, name) }
+
+    // Validates that all after actions are specifically timeout actions
+    require(afterActions.all { it is TimeoutAction }) { "after action is not a timeout action." }
+
+    StateClass(
+      StateClass.Parameters(
+        name ?: "",
+        stateDescription.transient,
+        stateDescription.isInitial,
+        stateDescription.isTerminal,
         entryActions,
         exitActions,
         whileActions,
-        afterActions
+        afterActions,
       )
-    );
+    )
   }
 }

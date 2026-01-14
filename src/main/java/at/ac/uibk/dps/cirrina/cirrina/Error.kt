@@ -1,15 +1,15 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
 sealed class ConfigurationError(message: String) : RuntimeException(message) {
-  class Unknown(what: String, `is`: Any) : ConfigurationError("Unknown $what which is '$`is`'")
+  class Unknown(what: String, `is`: Any) : ConfigurationError("unknown $what which is '$`is`'")
 }
 
 sealed class EnvironmentVariableError(message: String) : ConfigurationError(message) {
   class Missing(name: String) :
-    EnvironmentVariableError("Missing required environment variable '$name'")
+    EnvironmentVariableError("missing required environment variable '$name'")
 
   class Invalid(name: String, value: String, allowed: String) :
     EnvironmentVariableError(
-      "Invalid value for environment variable '$name', the value is '$value', allowed values are '${allowed}'"
+      "invalid value for environment variable '$name', the value is '$value', allowed values are '${allowed}'"
     )
 }

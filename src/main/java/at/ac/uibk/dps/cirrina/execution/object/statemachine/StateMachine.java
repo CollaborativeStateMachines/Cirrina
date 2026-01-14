@@ -144,8 +144,7 @@ public final class StateMachine implements Runnable, EventListener, Scope {
 
     // Build the local context
     try {
-      localContext = stateMachineClass
-        .getLocalContextDescription()
+      localContext = Optional.ofNullable(stateMachineClass.getLocalContextDescription())
         .map(ContextBuilder::from)
         .orElseGet(ContextBuilder::empty)
         .inMemoryContext(true)
@@ -366,11 +365,11 @@ public final class StateMachine implements Runnable, EventListener, Scope {
       final var selectedTransitions = new ArrayList<Transition>();
 
       for (final var transitionObject : transitionObjects) {
-        final var isElse = transitionObject.getElse().isPresent();
+        final var hasOr = Optional.ofNullable(transitionObject.getOr()).isPresent();
         final var result = transitionObject.evaluate(extent);
 
-        if (isElse || result) {
-          selectedTransitions.add(new Transition(transitionObject, isElse && !result));
+        if (hasOr || result) {
+          selectedTransitions.add(new Transition(transitionObject, hasOr && !result));
         }
       }
 

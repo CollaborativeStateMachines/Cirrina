@@ -1,6 +1,8 @@
 import "modulepath:/pkl/csm/csml.pkl"
 import "nestedStateMachine.pkl"
 
+// TODO: or keyword is missing
+
 sm = new csml.StateMachine {
   stateMachines { ["nestedStateMachine"] = nestedStateMachine.sm }
   states {
@@ -11,9 +13,7 @@ sm = new csml.StateMachine {
           do = new csml.Raise { event = new csml.Internal { topic = "e1" } }
         }
       }
-      on {
-        ["e1"] = new csml.Transition { to = "b" }
-      }
+      on { ["e1"] = new csml.Transition { to = "b" } }
     }
     ["b"] = new csml.State {
       entry {

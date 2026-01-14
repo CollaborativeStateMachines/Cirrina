@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
+import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.utils.Id
 import com.google.common.flogger.FluentLogger
 import io.opentelemetry.api.OpenTelemetry
@@ -22,12 +22,12 @@ private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 /**
  * Runtime for executing state machines defined in a Cirrina CSML project.
  *
- * @param main Main (main.pkl) URI.
- * @param stateMachineNames List of state machine names to execute.
- * @property openTelemetry The OpenTelemetry instance for tracing state machine execution.
- * @property serviceImplementationSelector The service implementation selector.
- * @property eventHandler The event handler that will dispatch events to state machines.
- * @property persistentContext The persistent context where state machine variables are stored.
+ * @param main main (main.pkl) URI.
+ * @param stateMachineNames list of state machine names to execute.
+ * @property openTelemetry the OpenTelemetry instance for tracing state machine execution.
+ * @property serviceImplementationSelector the service implementation selector.
+ * @property eventHandler the event handler that will dispatch events to state machines.
+ * @property persistentContext the persistent context where state machine variables are stored.
  */
 class Runtime(
   main: URI,
@@ -45,20 +45,24 @@ class Runtime(
 
   init {
     val collaborativeStateMachineClass =
-      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main)).build()
+      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main))
+        .build()
+        .onFailure { error ->
+          logger
+            .atSevere()
+            .withCause(error)
+            .log("failed to initialize collaborative state machine class")
+        }
+        .getOrThrow()
 
-    logger.atFine().log("Creating persistent context variables")
+    logger.atFine().log("creating persistent context variables")
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
       runCatching {
-          logger.atFiner().log("Creating persistent context variable '${variable.name()}'")
+          logger.atFiner().log("creating persistent context variable '${variable.name()}'")
           persistentContext.create(variable.name(), variable.value())
         }
         .onFailure { _ ->
-          logger
-            .atWarning()
-            .log(
-              "Did not create persistent context variable '${variable.name()}', does it already exist?"
-            )
+          logger.atWarning().log("did not create persistent context variable '${variable.name()}'")
         }
     }
 
@@ -67,11 +71,7 @@ class Runtime(
         .mapNotNull { name ->
           collaborativeStateMachineClass.findStateMachineClassByName(name)
             ?: run {
-              logger
-                .atWarning()
-                .log(
-                  "A state machine with name '$name' could not be instantiated, because it does not exist"
-                )
+              logger.atWarning().log("d state machine with name '$name' could not be instantiated")
               null
             }
         }
@@ -81,8 +81,8 @@ class Runtime(
   /**
    * Find a state machine instance by its ID.
    *
-   * @param stateMachineId The ID of the state machine instance.
-   * @return The state machine instance, or null if not found.
+   * @param stateMachineId the ID of the state machine instance.
+   * @return the state machine instance, or null if not found.
    */
   fun findInstance(stateMachineId: Id): StateMachine? =
     stateMachines.firstOrNull { it.stateMachineInstanceId == stateMachineId }

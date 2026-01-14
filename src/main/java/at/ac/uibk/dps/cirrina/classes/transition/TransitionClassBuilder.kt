@@ -1,95 +1,55 @@
-package at.ac.uibk.dps.cirrina.classes.transition;
+package at.ac.uibk.dps.cirrina.classes.transition
 
-import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription;
-import at.ac.uibk.dps.cirrina.execution.object.action.Action;
-import at.ac.uibk.dps.cirrina.execution.object.action.ActionBuilder;
-import at.ac.uibk.dps.cirrina.execution.object.guard.Guard;
-import at.ac.uibk.dps.cirrina.execution.object.guard.GuardBuilder;
-import jakarta.annotation.Nullable;
-import java.util.List;
-import java.util.function.Function;
+import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
+import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.guard.GuardBuilder
 
-/**
- * Abstract transitionClass builder.
- */
-public class TransitionClassBuilder {
+/** [TransitionClass] builder. Builds a [TransitionClass] based on a [TransitionDescription]. */
+class TransitionClassBuilder
+private constructor(private val transitionDescription: TransitionDescription) {
+
+  companion object {
+    /**
+     * Construct a builder from a transition description.
+     *
+     * @param transitionDescription transition description.
+     * @return a new builder instance.
+     */
+    @JvmStatic
+    fun from(transitionDescription: TransitionDescription): TransitionClassBuilder =
+      TransitionClassBuilder(transitionDescription)
+  }
+
+  private var event: String? = null
 
   /**
-   * Transition description.
-   */
-  private final TransitionDescription transitionDescription;
-
-  private @Nullable String event;
-
-  /**
-   * Initializes this builder.
+   * Sets the name of the event for an on-transition.
    *
-   * @param transitionDescription Transition description.
+   * @param event the event name.
+   * @return this builder.
    */
-  private TransitionClassBuilder(TransitionDescription transitionDescription) {
-    this.transitionDescription = transitionDescription;
+  fun withEvent(event: String): TransitionClassBuilder {
+    this.event = event
+    return this
   }
 
   /**
-   * Construct a builder from a transition description.
+   * Builds and returns a [TransitionClass].
    *
-   * @param transitionDescription Transition description.
-   * @return Builder.
+   * @return the fully constructed transition class.
    */
-  public static TransitionClassBuilder from(TransitionDescription transitionDescription) {
-    return new TransitionClassBuilder(transitionDescription);
-  }
+  fun build(): Result<TransitionClass> = runCatching {
+    val to = transitionDescription.to
 
-  public TransitionClassBuilder withEvent(String event) {
-    this.event = event;
-    return this;
-  }
+    // Resolves action descriptions into action objects
+    val `do` =
+      transitionDescription.`do`.map { description -> ActionBuilder.from(description).build() }
 
-  /**
-   * Builds the transition class.
-   *
-   * @return Transition class.
-   * @throws IllegalArgumentException If a guard name does not exist.
-   * @throws IllegalArgumentException If an action name does not exist.
-   */
-  public TransitionClass build() throws IllegalArgumentException {
-    // Resolve guards
-    Function<List<String>, List<Guard>> resolveGuards = (List<String> guards) ->
-      guards
-        .stream()
-        .map(expression -> GuardBuilder.from(expression).build())
-        .toList();
+    // Resolves guard expressions into guard objects
+    val iif = transitionDescription.iif.map { expression -> GuardBuilder.from(expression).build() }
 
-    // Resolve actions
-    Function<List<? extends ActionDescription>, List<Action>> resolveActions = (List<
-      ? extends ActionDescription
-    > actions) ->
-      actions
-        .stream()
-        .map(actionClass -> ActionBuilder.from(actionClass).build())
-        .toList();
+    val or = transitionDescription.or
 
-    // Create the appropriate transitionClass
-    // KLUDGE: The CSML language used to have both on-transitions and transitions in the language
-    // itself, we simplified this, but the OnTransitionClass and TransitionClass remain to make
-    // this a minimal change at the time of writing
-    // TODO: Unify OnTransitionClass and TransitionClass
-    if (event != null) {
-      return new OnTransitionClass(
-        transitionDescription.getTo(),
-        transitionDescription.getOr(),
-        resolveGuards.apply(transitionDescription.getIif()),
-        resolveActions.apply(transitionDescription.getDo()),
-        event
-      );
-    } else {
-      return new TransitionClass(
-        transitionDescription.getTo(),
-        transitionDescription.getOr(),
-        resolveGuards.apply(transitionDescription.getIif()),
-        resolveActions.apply(transitionDescription.getDo())
-      );
-    }
+    TransitionClass(TransitionClass.Parameters(to, `do`, iif, or, event))
   }
 }

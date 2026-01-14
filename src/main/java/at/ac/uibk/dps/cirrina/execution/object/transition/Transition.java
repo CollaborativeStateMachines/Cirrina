@@ -19,19 +19,15 @@ public final class Transition {
     this.transitionClass = transitionClass;
     this.isElse = isElse;
 
-    assert !isElse || transitionClass.getElse().isPresent();
+    assert !isElse || Optional.ofNullable(transitionClass.getOr()).isPresent();
   }
 
   public boolean isInternalTransition() {
-    return transitionClass.getTargetStateName().isEmpty();
-  }
-
-  public TransitionClass getTransitionObject() {
-    return transitionClass;
+    return Optional.ofNullable(transitionClass.getTo()).isEmpty();
   }
 
   public Optional<String> getTargetStateName() {
-    return isElse ? transitionClass.getElse() : transitionClass.getTargetStateName();
+    return Optional.ofNullable(isElse ? transitionClass.getOr() : transitionClass.getTo());
   }
 
   public List<ActionCommand> getActionCommands(CommandFactory commandFactory) {

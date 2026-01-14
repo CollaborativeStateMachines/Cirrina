@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.io.parsing
+package at.ac.uibk.dps.cirrina.io
 
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions

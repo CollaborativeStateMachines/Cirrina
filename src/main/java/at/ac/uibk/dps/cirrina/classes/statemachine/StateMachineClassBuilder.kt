@@ -1,157 +1,103 @@
-package at.ac.uibk.dps.cirrina.classes.statemachine;
+package at.ac.uibk.dps.cirrina.classes.statemachine
 
-import at.ac.uibk.dps.cirrina.classes.state.StateClassBuilder;
-import at.ac.uibk.dps.cirrina.classes.transition.TransitionClassBuilder;
-import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription;
-import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription;
-import jakarta.annotation.Nullable;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.BiConsumer;
+import at.ac.uibk.dps.cirrina.classes.state.StateClassBuilder
+import at.ac.uibk.dps.cirrina.classes.transition.TransitionClassBuilder
+import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
+import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
 
 /**
- * StateClass machine builder. Builds a state machine based on a state machine class.
+ * [StateMachineClass] builder. Builds a [StateMachineClass] based on a [StateMachineDescription].
  */
-public final class StateMachineClassBuilder {
+class StateMachineClassBuilder
+private constructor(private val stateMachineDescription: StateMachineDescription) {
 
-  private final StateMachineDescription stateMachineDescription;
-
-  private @Nullable String name;
-
-  /**
-   * Initializes this builder instance.
-   *
-   * @param stateMachineDescription state machine description
-   */
-  private StateMachineClassBuilder(StateMachineDescription stateMachineDescription) {
-    this.stateMachineDescription = stateMachineDescription;
+  companion object {
+    /**
+     * Construct a builder from a state machine description.
+     *
+     * @param stateMachineDescription state machine description.
+     * @return this builder.
+     */
+    @JvmStatic
+    fun from(stateMachineDescription: StateMachineDescription): StateMachineClassBuilder =
+      StateMachineClassBuilder(stateMachineDescription)
   }
 
-  /**
-   * Construct a builder from a state machine description.
-   *
-   * @param stateMachineDescription state machine description
-   * @return this builder
-   */
-  public static StateMachineClassBuilder from(StateMachineDescription stateMachineDescription) {
-    return new StateMachineClassBuilder(stateMachineDescription);
-  }
+  private var name: String? = null
 
   /**
    * Sets the name of the state machine.
    *
-   * @param name name of the state machine
-   * @return this builder
+   * @param name name of the state machine.
+   * @return this builder.
    */
-  public StateMachineClassBuilder withName(String name) {
-    this.name = name;
-    return this;
+  fun withName(name: String): StateMachineClassBuilder {
+    this.name = name
+    return this
   }
 
-  /**
-   * Builds all nested state machines contained in the state machine class.
-   *
-   * @return a list containing all nested state machines
-   * @throws IllegalArgumentException in case one nested state machine could not be built
-   */
-  private List<StateMachineClass> buildNestedStateMachines() throws IllegalArgumentException {
-    // Build all nested state machines
-    return stateMachineDescription
-      .getStateMachines()
-      .entrySet()
-      .stream()
-      .map(stateMachineEntry ->
-        StateMachineClassBuilder.from(stateMachineEntry.getValue()) // Value is the state machine description
-          .withName(stateMachineEntry.getKey()) // Key is the name of the state machine
-          .build()
+  private fun buildNestedStateMachines(): List<StateMachineClass> =
+    stateMachineDescription.stateMachines.entries.map { (nestedName, description) ->
+      from(description).withName(nestedName).build().getOrThrow()
+    }
+
+  private fun buildBase(): StateMachineClass {
+    val nestedStateMachines = buildNestedStateMachines()
+
+    val parameters =
+      StateMachineClass.Parameters(
+        name = name ?: "",
+        transientContextDescription = stateMachineDescription.transient,
+        nestedStateMachineClasses = nestedStateMachines,
       )
-      .toList();
+
+    val stateMachine = StateMachineClass(parameters)
+
+    stateMachineDescription.states.forEach { (stateName, description) ->
+      val state = StateClassBuilder.from(description).withName(stateName).build().getOrThrow()
+      stateMachine.addVertex(state)
+    }
+
+    return stateMachine
   }
 
   /**
-   * Builds a state machine which does not extend another state machine.
+   * Builds and returns a [StateMachineClass].
    *
-   * @return the built state machine
-   * @throws IllegalArgumentException in case the state machine could not be built
+   * @return the fully constructed state machine class.
    */
-  private StateMachineClass buildBase() throws IllegalArgumentException {
-    var nestedStateMachines = buildNestedStateMachines();
+  fun build(): Result<StateMachineClass> = runCatching {
+    val stateMachine = buildBase()
 
-    var parameters = new StateMachineClass.Parameters(
-      name,
-      stateMachineDescription.getTransient(),
-      nestedStateMachines
-    );
+    stateMachineDescription.states.forEach { (sourceName, stateDesc) ->
+      // The source state is guaranteed to exist as it was added during buildBase
+      val sourceStateClass = stateMachine.findStateClassByName(sourceName)!!
 
-    var stateMachine = new StateMachineClass(parameters);
-
-    // Attempt to add vertices
-    stateMachineDescription
-      .getStates()
-      .entrySet()
-      .stream()
-      .map(stateEntry ->
-        StateClassBuilder.from(stateMachine.getId(), stateEntry.getValue()) // Value is the state description
-          .withName(stateEntry.getKey()) // Key is the name of the state
-          .build()
-      )
-      .forEach(stateMachine::addVertex);
-
-    return stateMachine;
-  }
-
-  /**
-   * Builds the state machine.
-   *
-   * @return the state machine
-   * @throws IllegalArgumentException if the state machine has declared a transition with an invalid (non-existent) target state
-   * @throws IllegalArgumentException if the state machine has declared a transition between two states that is illegal
-   * @throws IllegalArgumentException if the state machine has declared a state with a non-deterministic outward transition
-   */
-  public StateMachineClass build() throws IllegalArgumentException {
-    var stateMachine = buildBase();
-
-    // Attempt to add edges
-    stateMachineDescription
-      .getStates()
-      .forEach((key, value) -> {
-        // Acquire source node, this is expected to always succeed as we use the previously created state
-        var sourceStateClass = stateMachine.findStateClassByName(key).get();
-
-        BiConsumer<String, TransitionDescription> processTransitionEntry = (event, description) -> {
-          var targetStateClass = Optional.ofNullable(description.getTo())
-            .map(targetName ->
-              stateMachine
-                .findStateClassByName(targetName)
-                .orElseThrow(() ->
-                  new IllegalArgumentException(
-                    "Transition '%s' has an invalid target state '%s'".formatted(name, targetName)
-                  )
-                )
-            )
-            .orElse(sourceStateClass);
-
-          var builder = TransitionClassBuilder.from(description);
-
-          if (event != null) {
-            builder.withEvent(event);
-          }
-
-          if (!stateMachine.addEdge(sourceStateClass, targetStateClass, builder.build())) {
-            throw new IllegalArgumentException(
-              "The edge '%s' between '%s' and '%s' is illegal".formatted(
-                name,
-                sourceStateClass.getName(),
-                targetStateClass.getName()
+      fun processTransitionEntry(event: String?, description: TransitionDescription) {
+        val targetStateClass =
+          description.to?.let { targetName ->
+            stateMachine.findStateClassByName(targetName)
+              ?: throw IllegalArgumentException(
+                "transition '$name' has an invalid target state '$targetName'."
               )
-            );
-          }
-        };
+          } ?: sourceStateClass
 
-        value.getOn().forEach(processTransitionEntry);
-        value.getAlways().forEach(desc -> processTransitionEntry.accept(null, desc));
-      });
+        val builder = TransitionClassBuilder.from(description)
+        event?.let { builder.withEvent(it) }
 
-    return stateMachine;
+        if (
+          !stateMachine.addEdge(sourceStateClass, targetStateClass, builder.build().getOrThrow())
+        ) {
+          throw IllegalArgumentException(
+            "the edge '$name' between '${sourceStateClass.name}' and '${targetStateClass.name}' is illegal."
+          )
+        }
+      }
+
+      stateDesc.on.forEach { (event, desc) -> processTransitionEntry(event, desc) }
+      stateDesc.always.forEach { desc -> processTransitionEntry(null, desc) }
+    }
+
+    stateMachine
   }
 }

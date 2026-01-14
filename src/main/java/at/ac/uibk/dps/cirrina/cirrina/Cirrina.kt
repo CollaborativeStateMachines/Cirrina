@@ -6,7 +6,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.io.parsing.CsmParser
+import at.ac.uibk.dps.cirrina.io.CsmParser
 import com.google.common.flogger.FluentLogger
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
@@ -29,26 +29,26 @@ class Cirrina {
       runCatching {
           Cirrina::class.java.getResourceAsStream("/logging.properties")?.use { inputStream ->
             LogManager.getLogManager().readConfiguration(inputStream)
-          } ?: logger.atWarning().log("Logging properties file not found")
+          } ?: logger.atWarning().log("logging properties file not found")
         }
         .onFailure { ex ->
-          logger.atSevere().withCause(ex).log("Could not load logging properties")
+          logger.atSevere().withCause(ex).log("could not load logging properties")
         }
 
-      logger.atFine().log("Starting health service")
+      logger.atFine().log("starting health service")
       runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
-        .getOrElse { e -> logger.atSevere().withCause(e).log("Could not start the health service") }
+        .getOrElse { e -> logger.atSevere().withCause(e).log("could not start the health service") }
     }
   }
 
   /** Run Cirrina as configured. */
   fun run() {
     try {
-      logger.atFine().log("Creating the event handler")
+      logger.atFine().log("creating the event handler")
       newEventHandler()
         .apply {
           if (this is NatsEventHandler) {
-            logger.atFine().log("Awaiting connection to NATS as the event handler")
+            logger.atFine().log("awaiting connection to NATS as the event handler")
             awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
           }
         }
@@ -57,25 +57,25 @@ class Cirrina {
           eventHandler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
           eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
 
-          logger.atFine().log("Creating the persistent context")
+          logger.atFine().log("creating the persistent context")
           newPersistentContext()
             .apply {
               if (this is EtcdContext) {
-                logger.atFine().log("Awaiting connection to Etcd as the persistent context")
+                logger.atFine().log("awaiting connection to Etcd as the persistent context")
                 awaitInitialConnection(ETCD_CONNECTION_TIMEOUT)
               }
             }
             .use { persistentContext ->
               val openTelemetry = getOpenTelemetry()
 
-              logger.atFine().log("Loading service implementation bindings")
+              logger.atFine().log("loading service implementation bindings")
               var serviceImplementationBindings =
                 CsmParser.parseServiceImplementationBindings(
                     URI(EnvironmentVariables.serviceBindingsPath.get())
                   )
                   .bindings
 
-              logger.atFine().log("Creating the runtime")
+              logger.atFine().log("creating the runtime")
               val runtime =
                 Runtime(
                   URI(EnvironmentVariables.appPath.get()),
@@ -88,14 +88,14 @@ class Cirrina {
                   persistentContext,
                 )
 
-              logger.atFine().log("Running the runtime")
+              logger.atFine().log("running the runtime")
               runtime.run()
             }
         }
     } catch (e: ConfigurationError) {
-      logger.atSevere().withCause(e).log("There is an error in the current configuration")
+      logger.atSevere().withCause(e).log("there is an error in the current configuration")
     } catch (e: Exception) {
-      logger.atSevere().withCause(e).log("There was an unknown in the runtime execution")
+      logger.atSevere().withCause(e).log("there was an unknown in the runtime execution")
     }
   }
 

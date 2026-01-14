@@ -12,14 +12,10 @@ import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.io.plantuml.CollaborativeStateMachineExporter
-import at.ac.uibk.dps.cirrina.io.plantuml.PlantUmlExporter
 import at.ac.uibk.dps.cirrina.utils.BuildVersion
 import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
-import java.io.StringWriter
 import java.time.Duration
-import kotlin.jvm.optionals.getOrNull
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -111,20 +107,13 @@ class CompleteTest {
                 allStateMachines
                   .first()
                   .getStateMachineClass()
-                  .findStateClassByName("a")
-                  .getOrNull()
+                  .findStateClassByName("a")!!
                   .toString(),
                 "a",
               )
 
               // Should not have state b
-              assertNull(
-                allStateMachines
-                  .first()
-                  .getStateMachineClass()
-                  .findStateClassByName("b")
-                  .getOrNull()
-              )
+              assertNull(allStateMachines.first().getStateMachineClass().findStateClassByName("b"))
 
               // This test counts up to 100, and down to 0, so the final value should be 0
               assertEquals(context.get("v"), 0)
@@ -373,34 +362,6 @@ class CompleteTest {
                 context,
               )
               .apply { run() }
-
-          val plantUmlExporter = PlantUmlExporter()
-          plantUmlExporter.withStateMachine(runtime.stateMachines.first().getStateMachineClass())
-
-          val export = plantUmlExporter.getPlantUml()
-
-          val importantSubstrings =
-            arrayOf(
-              "completeStateMachine",
-              "state \"a\"",
-              "state \"b\"",
-              "state \"e\"",
-              "[*] -->",
-              "--> [*]",
-              "Invoke{increment}",
-              "nestedStateMachine",
-            )
-
-          for (string in importantSubstrings) {
-            assertTrue(export.contains(string))
-          }
-
-          assertDoesNotThrow {
-            CollaborativeStateMachineExporter.export(
-              StringWriter(),
-              runtime.stateMachines.first().getStateMachineClass(),
-            )
-          }
         } finally {
           server.stop(1)
         }

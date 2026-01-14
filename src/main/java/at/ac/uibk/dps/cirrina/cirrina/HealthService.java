@@ -39,7 +39,7 @@ public class HealthService implements AutoCloseable {
 
       httpServer.start();
     } catch (IOException e) {
-      throw new RuntimeException("Failed to start health service: " + e);
+      throw new RuntimeException("failed to start health service: " + e);
     }
   }
 
