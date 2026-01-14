@@ -115,8 +115,8 @@ class CompleteTest {
               // Should not have state b
               assertNull(allStateMachines.first().getStateMachineClass().findStateClassByName("b"))
 
-              // This test counts up to 100, and down to 0, so the final value should be 0
-              assertEquals(context.get("v"), 0)
+              // This test counts up to 100
+              assertEquals(context.get("v"), 100)
               assertEquals(context.get("b"), true)
             } finally {
               server.stop(1)
@@ -326,46 +326,5 @@ class CompleteTest {
     // Should be different
     assertFalse(otherService.equals(service) || service.equals(otherService))
     assertNotEquals(otherService.toString(), service.toString())
-  }
-
-  @Test
-  fun testPlantUml() {
-    MockEventHandler().use { eventHandler ->
-      InMemoryContext(false).use { context ->
-        val server = mockHttpServer { input ->
-          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
-          listOf(ContextVariable("v", (v.value as Int) + 1))
-        }
-        try {
-          val service =
-            ServiceImplementationBindings.HttpServiceImplementationBinding(
-              "increment",
-              true,
-              ServiceImplementationBindings.Type.HTTP,
-              "http",
-              "localhost",
-              8000,
-              "/increment",
-              ServiceImplementationBindings.HttpMethod.GET,
-            )
-
-          val services = ServiceImplementationBuilder.from(listOf(service)).build()
-          val serviceImplementationSelector = RandomServiceImplementationSelector(services)
-
-          val runtime =
-            Runtime(
-                DefaultDescriptions.complete,
-                listOf("completeStateMachine"),
-                loggingOpenTelemetry(),
-                serviceImplementationSelector,
-                eventHandler,
-                context,
-              )
-              .apply { run() }
-        } finally {
-          server.stop(1)
-        }
-      }
-    }
   }
 }

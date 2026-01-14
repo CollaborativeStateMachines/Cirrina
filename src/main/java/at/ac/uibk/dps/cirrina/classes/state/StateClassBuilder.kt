@@ -57,13 +57,13 @@ class StateClassBuilder private constructor(private val stateDescription: StateD
     StateClass(
       StateClass.Parameters(
         name ?: "",
-        stateDescription.transient,
         stateDescription.isInitial,
         stateDescription.isTerminal,
         entryActions,
         exitActions,
         whileActions,
         afterActions,
+        stateDescription.static,
       )
     )
   }

@@ -150,8 +150,14 @@ public final class ActionBuilder {
         // Acquire the cases
         final var cases = buildCases(match.getCases());
 
+        // Acquire the default
+        final var defaultAction = Optional.ofNullable(match.getDefault())
+          .map(ActionBuilder::from)
+          .map(ActionBuilder::build)
+          .orElse(null);
+
         // Construct parameters
-        final var parameters = new MatchAction.Parameters(valueExpression, cases);
+        final var parameters = new MatchAction.Parameters(valueExpression, cases, defaultAction);
 
         // Construct the match action
         return new MatchAction(parameters);

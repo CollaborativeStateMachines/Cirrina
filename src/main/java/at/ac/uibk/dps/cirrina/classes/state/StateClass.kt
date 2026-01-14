@@ -11,9 +11,9 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionGraphBuilder
 class StateClass internal constructor(parameters: Parameters) {
   val name = parameters.name
 
-  val localContextDescription = parameters.transientContextDescription
   val isInitial = parameters.initial
   val isTerminal = parameters.terminal
+  val staticContextDescription = parameters.staticContextDescription
 
   val entryActionGraph = ActionGraphBuilder.from(parameters.entryActions).build()
   val exitActionGraph = ActionGraphBuilder.from(parameters.exitActions).build()
@@ -35,12 +35,12 @@ class StateClass internal constructor(parameters: Parameters) {
 
   data class Parameters(
     val name: String,
-    val transientContextDescription: Map<String, String>?,
     val initial: Boolean,
     val terminal: Boolean,
     val entryActions: List<Action>,
     val exitActions: List<Action>,
     val whileActions: List<Action>,
     val afterActions: List<Action>,
+    val staticContextDescription: Map<String, String>?,
   )
 }

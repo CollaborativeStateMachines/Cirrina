@@ -25,7 +25,6 @@ open class StateDescription {
   after: Mapping<String, TimeoutDescription>
   on: Mapping<String, TransitionDescription>
   always: Listing<TransitionDescription>
-  transient: Context?
   static: Context?
 }
 
@@ -85,6 +84,7 @@ class CaseDescription {
 class MatchDescription extends ActionDescription {
   value: Expression
   cases: Listing<CaseDescription>
+  default: ActionDescription?
 }
 
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"

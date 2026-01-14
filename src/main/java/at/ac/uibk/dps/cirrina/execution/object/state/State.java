@@ -17,16 +17,16 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 
 public final class State implements Scope {
 
-  private final Context localContext;
+  private final Context staticContext;
 
   private final StateClass stateClassObject;
 
   private final StateMachine parent;
 
   public State(StateClass stateClassObject, StateMachine parent) {
-    // Build the local context
+    // Build the static context
     try {
-      localContext = Optional.ofNullable(stateClassObject.getLocalContextDescription())
+      staticContext = Optional.ofNullable(stateClassObject.getStaticContextDescription())
         .map(ContextBuilder::from)
         .orElseGet(ContextBuilder::empty)
         .inMemoryContext(true)
@@ -41,7 +41,7 @@ public final class State implements Scope {
 
   @Override
   public Extent getExtent() {
-    return parent.getExtent().extend(localContext);
+    return parent.getExtent().extend(staticContext);
   }
 
   @Override
