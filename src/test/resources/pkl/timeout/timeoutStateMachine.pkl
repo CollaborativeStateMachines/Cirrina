@@ -19,9 +19,7 @@ sm = new csml.StateMachine {
                 new csml.Case { of = "true"; then = new csml.Eval { expression = "v = v + 1" } }
                 new csml.Case {
                   of = "false"
-                  then = new csml.Raise {
-                    event = new csml.Internal { topic = "tob" }
-                  }
+                  then = new csml.Raise { event = new csml.Internal { topic = "tob" } }
                 }
               }
             }

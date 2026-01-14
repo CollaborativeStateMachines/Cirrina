@@ -17,20 +17,24 @@ sm = new csml.StateMachine {
         new csml.Invoke {
           type = "increment"
           mode = "local"
-          input { ["v"] = "v" }
+          input { ["v"] = "x" }
           raises { new csml.Internal { topic = "e2" } }
         }
       }
+      exit {
+        new csml.Eval { expression = "e = true" }
+      }
       on {
-        ["e2"] = new csml.Transition { to = "c"; do { new csml.Eval { expression = "v = $v" } } }
+        ["e2"] = new csml.Transition { to = "c"; do { new csml.Eval { expression = "x = $v" } } }
       }
     }
     ["c"] = new csml.State {
-      always { new csml.Transition { to = "d"; iif { "v == 100" }; or = "b" } }
+      always { new csml.Transition { to = "d"; iif { "x == 100" }; or = "b" } }
     }
     ["d"] = new csml.State {
       static { ["d"] = "100" }
       entry {
+        new csml.Eval { expression = "v = x" }
         new csml.Eval { expression = "d = d - 1" }
         new csml.Match {
           value = "d"
@@ -49,4 +53,5 @@ sm = new csml.StateMachine {
     }
     ["e"] = new csml.Terminal { entry { new csml.Eval { expression = "b = true" } } }
   }
+  transient { ["x"] = "0" }
 }

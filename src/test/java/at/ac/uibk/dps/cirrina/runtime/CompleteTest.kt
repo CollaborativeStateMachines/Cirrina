@@ -115,9 +115,9 @@ class CompleteTest {
               // Should not have state b
               assertNull(allStateMachines.first().getStateMachineClass().findStateClassByName("b"))
 
-              // This test counts up to 100
               assertEquals(context.get("v"), 100)
               assertEquals(context.get("b"), true)
+              assertEquals(context.get("e"), true)
             } finally {
               server.stop(1)
             }
