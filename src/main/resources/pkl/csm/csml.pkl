@@ -43,7 +43,7 @@ class SingletonDescription extends StateDescription {
 
 class TransitionDescription {
   to: String?
-  iif: Listing<Expression>
+  iif: Expression?
   do: Listing<ActionDescription>
   or: String?
 }
