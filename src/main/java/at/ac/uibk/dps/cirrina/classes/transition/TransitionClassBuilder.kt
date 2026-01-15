@@ -46,7 +46,7 @@ private constructor(private val transitionDescription: TransitionDescription) {
       transitionDescription.`do`.map { description -> ActionBuilder.from(description).build() }
 
     // Resolves guard expressions into guard objects
-    val iif = transitionDescription.iif.map { expression -> GuardBuilder.from(expression).build() }
+    val iif = transitionDescription.iif?.let { GuardBuilder.from(it).build() }
 
     val or = transitionDescription.or
 

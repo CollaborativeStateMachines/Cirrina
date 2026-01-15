@@ -29,7 +29,7 @@ sm = new csml.StateMachine {
       }
     }
     ["c"] = new csml.State {
-      always { new csml.Transition { to = "d"; iif { "x == 100" }; or = "b" } }
+      always { new csml.Transition { to = "d"; iif = "x == 100"; or = "b" } }
     }
     ["d"] = new csml.State {
       static { ["d"] = "100" }

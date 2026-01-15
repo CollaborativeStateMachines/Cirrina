@@ -22,7 +22,7 @@ open class TransitionClass internal constructor(parameters: Parameters) : Defaul
 
   val to: String? = parameters.to
   val `do`: List<Action> = parameters.`do`
-  val iif: List<Guard> = parameters.iif
+  val iif: Guard? = parameters.iif
   val or: String? = parameters.or
   val event: String? = parameters.event
 
@@ -37,9 +37,9 @@ open class TransitionClass internal constructor(parameters: Parameters) : Defaul
    */
   @Throws(UnsupportedOperationException::class)
   fun evaluate(extent: Extent): Boolean {
-    // Evaluates all guards; if any guard returns false, the transition cannot be taken
+    // Evaluate the guard; if the guard returns false, the transition cannot be taken
     return try {
-      iif.all { it.evaluate(extent) }
+      iif?.evaluate(extent) ?: true
     } catch (e: Exception) {
       when (e) {
         is IllegalArgumentException,
@@ -75,7 +75,7 @@ open class TransitionClass internal constructor(parameters: Parameters) : Defaul
   data class Parameters(
     val to: String?,
     val `do`: List<Action>,
-    val iif: List<Guard>,
+    val iif: Guard?,
     val or: String?,
     val event: String?,
   )
