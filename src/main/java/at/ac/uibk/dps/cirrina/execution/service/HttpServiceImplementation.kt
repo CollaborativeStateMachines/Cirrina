@@ -1,197 +1,88 @@
-package at.ac.uibk.dps.cirrina.execution.service;
+package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
-import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
-import com.google.protobuf.InvalidProtocolBufferException;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Version;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.util.concurrent.Executors
+import kotlinx.coroutines.future.await
 
-/**
- * HTTP service implementation, a service implementation that is accessible through HTTP.
- * <p>
- * Input variables provided to the invoked service are provided as a list of context variables.
- * <p>
- * Context variables are encoded using Protocol Buffers.
- */
-public class HttpServiceImplementation extends ServiceImplementation {
+class HttpServiceImplementation(parameters: Parameters) :
+  ServiceImplementation(parameters.name, parameters.local) {
 
-  /**
-   * HTTP client.
-   */
-  private final HttpClient httpClient = HttpClient.newBuilder()
-    .executor(Executors.newCachedThreadPool())
-    .build();
+  private val httpClient: HttpClient =
+    HttpClient.newBuilder().executor(Executors.newCachedThreadPool()).build()
 
-  /**
-   * Handle executor.
-   */
-  private final Executor handleExecutor = Executors.newCachedThreadPool();
+  private val scheme = parameters.scheme
+  private val host = parameters.host
+  private val port = parameters.port.toInt()
+  private val endPoint = parameters.endPoint
+  private val method = parameters.method
 
-  /**
-   * HTTP scheme.
-   */
-  private final String scheme;
-
-  /**
-   * HTTP host.
-   */
-  private final String host;
-
-  /**
-   * HTTP port.
-   */
-  private final int port;
-
-  /**
-   * HTTP end-point,
-   */
-  private final String endPoint;
-
-  /**
-   * HTTP method.
-   */
-  private final ServiceImplementationBindings.HttpMethod method;
-
-  /**
-   * Initializes this HTTP service implementation.
-   *
-   * @param parameters Initialization parameters.
-   */
-  public HttpServiceImplementation(Parameters parameters) {
-    super(parameters.name, parameters.local);
-    this.scheme = parameters.scheme;
-    this.host = parameters.host;
-    this.port = (int) parameters.port;
-    this.endPoint = parameters.endPoint;
-    this.method = parameters.method;
-  }
-
-  /**
-   * Handle a service invocation response.
-   *
-   * @param response HTTP response.
-   * @return Output variables.
-   * @throws CompletionException In case of error.
-   */
-  private static List<ContextVariable> handleResponse(HttpResponse<byte[]> response) {
-    // Require HTTP OK
-    final var errorCode = response.statusCode();
-
-    if (errorCode != HttpURLConnection.HTTP_OK) {
-      throw new CompletionException(new IOException("HTTP error (%d)".formatted(errorCode)));
+  override suspend fun invoke(
+    input: List<ContextVariable>,
+    id: String,
+  ): Result<List<ContextVariable>> = runCatching {
+    require(input.none { it.isLazy }) {
+      "All variables must be evaluated before service invocation"
     }
 
-    // Acquire the payload
-    final var payload = response.body();
-
-    try {
-      // Empty payload
-      if (payload.length == 0) {
-        return List.of();
-      }
-
-      // Otherwise we expect a serialized collection of context variables
-      return ContextVariableProtos.ContextVariables.parseFrom(payload)
-        .getDataList()
-        .stream()
-        .map(ContextVariableExchange::fromProto)
-        .toList();
-    } catch (InvalidProtocolBufferException e) {
-      throw new CompletionException(
-        new IOException("Unexpected HTTP service invocation value type")
-      );
-    }
-  }
-
-  /**
-   * Invoke this service implementation.
-   * <p>
-   * All input variables must be evaluated.
-   *
-   * @param input Input to the service invocation.
-   * @param id    Sender ID.
-   * @return The service invocation output.
-   * @throws UnsupportedOperationException If not all variables are evaluated.
-   * @throws UnsupportedOperationException If the invocation failed.
-   */
-  @Override
-  public CompletableFuture<List<ContextVariable>> invoke(List<ContextVariable> input, String id)
-    throws UnsupportedOperationException {
-    try {
-      if (input.stream().anyMatch(ContextVariable::isLazy)) {
-        throw new UnsupportedOperationException(
-          "All variables need to be evaluated before service input can be converted to bytes"
-        );
-      }
-
-      // Serialize the data
-      final byte[] payload = input.isEmpty()
-        ? new byte[0]
-        : ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(
-            input
-              .stream()
-              .map(contextVariable -> new ContextVariableExchange(contextVariable).toProto())
-              .toList()
-          )
+    val payload =
+      if (input.isEmpty()) {
+        ByteArray(0)
+      } else {
+        ContextVariableProtos.ContextVariables.newBuilder()
+          .addAllData(input.map { ContextVariableExchange(it).toProto().getOrThrow() })
           .build()
-          .toByteArray();
+          .toByteArray()
+      }
 
-      // Create URL
-      final var uri = new URI(scheme, null, host, port, endPoint, null, null);
-
-      final var request = HttpRequest.newBuilder()
-        .version(Version.HTTP_1_1)
+    val uri = URI(scheme, null, host, port, endPoint, null, null)
+    val request =
+      HttpRequest.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
         .header("Cirrina-Sender-ID", id)
-        .method(method.toString(), BodyPublishers.ofByteArray(payload))
+        .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
         .uri(uri)
-        .build();
+        .build()
 
-      return httpClient
-        .sendAsync(request, HttpResponse.BodyHandlers.ofByteArray())
-        .thenApplyAsync(HttpServiceImplementation::handleResponse, handleExecutor);
-    } catch (URISyntaxException | UnsupportedOperationException e) {
-      throw new UnsupportedOperationException("Failed to perform HTTP service invocation", e);
-    }
+    val response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
+
+    handleResponse(response).getOrThrow()
   }
 
-  /**
-   * Returns a string for informative purposes (a service implementation is abstract, so can provide no information about the details).
-   *
-   * @return Information string.
-   */
-  @Override
-  public String getInformationString() {
-    try {
-      final var uri = new URI(scheme, null, host, port, endPoint, null, null);
+  private fun handleResponse(response: HttpResponse<ByteArray>): Result<List<ContextVariable>> =
+    runCatching {
+      if (response.statusCode() != HttpURLConnection.HTTP_OK) {
+        error("HTTP error (${response.statusCode()})")
+      }
 
-      return "%s".formatted(uri.toString());
-    } catch (URISyntaxException e) {
-      return "Invalid information string: %s".formatted(e.getMessage());
+      val payload = response.body()
+      if (payload.isEmpty()) return Result.success(emptyList())
+
+      ContextVariableProtos.ContextVariables.parseFrom(payload)
+        .dataList
+        .map { ContextVariableExchange.fromProto(it) }
+        .map { it.getOrThrow() }
     }
-  }
 
-  public record Parameters(
-    String name,
-    boolean local,
-    String scheme,
-    String host,
-    long port,
-    String endPoint,
-    ServiceImplementationBindings.HttpMethod method
-  ) {}
+  override val informationString: String
+    get() =
+      runCatching { URI(scheme, null, host, port, endPoint, null, null).toString() }
+        .getOrElse { "Invalid URI: ${it.message}" }
+
+  data class Parameters(
+    val name: String,
+    val local: Boolean,
+    val scheme: String,
+    val host: String,
+    val port: Long,
+    val endPoint: String,
+    val method: ServiceImplementationBindings.HttpMethod,
+  )
 }

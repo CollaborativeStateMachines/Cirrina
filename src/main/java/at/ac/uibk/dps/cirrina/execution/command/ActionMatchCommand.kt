@@ -1,58 +1,43 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
-import com.google.common.flogger.FluentLogger;
-import java.util.ArrayList;
-import java.util.List;
+import at.ac.uibk.dps.cirrina.execution.`object`.action.MatchAction
+import com.google.common.flogger.FluentLogger
 
-public final class ActionMatchCommand extends ActionCommand {
+class ActionMatchCommand(executionContext: ExecutionContext, private val matchAction: MatchAction) :
+  ActionCommand(executionContext) {
 
-  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
-
-  private final MatchAction matchAction;
-
-  ActionMatchCommand(ExecutionContext executionContext, MatchAction matchAction) {
-    super(executionContext);
-    this.matchAction = matchAction;
+  companion object {
+    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
-  @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
-    final var commands = new ArrayList<ActionCommand>();
+  override fun execute(): Result<List<ActionCommand>> =
+    runCatching {
+        val extent = executionContext.scope.getExtent()
+        val commandFactory = CommandFactory(executionContext)
 
-    try {
-      final var extent = executionContext.scope().getExtent();
-      final var conditionValue = matchAction.getValue().execute(extent);
+        // Evaluate the main match condition
+        val conditionValue = matchAction.value.execute(extent).getOrThrow()
 
-      final var commandFactory = new CommandFactory(executionContext);
+        // Filter for matching cases
+        val matchingActions =
+          matchAction.`case`.entries
+            .filter { (expression, _) ->
+              val caseValue = expression.execute(extent).getOrThrow()
+              conditionValue == caseValue
+            }
+            .map { it.value }
 
-      // Find matching conditions and append the commands to the set of new commands
-      var found = false;
+        val finalActions =
+          when {
+            matchingActions.isNotEmpty() -> matchingActions
+            else -> listOf(matchAction.`default`)
+          }
 
-      for (var entry : matchAction.getCase().entrySet()) {
-        final var caseValue = entry.getKey().execute(extent);
-        final var caseAction = entry.getValue();
-
-        // In case the case condition matches, add the case action
-        if (conditionValue == caseValue) {
-          final var command = commandFactory.createActionCommand(caseAction);
-
-          commands.add(command);
-
-          found = true;
-        }
+        // Convert actions to commands
+        finalActions.map { commandFactory.createActionCommand(it) }
       }
-
-      // If no matching case has been found, we execute the default if it exists
-      if (!found) {
-        final var command = commandFactory.createActionCommand(matchAction.getDefault());
-
-        commands.add(command);
+      .recoverCatching { ex ->
+        logger.atWarning().withCause(ex).log("could not execute match action")
+        throw UnsupportedOperationException("could not execute match action", ex)
       }
-    } catch (UnsupportedOperationException e) {
-      logger.atWarning().log("Could not execute match action");
-    }
-
-    return commands;
-  }
 }

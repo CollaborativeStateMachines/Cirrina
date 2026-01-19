@@ -93,7 +93,7 @@ class CompleteTest {
 
               // Should be "completeStateMachine"
               assertEquals(
-                allStateMachines.first().getStateMachineClass().toString(),
+                allStateMachines.first().stateMachineClass.toString(),
                 "completeStateMachine",
               )
 
@@ -104,16 +104,12 @@ class CompleteTest {
 
               // Should have state a
               assertEquals(
-                allStateMachines
-                  .first()
-                  .getStateMachineClass()
-                  .findStateClassByName("a")!!
-                  .toString(),
+                allStateMachines.first().stateMachineClass.findStateClassByName("a")!!.toString(),
                 "a",
               )
 
               // Should not have state b
-              assertNull(allStateMachines.first().getStateMachineClass().findStateClassByName("b"))
+              assertNull(allStateMachines.first().stateMachineClass.findStateClassByName("b"))
 
               assertEquals(context.get("v"), 100)
               assertEquals(context.get("b"), true)

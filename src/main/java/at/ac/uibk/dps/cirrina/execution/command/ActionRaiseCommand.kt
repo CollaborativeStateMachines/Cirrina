@@ -1,43 +1,31 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
-import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
-import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.execution.`object`.action.RaiseAction
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import java.util.concurrent.atomic.AtomicReference
 
-public final class ActionRaiseCommand extends ActionCommand {
+class ActionRaiseCommand
+internal constructor(executionContext: ExecutionContext, private val raiseAction: RaiseAction) :
+  ActionCommand(executionContext) {
 
-  private final RaiseAction raiseAction;
+  private val latency = AtomicReference<Double?>()
 
-  private final AtomicReference<Double> latency = new AtomicReference<>();
+  override fun execute(): Result<List<ActionCommand>> = runCatching {
+    val extent = executionContext.scope.extent
+    val evaluatedEvent = Event.ensureHasEvaluatedData(raiseAction.event, extent)
 
-  ActionRaiseCommand(ExecutionContext executionContext, RaiseAction raiseAction) {
-    super(executionContext);
-    this.raiseAction = raiseAction;
+    dispatch(evaluatedEvent)
+
+    emptyList()
   }
 
-  @Override
-  public List<ActionCommand> execute() {
-    final var commands = new ArrayList<ActionCommand>();
-
-    final var event = raiseAction.getEvent();
-
-    final var extent = executionContext.scope().getExtent();
-    final var eventHandler = executionContext.eventHandler();
-    final var eventListener = executionContext.eventListener();
-
-    final var evaluatedEvent = Event.ensureHasEvaluatedData(event, extent);
-
-    // Dispatch the event
-    if (evaluatedEvent.getChannel() == EventChannel.INTERNAL) {
-      eventListener.onReceiveEvent(evaluatedEvent);
+  // Routes the event to either the internal listener or the external handler
+  private fun dispatch(event: Event) {
+    if (event.channel == EventChannel.INTERNAL) {
+      executionContext.eventListener.onReceiveEvent(event)
     } else {
-      // Send the event through the event handler
-      eventHandler.sendEvent(evaluatedEvent);
+      executionContext.eventHandler.sendEvent(event)
     }
-
-    return commands;
   }
 }

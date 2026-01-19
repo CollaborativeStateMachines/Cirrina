@@ -72,14 +72,15 @@ object TestUtils {
 
   fun mockPersistentContext(
     createBlock: InMemoryContext.() -> Unit = {},
-    assignBlock: (superAssign: (String, Any?) -> Int, name: String, value: Any?) -> Int =
+    assignBlock:
+      (superAssign: (String, Any?) -> Result<Int>, name: String, value: Any?) -> Result<Int> =
       { superAssign, name, value ->
         superAssign(name, value)
       },
   ): InMemoryContext {
     val mockPersistentContext =
       object : InMemoryContext(true) {
-        override fun assign(name: String, value: Any?): Int {
+        override fun assign(name: String, value: Any?): Result<Int> {
           return assignBlock({ n, v -> super.assign(n, v) }, name, value)
         }
       }
@@ -95,14 +96,14 @@ object TestUtils {
 
       val input =
         ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
-          ContextVariableExchange.fromProto(it)
+          ContextVariableExchange.fromProto(it).getOrThrow()
         }
 
       val output = handlerBlock(input)
 
       val out =
         ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(output.map { ContextVariableExchange(it).toProto() })
+          .addAllData(output.map { ContextVariableExchange(it).toProto().getOrThrow() })
           .build()
           .toByteArray()
 

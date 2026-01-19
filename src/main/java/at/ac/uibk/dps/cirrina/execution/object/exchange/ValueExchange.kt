@@ -1,227 +1,93 @@
-package at.ac.uibk.dps.cirrina.execution.object.exchange;
+package at.ac.uibk.dps.cirrina.execution.`object`.exchange
 
-import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos.ValueCollection;
-import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos.ValueMap;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos.Value.ValueCase
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos.ValueCollection
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos.ValueMap
+import com.google.protobuf.ByteString
 
-/**
- * Value exchange, responsible for converting a value object to a consistent exchange format, using Protocol Buffers.
- * <p>
- * See the exchange protos for a protocol description.
- * <p>
- * The supported value types for exchange are:
- * <ul>
- *   <li>Integer</li>
- *   <li>Floating-point</li>
- *   <li>Long integer</li>
- *   <li>Double-precision floating-point</li>
- *   <li>String</li>
- *   <li>Boolean</li>
- *   <li>Array</li>
- *   <li>List</li>
- * </ul>
- */
-public class ValueExchange {
+class ValueExchange(val value: Any?) {
 
-  /**
-   * The value object.
-   */
-  private final Object value;
+  companion object {
+    @JvmStatic
+    fun fromBytes(data: ByteArray): Result<ValueExchange> =
+      runCatching {
+          val proto = ContextVariableProtos.Value.parseFrom(data)
+          fromProto(proto).getOrThrow()
+        }
+        .map { ValueExchange(it) }
+        .recoverCatching { ex ->
+          throw UnsupportedOperationException("could not read value from bytes", ex)
+        }
 
-  /**
-   * Initializes this value exchange instance.
-   *
-   * @param value Value object.
-   */
-  public ValueExchange(Object value) {
-    this.value = value;
-  }
-
-  /**
-   * Construct a value exchange from byte data.
-   *
-   * @param data Byte data.
-   * @return Value exchange.
-   * @throws UnsupportedOperationException If the value could not be read.
-   * @throws UnsupportedOperationException If the value type is unknown.
-   */
-  public static ValueExchange fromBytes(byte[] data) throws UnsupportedOperationException {
-    try {
-      return new ValueExchange(fromProto(ContextVariableProtos.Value.parseFrom(data)));
-    } catch (InvalidProtocolBufferException e) {
-      throw new UnsupportedOperationException("Could not read value from bytes");
+    @JvmStatic
+    fun fromProto(proto: ContextVariableProtos.Value): Result<Any?> = runCatching {
+      when (proto.valueCase) {
+        ValueCase.INTEGER -> proto.integer
+        ValueCase.FLOAT -> proto.float
+        ValueCase.LONG -> proto.long
+        ValueCase.DOUBLE -> proto.double
+        ValueCase.STRING -> proto.string
+        ValueCase.BOOL -> proto.bool
+        ValueCase.BYTES -> proto.bytes.toByteArray()
+        ValueCase.ARRAY -> fromCollectionProto(proto.array).getOrThrow().toTypedArray()
+        ValueCase.LIST -> fromCollectionProto(proto.list).getOrThrow().toMutableList()
+        ValueCase.MAP -> fromMapProto(proto.map).getOrThrow()
+        ValueCase.VALUE_NOT_SET,
+        null -> null
+        else -> throw UnsupportedOperationException("context variable value type could not be read")
+      }
     }
-  }
 
-  /**
-   * Construct a value object from a proto.
-   *
-   * @param proto Value proto.
-   * @return Value object.
-   * @throws UnsupportedOperationException If the value type is unknown.
-   */
-  public static Object fromProto(ContextVariableProtos.Value proto)
-    throws UnsupportedOperationException {
-    switch (proto.getValueCase()) {
-      case INTEGER -> {
-        return proto.getInteger();
-      }
-      case FLOAT -> {
-        return proto.getFloat();
-      }
-      case LONG -> {
-        return proto.getLong();
-      }
-      case DOUBLE -> {
-        return proto.getDouble();
-      }
-      case STRING -> {
-        return proto.getString();
-      }
-      case BOOL -> {
-        return proto.getBool();
-      }
-      case BYTES -> {
-        return proto.getBytes().toByteArray();
-      }
-      case ARRAY -> {
-        return fromCollectionProto(proto.getArray()).toArray();
-      }
-      case LIST -> {
-        // Convert to ArrayList to ensure mutability
-        return fromCollectionProto(proto.getList()).collect(
-          Collectors.toCollection(ArrayList::new)
-        );
-      }
-      case MAP -> {
-        return fromMapProto(proto.getMap());
-      }
-      default -> throw new UnsupportedOperationException(
-        "Context variable value type could not be read"
-      );
+    private fun fromCollectionProto(collection: ValueCollection): Result<List<Any?>> = runCatching {
+      collection.entryList.map { fromProto(it).getOrThrow() }
     }
-  }
 
-  /**
-   * Converts a {@link ValueCollection} proto message into a stream.
-   *
-   * @param collection {@link ValueCollection} proto message to convert
-   * @return stream of objects
-   * @throws UnsupportedOperationException if an entry could not be parsed
-   */
-  private static Stream<Object> fromCollectionProto(
-    ContextVariableProtos.ValueCollection collection
-  ) throws UnsupportedOperationException {
-    return collection.getEntryList().stream().map(ValueExchange::fromProto);
-  }
+    private fun fromMapProto(map: ValueMap): Result<Map<Any?, Any?>> = runCatching {
+      map.entryList.associate { entry ->
+        fromProto(entry.key).getOrThrow() to fromProto(entry.value).getOrThrow()
+      }
+    }
 
-  /**
-   * Converts a {@link ValueMap} proto message into a map.
-   *
-   * @param map {@link ValueMap} proto message to convert
-   * @return map with objects as key and value
-   * @throws UnsupportedOperationException if an entry could not be parsed
-   */
-  private static Map<Object, Object> fromMapProto(ContextVariableProtos.ValueMap map)
-    throws UnsupportedOperationException {
-    return map
-      .getEntryList()
-      .stream()
-      .collect(
-        Collectors.toMap(
-          valueMapEntry -> fromProto(valueMapEntry.getKey()),
-          valueMapEntry -> fromProto(valueMapEntry.getValue())
-        )
-      );
-  }
+    private fun toCollectionProto(list: Iterable<*>): Result<ValueCollection> = runCatching {
+      ValueCollection.newBuilder()
+        .addAllEntry(list.map { ValueExchange(it).toProto().getOrThrow() })
+        .build()
+    }
 
-  /**
-   * Converts a stream into a {@link ValueCollection} proto message.
-   *
-   * @param stream stream to convert
-   * @return {@link ValueCollection} proto message
-   */
-  private static ContextVariableProtos.ValueCollection toCollectionProto(Stream<?> stream) {
-    return ContextVariableProtos.ValueCollection.newBuilder()
-      .addAllEntry(
-        stream.map(entry -> new ValueExchange(entry).toProto()).collect(Collectors.toList())
-      )
-      .build();
-  }
-
-  /**
-   * Converts a map into a {@link ValueMap} proto message.
-   *
-   * @param map map to convert
-   * @return {@link ValueMap} proto message
-   */
-  private static ContextVariableProtos.ValueMap toMapProto(Map<?, ?> map) {
-    return ContextVariableProtos.ValueMap.newBuilder()
-      .addAllEntry(
-        map
-          .entrySet()
-          .stream()
-          .map(entry ->
+    private fun toMapProto(map: Map<*, *>): Result<ValueMap> = runCatching {
+      ValueMap.newBuilder()
+        .addAllEntry(
+          map.entries.map { (key, value) ->
             ContextVariableProtos.ValueMapEntry.newBuilder()
-              .setKey(new ValueExchange(entry.getKey()).toProto())
-              .setValue(new ValueExchange(entry.getValue()).toProto())
+              .setKey(ValueExchange(key).toProto().getOrThrow())
+              .setValue(ValueExchange(value).toProto().getOrThrow())
               .build()
-          )
-          .collect(Collectors.toList())
-      )
-      .build();
+          }
+        )
+        .build()
+    }
   }
 
-  /**
-   * Converts this exchange instance to bytes.
-   *
-   * @return Bytes.
-   */
-  public byte[] toBytes() throws UnsupportedOperationException {
-    return toProto().toByteArray();
-  }
+  fun toBytes(): Result<ByteArray> = toProto().map { it.toByteArray() }
 
-  /**
-   * Returns a proto from this exchange.
-   *
-   * @return Proto.
-   * @throws UnsupportedOperationException If the value type is unknown.
-   */
-  public ContextVariableProtos.Value toProto() throws UnsupportedOperationException {
-    final var builder = ContextVariableProtos.Value.newBuilder();
+  fun toProto(): Result<ContextVariableProtos.Value> = runCatching {
+    val builder = ContextVariableProtos.Value.newBuilder()
 
-    switch (value) {
-      case Integer i -> builder.setInteger(i);
-      case Float f -> builder.setFloat(f);
-      case Long l -> builder.setLong(l);
-      case Double d -> builder.setDouble(d);
-      case String s -> builder.setString(s);
-      case Boolean b -> builder.setBool(b);
-      case byte[] bytes -> builder.setBytes(ByteString.copyFrom(bytes));
-      case Object[] array -> builder.setArray(toCollectionProto(Arrays.stream(array)));
-      case List<?> list -> builder.setList(toCollectionProto(list.stream()));
-      case Map<?, ?> map -> builder.setMap(toMapProto(map));
-      default -> throw new UnsupportedOperationException(
-        "Value type could not be converted to proto"
-      );
+    when (value) {
+      is Int -> builder.integer = value
+      is Float -> builder.float = value
+      is Long -> builder.long = value
+      is Double -> builder.double = value
+      is String -> builder.string = value
+      is Boolean -> builder.bool = value
+      is ByteArray -> builder.bytes = ByteString.copyFrom(value)
+      is Array<*> -> builder.array = toCollectionProto(value.toList()).getOrThrow()
+      is List<*> -> builder.list = toCollectionProto(value).getOrThrow()
+      is Map<*, *> -> builder.map = toMapProto(value).getOrThrow()
+      null -> builder.clear()
+      else -> throw UnsupportedOperationException("value type could not be converted to proto")
     }
 
-    return builder.build();
-  }
-
-  /**
-   * Returns the value object.
-   *
-   * @return Value object.
-   */
-  public Object getValue() {
-    return value;
+    builder.build()
   }
 }

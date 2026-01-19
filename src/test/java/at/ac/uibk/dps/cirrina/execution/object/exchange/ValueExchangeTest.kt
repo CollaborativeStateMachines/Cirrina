@@ -1,79 +1,71 @@
-package at.ac.uibk.dps.cirrina.execution.object.exchange;
+package at.ac.uibk.dps.cirrina.execution.`object`.exchange
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
-
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertIterableEquals
+import org.junit.jupiter.api.Test
 
 class ValueExchangeTest {
 
   @Test
-  void testToFromBytes() {
-    final var i = 1;
-    final var f = 1.0f;
-    final var l = 1L;
-    final var d = 1.0;
-    final var s = "1";
-    final var bo = true;
-    final var by = new byte[] {
-      8,
-      1,
-      16,
-      0,
-      0,
-      0,
-      63,
-      24,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      33,
-      8,
-      49,
-      16,
-      1,
-      26,
-      1,
-      49,
-      8,
-      32
-    };
-    final var ar = new Object[] { i, f, l, d, s, bo, by };
-    final var li = List.of(i, f, l, d, s, bo);
-    final var ma = Map.of(i, f, l, d, s, bo);
+  fun testToFromBytes() {
+    val i = 1
+    val f = 1.0f
+    val l = 1L
+    val d = 1.0
+    val s = "1"
+    val bo = true
+    val by =
+      byteArrayOf(
+        8,
+        1,
+        16,
+        0,
+        0,
+        0,
+        63,
+        24,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        33,
+        8,
+        49,
+        16,
+        1,
+        26,
+        1,
+        49,
+        8,
+        32,
+      )
+    val ar = arrayOf(i, f, l, d, s, bo, by)
+    val li = listOf(i, f, l, d, s, bo)
+    val ma = mapOf(i to f, l to d, s to bo)
 
-    assertDoesNotThrow(() -> {
-      assertEquals(i, ValueExchange.fromBytes(new ValueExchange(i).toBytes()).getValue());
-      assertEquals(f, ValueExchange.fromBytes(new ValueExchange(f).toBytes()).getValue());
-      assertEquals(l, ValueExchange.fromBytes(new ValueExchange(l).toBytes()).getValue());
-      assertEquals(d, ValueExchange.fromBytes(new ValueExchange(d).toBytes()).getValue());
-      assertEquals(s, ValueExchange.fromBytes(new ValueExchange(s).toBytes()).getValue());
-      assertEquals(bo, ValueExchange.fromBytes(new ValueExchange(bo).toBytes()).getValue());
-      assertArrayEquals(
-        by,
-        (byte[]) ValueExchange.fromBytes(new ValueExchange(by).toBytes()).getValue()
-      );
-      assertArrayEquals(
-        ar,
-        (Object[]) ValueExchange.fromBytes(new ValueExchange(ar).toBytes()).getValue()
-      );
-      assertIterableEquals(
-        li,
-        (List<?>) ValueExchange.fromBytes(new ValueExchange(li).toBytes()).getValue()
-      );
-      assertIterableEquals(
-        ma.entrySet(),
-        ((Map<?, ?>) ValueExchange.fromBytes(new ValueExchange(ma).toBytes()).getValue()).entrySet()
-      );
-    });
+    assertDoesNotThrow {
+      fun roundTrip(value: Any?): Any? =
+        ValueExchange.fromBytes(ValueExchange(value).toBytes().getOrThrow()).getOrThrow().value
+
+      assertEquals(i, roundTrip(i))
+      assertEquals(f, roundTrip(f))
+      assertEquals(l, roundTrip(l))
+      assertEquals(d, roundTrip(d))
+      assertEquals(s, roundTrip(s))
+      assertEquals(bo, roundTrip(bo))
+
+      assertArrayEquals(by, roundTrip(by) as ByteArray)
+      assertArrayEquals(ar, roundTrip(ar) as Array<*>)
+      assertIterableEquals(li, roundTrip(li) as List<*>)
+
+      val returnedMap = roundTrip(ma) as Map<*, *>
+      assertIterableEquals(ma.entries, returnedMap.entries)
+    }
   }
 }

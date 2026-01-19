@@ -91,7 +91,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   // Handles incoming NATS messages and propagates them as Events.
   private fun handle(message: Message) {
     runCatching {
-        val event = EventExchange.fromBytes(message.data).event
+        val event = EventExchange.fromBytes(message.data).getOrThrow().event
         propagateEvent(event)
       }
       .onFailure { e ->
@@ -132,7 +132,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
 
     synchronized(lock) {
       connection?.let { conn ->
-        runCatching { conn.publish(subject, EventExchange(event).toBytes()) }
+        runCatching { conn.publish(subject, EventExchange(event).toBytes().getOrThrow()) }
           .onFailure { _ -> logger.atWarning().log("Failed to publish event '$subject'") }
       } ?: logger.atWarning().log("Not sending event, not connected to the NATS server")
     }

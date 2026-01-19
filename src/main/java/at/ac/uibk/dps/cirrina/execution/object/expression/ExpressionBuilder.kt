@@ -1,28 +1,20 @@
-package at.ac.uibk.dps.cirrina.execution.object.expression;
+package at.ac.uibk.dps.cirrina.execution.`object`.expression
 
-/**
- * Expression builder, builds an expression based on an expression source string. Built expressions are cached, repeatedly building the same
- * expression will return the same expression.
- */
-public final class ExpressionBuilder {
+import java.util.concurrent.ConcurrentHashMap
 
-  private String expressionDescription;
+class ExpressionBuilder private constructor(private val source: String) {
 
-  private ExpressionBuilder(String expressionDescription) {
-    this.expressionDescription = expressionDescription;
+  companion object {
+    private val cache = ConcurrentHashMap<String, Expression>()
+
+    @JvmStatic fun from(source: String): ExpressionBuilder = ExpressionBuilder(source)
   }
 
-  public static ExpressionBuilder from(String expressionDescription) {
-    return new ExpressionBuilder(expressionDescription);
-  }
+  fun build(): Result<Expression> {
+    if (source.isBlank()) {
+      return Result.failure(IllegalArgumentException("expression source cannot be blank"))
+    }
 
-  /**
-   * Builds the collaborative state machine.
-   *
-   * @return Built expression.
-   * @throws IllegalArgumentException In case the expression could not be built.
-   */
-  public Expression build() throws IllegalArgumentException {
-    return new JexlExpression(expressionDescription);
+    return runCatching { cache.computeIfAbsent(source) { JexlExpression(it) } }
   }
 }

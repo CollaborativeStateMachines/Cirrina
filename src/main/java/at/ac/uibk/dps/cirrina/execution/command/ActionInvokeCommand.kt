@@ -1,180 +1,115 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.COUNTER_INVOCATIONS;
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_ACTION_INVOKE_LATENCY;
-import static at.ac.uibk.dps.cirrina.tracing.SemanticConvention.GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.execution.`object`.action.InvokeAction
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
+import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachineEventHandler
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
+import at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*
+import at.ac.uibk.dps.cirrina.utils.Time
+import com.google.common.flogger.FluentLogger
+import kotlinx.coroutines.launch
 
-import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
-import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
-import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
-import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachineEventHandler;
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation;
-import at.ac.uibk.dps.cirrina.utils.Time;
-import com.google.common.flogger.FluentLogger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+class ActionInvokeCommand(
+  executionContext: ExecutionContext,
+  private val invokeAction: InvokeAction,
+) : ActionCommand(executionContext) {
 
-/**
- * Action invoke command, performs a service type invocation.
- * <p>
- * The execution of this command will use the service implementation selector to select the best matching service implementation and perform
- * the invocation.
- * <p>
- * An invocation is always asynchronous, and subsequent done events are generated and handled by the containing state machine instance.
- */
-public final class ActionInvokeCommand extends ActionCommand {
-
-  private static final FluentLogger logger = FluentLogger.forEnclosingClass();
-
-  private final InvokeAction invokeAction;
-
-  /**
-   * Initializes this action invoke commands.
-   *
-   * @param executionContext Execution context.
-   * @param invokeAction     Invoke action.
-   */
-  ActionInvokeCommand(ExecutionContext executionContext, InvokeAction invokeAction) {
-    super(executionContext);
-    this.invokeAction = invokeAction;
+  companion object {
+    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
-  @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
-    incrementInvocationCounter();
-    final var start = Time.timeInMillisecondsSinceStart();
+  override fun execute(): Result<List<ActionCommand>> =
+    runCatching {
+        incrementInvocationCounter()
+        val start = Time.timeInMillisecondsSinceStart()
 
-    try {
-      final var serviceImplementation = selectServiceImplementation();
+        val serviceImplementation = selectServiceImplementation().getOrThrow()
+        val extent = executionContext.scope.extent
+        val input = prepareInput(extent).getOrThrow()
 
-      final var commands = new ArrayList<ActionCommand>();
+        executionContext.coroutineScope.launch {
+          serviceImplementation
+            .invoke(input, executionContext.scope.id)
+            .onSuccess { output ->
+              raiseEvents(output, executionContext.eventListener, executionContext.eventHandler)
+              measurePerformance(start, serviceImplementation)
+            }
+            .onFailure { ex ->
+              logger
+                .atWarning()
+                .withCause(ex)
+                .log(
+                  "service invocation failed for service '%s'",
+                  serviceImplementation.informationString,
+                )
+            }
+        }
 
-      final var extent = executionContext.scope().getExtent();
-      final var eventListener = executionContext.eventListener();
-      final var eventHandler = executionContext.eventHandler();
+        emptyList<ActionCommand>()
+      }
+      .recoverCatching { ex ->
+        throw UnsupportedOperationException("could not execute invoke action", ex)
+      }
 
-      List<ContextVariable> input = prepareInput(extent);
+  private fun prepareInput(extent: Extent): Result<List<ContextVariable>> = runCatching {
+    invokeAction.input.map { variable -> variable.evaluate(extent).getOrThrow() }
+  }
 
-      // Invoke (asynchronously)
-      serviceImplementation
-        .invoke(input, executionContext.scope().getId())
-        .whenComplete((output, e) -> {
-          if (e != null) {
-            logger
-              .atWarning()
-              .log(
-                "Service invocation failed for service '%s'",
-                serviceImplementation.getInformationString()
-              );
-          } else {
-            raiseEvents(output, eventListener, eventHandler);
-            measurePerformance(start, serviceImplementation);
-          }
-        });
+  private fun incrementInvocationCounter() {
+    executionContext.counters
+      .getCounter(COUNTER_INVOCATIONS)
+      .add(1, executionContext.counters.attributesForInvocation())
+  }
 
-      return commands;
-    } catch (Exception e) {
-      throw new UnsupportedOperationException("Could not execute invoke action", e);
+  private fun selectServiceImplementation(): Result<ServiceImplementation> {
+    val serviceType = invokeAction.serviceType
+    val mode = invokeAction.mode
+
+    return executionContext.serviceImplementationSelector.select(serviceType, mode).let { optional
+      ->
+      if (optional.isPresent) Result.success(optional.get())
+      else
+        Result.failure(
+          IllegalArgumentException(
+            "could not find a service implementation for the service type '$serviceType'"
+          )
+        )
     }
   }
 
-  /**
-   * Evaluate all input variables.
-   *
-   * @return List of evaluated input variables.
-   */
-  private List<ContextVariable> prepareInput(Extent extent) {
-    return invokeAction
-      .getInput()
-      .stream()
-      .map(variable -> variable.evaluate(extent))
-      .collect(Collectors.toList());
-  }
-
-  /**
-   * Increment the invocation counter.
-   */
-  private void incrementInvocationCounter() {
-    executionContext
-      .counters()
-      .getCounter(COUNTER_INVOCATIONS)
-      .add(1, executionContext.counters().attributesForInvocation());
-  }
-
-  /**
-   * Selects the service implementation for the service type of this action.
-   *
-   * @return The service implementation.
-   */
-  private ServiceImplementation selectServiceImplementation() {
-    final var serviceType = invokeAction.getServiceType();
-    final var mode = invokeAction.getMode();
-    final var serviceImplementationSelector = executionContext.serviceImplementationSelector();
-
-    return serviceImplementationSelector
-      .select(serviceType, mode)
-      .orElseThrow(() ->
-        new IllegalArgumentException(
-          "Could not find a service implementation for the service type '%s'".formatted(serviceType)
-        )
-      );
-  }
-
-  /**
-   * Raise all events with output data as event data.
-   *
-   * @param output        Output data.
-   * @param eventListener Event listener.
-   * @param eventHandler  Event handler.
-   */
-  private void raiseEvents(
-    List<ContextVariable> output,
-    EventListener eventListener,
-    StateMachineEventHandler eventHandler
+  private fun raiseEvents(
+    output: List<ContextVariable>,
+    eventListener: EventListener,
+    eventHandler: StateMachineEventHandler,
   ) {
-    invokeAction
-      .getDone()
-      .stream()
-      .map(event -> event.withData(output))
-      .forEach(event -> {
-        if (event.getChannel() == EventChannel.INTERNAL) {
-          eventListener.onReceiveEvent(event);
+    invokeAction.done
+      .map { it.withData(output) }
+      .forEach { event ->
+        if (event.channel == EventChannel.INTERNAL) {
+          eventListener.onReceiveEvent(event)
         } else {
-          eventHandler.sendEvent(event);
+          eventHandler.sendEvent(event)
         }
-      });
+      }
   }
 
-  /**
-   * Measure the performance of the service invocation.
-   *
-   * @param start                 Start time.
-   * @param serviceImplementation Service implementation.
-   */
-  private void measurePerformance(double start, ServiceImplementation serviceImplementation) {
-    // Measure latency
-    final var now = Time.timeInMillisecondsSinceStart();
-    final var gauges = executionContext.gauges();
+  private fun measurePerformance(start: Double, serviceImplementation: ServiceImplementation) {
+    val now = Time.timeInMillisecondsSinceStart()
+    val gauges = executionContext.gauges
 
+    val location = if (serviceImplementation.isLocal) "local" else "remote"
     gauges
       .getGauge(GAUGE_ACTION_INVOKE_LATENCY)
-      .set(
-        now - start,
-        gauges.attributesForInvocation(serviceImplementation.isLocal() ? "local" : "remote")
-      );
+      .set(now - start, gauges.attributesForInvocation(location))
 
-    // Measure inclusive response time
-    final var raisingEvent = executionContext.raisingEvent();
-    if (raisingEvent != null) {
+    executionContext.raisingEvent?.let { raisingEvent ->
+      val delta = Time.timeInMillisecondsSinceEpoch() - raisingEvent.createdTime
       gauges
         .getGauge(GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE)
-        .set(
-          Time.timeInMillisecondsSinceEpoch() - raisingEvent.getCreatedTime(),
-          gauges.attributesForEvent(raisingEvent.getChannel().toString())
-        );
+        .set(delta, gauges.attributesForEvent(raisingEvent.channel.toString()))
     }
   }
 }

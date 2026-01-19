@@ -62,7 +62,7 @@ class Cirrina {
             .apply {
               if (this is EtcdContext) {
                 logger.atFine().log("awaiting connection to Etcd as the persistent context")
-                awaitInitialConnection(ETCD_CONNECTION_TIMEOUT)
+                awaitReady(ETCD_CONNECTION_TIMEOUT)
               }
             }
             .use { persistentContext ->

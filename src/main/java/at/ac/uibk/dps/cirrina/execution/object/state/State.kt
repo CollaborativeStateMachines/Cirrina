@@ -1,95 +1,50 @@
-package at.ac.uibk.dps.cirrina.execution.object.state;
+package at.ac.uibk.dps.cirrina.execution.`object`.state
 
-import at.ac.uibk.dps.cirrina.classes.state.StateClass;
-import at.ac.uibk.dps.cirrina.execution.command.ActionCommand;
-import at.ac.uibk.dps.cirrina.execution.command.CommandFactory;
-import at.ac.uibk.dps.cirrina.execution.command.Scope;
-import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
-import at.ac.uibk.dps.cirrina.execution.object.context.Context;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextBuilder;
-import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
-import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachine;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import org.jgrapht.traverse.TopologicalOrderIterator;
+import at.ac.uibk.dps.cirrina.classes.state.StateClass
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
+import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.Scope
+import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
+import org.jgrapht.traverse.TopologicalOrderIterator
 
-public final class State implements Scope {
+class State(val stateObject: StateClass, private val parent: StateMachine) : Scope {
 
-  private final Context staticContext;
+  private val staticContext: Context
 
-  private final StateClass stateClassObject;
-
-  private final StateMachine parent;
-
-  public State(StateClass stateClassObject, StateMachine parent) {
-    // Build the static context
-    try {
-      staticContext = Optional.ofNullable(stateClassObject.getStaticContextDescription())
-        .map(ContextBuilder::from)
-        .orElseGet(ContextBuilder::empty)
+  init {
+    staticContext =
+      (stateObject.staticContextDescription?.let { ContextBuilder.from(it) }
+          ?: ContextBuilder.empty())
         .inMemoryContext(true)
-        .build();
-    } catch (IOException ignored) {
-      throw new IllegalStateException(); // This should not happen
-    }
-
-    this.stateClassObject = stateClassObject;
-    this.parent = parent;
+        .build()
+        .getOrElse {
+          throw IllegalStateException(
+            "could not build static context for state '${stateObject.name}'",
+            it,
+          )
+        }
   }
 
-  @Override
-  public Extent getExtent() {
-    return parent.getExtent().extend(staticContext);
-  }
+  override fun getExtent(): Extent = parent.getExtent().extend(staticContext)
 
-  @Override
-  public String getId() {
-    return parent.getId();
-  }
+  override fun getId(): String = parent.getId()
 
-  public StateClass getStateObject() {
-    return stateClassObject;
-  }
+  fun getEntryActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
+    stateObject.entryActionGraph.asTopologicalList().map { commandFactory.createActionCommand(it) }
 
-  public List<ActionCommand> getEntryActionCommands(CommandFactory commandFactory) {
-    List<ActionCommand> actionCommands = new ArrayList<>();
+  fun getWhileActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
+    stateObject.whileActionGraph.asTopologicalList().map { commandFactory.createActionCommand(it) }
 
-    new TopologicalOrderIterator<>(stateClassObject.getEntryActionGraph()).forEachRemaining(
-      action -> actionCommands.add(commandFactory.createActionCommand(action))
-    );
+  fun getExitActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
+    stateObject.exitActionGraph.asTopologicalList().map { commandFactory.createActionCommand(it) }
 
-    return actionCommands;
-  }
+  fun getTimeoutActionObjects(): List<TimeoutAction> =
+    stateObject.afterActionGraph.asTopologicalList().filterIsInstance<TimeoutAction>()
 
-  public List<ActionCommand> getWhileActionCommands(CommandFactory commandFactory) {
-    List<ActionCommand> actionCommands = new ArrayList<>();
-
-    new TopologicalOrderIterator<>(stateClassObject.getWhileActionGraph()).forEachRemaining(
-      action -> actionCommands.add(commandFactory.createActionCommand(action))
-    );
-
-    return actionCommands;
-  }
-
-  public List<ActionCommand> getExitActionCommands(CommandFactory commandFactory) {
-    List<ActionCommand> actionCommands = new ArrayList<>();
-
-    new TopologicalOrderIterator<>(stateClassObject.getExitActionGraph()).forEachRemaining(action ->
-      actionCommands.add(commandFactory.createActionCommand(action))
-    );
-
-    return actionCommands;
-  }
-
-  public List<TimeoutAction> getTimeoutActionObjects() {
-    List<TimeoutAction> timeoutActionObjects = new ArrayList<>();
-
-    new TopologicalOrderIterator<>(stateClassObject.getAfterActionGraph()).forEachRemaining(
-      timeoutActionObject -> timeoutActionObjects.add((TimeoutAction) timeoutActionObject)
-    );
-
-    return timeoutActionObjects;
-  }
+  private fun <V, E> org.jgrapht.Graph<V, E>.asTopologicalList(): List<V> =
+    TopologicalOrderIterator(this).asSequence().toList()
 }

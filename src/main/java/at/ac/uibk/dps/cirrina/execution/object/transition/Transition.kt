@@ -1,54 +1,30 @@
-package at.ac.uibk.dps.cirrina.execution.object.transition;
+package at.ac.uibk.dps.cirrina.execution.`object`.transition
 
-import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass;
-import at.ac.uibk.dps.cirrina.execution.command.ActionCommand;
-import at.ac.uibk.dps.cirrina.execution.command.CommandFactory;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.jgrapht.traverse.TopologicalOrderIterator;
+import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
+import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
+import org.jgrapht.traverse.TopologicalOrderIterator
 
-public final class Transition {
+class Transition(private val transitionClass: TransitionClass, val isOr: Boolean) {
 
-  private final TransitionClass transitionClass;
-
-  private final boolean isElse;
-
-  public Transition(TransitionClass transitionClass, boolean isElse) {
-    this.transitionClass = transitionClass;
-    this.isElse = isElse;
-
-    assert !isElse || Optional.ofNullable(transitionClass.getOr()).isPresent();
+  init {
+    require(!isOr || transitionClass.or != null) {
+      "or transition must have a valid 'or' target state"
+    }
   }
 
-  public boolean isInternalTransition() {
-    return Optional.ofNullable(transitionClass.getTo()).isEmpty();
-  }
+  val isInternal: Boolean
+    get() = transitionClass.to == null
 
-  public Optional<String> getTargetStateName() {
-    return Optional.ofNullable(isElse ? transitionClass.getOr() : transitionClass.getTo());
-  }
+  val targetStateName: String?
+    get() = if (isOr) transitionClass.or else transitionClass.to
 
-  public List<ActionCommand> getActionCommands(CommandFactory commandFactory) {
-    List<ActionCommand> actionCommands = new ArrayList<>();
+  fun getActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
+    TopologicalOrderIterator(transitionClass.actionGraph)
+      .asSequence()
+      .map { commandFactory.createActionCommand(it) }
+      .toList()
 
-    new TopologicalOrderIterator<>(transitionClass.getActionGraph()).forEachRemaining(action ->
-      actionCommands.add(commandFactory.createActionCommand(action))
-    );
-
-    return actionCommands;
-  }
-
-  public boolean isElse() {
-    return isElse;
-  }
-
-  @Override
-  public String toString() {
-    return new ToStringBuilder(this)
-      .append("internal", isInternalTransition())
-      .append("targetStateName", getTargetStateName())
-      .toString();
-  }
+  override fun toString(): String =
+    "Transition(internal=$isInternal, targetStateName=$targetStateName, isElse=$isOr)"
 }

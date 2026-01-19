@@ -1,21 +1,22 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
-import java.util.List;
+import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 
-public final class ActionTimeoutCommand extends ActionCommand {
+class ActionTimeoutCommand
+internal constructor(executionContext: ExecutionContext, private val timeoutAction: TimeoutAction) :
+  ActionCommand(executionContext) {
 
-  private final TimeoutAction timeoutAction;
+  /**
+   * Executes the timeout action by delegating to the inner action.
+   *
+   * @return A [Result] containing a list with the single command generated from the inner action.
+   */
+  override fun execute(): Result<List<ActionCommand>> = runCatching {
+    val commandFactory = CommandFactory(executionContext)
 
-  ActionTimeoutCommand(ExecutionContext executionContext, TimeoutAction timeoutAction) {
-    super(executionContext);
-    this.timeoutAction = timeoutAction;
-  }
+    // Create the command for the nested action defined within the timeout
+    val innerCommand = commandFactory.createActionCommand(timeoutAction.action)
 
-  @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
-    final var commandFactory = new CommandFactory(executionContext);
-
-    return List.of(commandFactory.createActionCommand(timeoutAction.getAction()));
+    listOf(innerCommand)
   }
 }

@@ -1,190 +1,130 @@
-package at.ac.uibk.dps.cirrina.execution.service;
+package at.ac.uibk.dps.cirrina.execution.service
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariableBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
+import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
+import at.ac.uibk.dps.cirrina.execution.service.HttpServiceImplementation.Parameters
+import com.sun.net.httpserver.HttpServer
+import java.net.InetSocketAddress
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariableBuilder;
-import at.ac.uibk.dps.cirrina.execution.object.context.Extent;
-import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableExchange;
-import at.ac.uibk.dps.cirrina.execution.object.exchange.ContextVariableProtos;
-import at.ac.uibk.dps.cirrina.execution.service.HttpServiceImplementation.Parameters;
-import com.sun.net.httpserver.HttpServer;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+class HttpServiceImplementationTest {
 
-public class HttpServiceImplementationTest {
+  companion object {
+    private lateinit var httpServer: HttpServer
 
-  private static HttpServer httpServer;
+    @JvmStatic
+    @BeforeAll
+    fun setUp() {
+      httpServer = HttpServer.create(InetSocketAddress(8000), 0)
 
-  @BeforeAll
-  public static void setUp() throws IOException {
-    httpServer = HttpServer.create(new InetSocketAddress(8000), 0);
+      httpServer.createContext("/plus") { exchange ->
+        assertEquals("some-id", exchange.requestHeaders["Cirrina-Sender-ID"]?.firstOrNull())
 
-    httpServer.createContext("/plus", exchange -> {
-      Assertions.assertEquals(
-        "some-id",
-        exchange.getRequestHeaders().get("Cirrina-Sender-ID").getFirst()
-      );
+        val payload = exchange.requestBody.readAllBytes()
+        val incoming =
+          ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
+            ContextVariableExchange.fromProto(it).getOrThrow()
+          }
 
-      final var payload = exchange.getRequestBody().readAllBytes();
+        val varOne = incoming.first { it.name == "varOne" }
+        val varTwo = incoming.first { it.name == "varTwo" }
 
-      final var in = ContextVariableProtos.ContextVariables.parseFrom(payload)
-        .getDataList()
-        .stream()
-        .map(ContextVariableExchange::fromProto)
-        .toList();
+        val out =
+          ContextVariableProtos.ContextVariables.newBuilder()
+            .addAllData(
+              listOf(ContextVariable("result", (varOne.value as Int) + (varTwo.value as Int))).map {
+                ContextVariableExchange(it).toProto().getOrThrow()
+              }
+            )
+            .build()
+            .toByteArray()
 
-      final var varOne = in
-        .stream()
-        .filter(e -> e.name().equals("varOne"))
-        .findFirst();
-      final var varTwo = in
-        .stream()
-        .filter(e -> e.name().equals("varTwo"))
-        .findFirst();
-
-      // Create output
-      final var out = ContextVariableProtos.ContextVariables.newBuilder()
-        .addAllData(
-          Stream.of(
-            new ContextVariable("result", (int) varOne.get().value() + (int) varTwo.get().value())
-          )
-            .map(contextVariable -> new ContextVariableExchange(contextVariable).toProto())
-            .toList()
-        )
-        .build()
-        .toByteArray();
-
-      // Response status and length
-      exchange.sendResponseHeaders(200, out.length);
-
-      // Output the response
-      try (final var stream = exchange.getResponseBody()) {
-        stream.write(out);
+        exchange.sendResponseHeaders(200, out.size.toLong())
+        exchange.responseBody.use { it.write(out) }
       }
-    });
 
-    httpServer.createContext("/error", exchange -> {
-      // Response status and length
-      exchange.sendResponseHeaders(500, 0);
-
-      // Output the response
-      try (final var stream = exchange.getResponseBody()) {
-        stream.write(new byte[0]);
+      httpServer.createContext("/error") { exchange ->
+        exchange.sendResponseHeaders(500, 0)
+        exchange.responseBody.close()
       }
-    });
 
-    httpServer.createContext("/broken-response1", exchange -> {
-      // Response status and length
-      exchange.sendResponseHeaders(200, 1);
-
-      // Output the response
-      try (final var stream = exchange.getResponseBody()) {
-        stream.write(new byte[] { 1 });
+      httpServer.createContext("/broken-response1") { exchange ->
+        exchange.sendResponseHeaders(200, 1)
+        exchange.responseBody.use { it.write(byteArrayOf(1)) }
       }
-    });
 
-    httpServer.createContext("/broken-response2", exchange -> {
-      final byte[] out = null;
+      httpServer.start()
+    }
 
-      // Response status and length
-      exchange.sendResponseHeaders(200, out.length);
-
-      // Output the response
-      try (final var stream = exchange.getResponseBody()) {
-        stream.write(out);
-      }
-    });
-
-    httpServer.start();
-  }
-
-  @AfterAll
-  public static void tearDown() {
-    httpServer.stop(0);
+    @JvmStatic
+    @AfterAll
+    fun tearDown() {
+      httpServer.stop(0)
+    }
   }
 
   @Test
-  public void testHttpServiceInvocation() {
-    List.of(HttpMethod.POST, HttpMethod.GET)
-      .stream()
-      .forEach(method -> {
-        // Success
-        assertDoesNotThrow(() -> {
-          final var variables = new ArrayList<ContextVariable>();
-          variables.add(
-            ContextVariableBuilder.empty().name("varOne").value(5).build().evaluate(new Extent())
-          );
-          variables.add(
-            ContextVariableBuilder.empty().name("varTwo").value(6).build().evaluate(new Extent())
-          );
+  fun testHttpServiceInvocation() = runBlocking {
+    listOf(HttpMethod.POST, HttpMethod.GET).forEach { method ->
 
-          final var service = new HttpServiceImplementation(
-            new Parameters("http", false, "http", "localhost", 8000, "/plus", HttpMethod.POST)
-          );
+      // Success Case
+      val variables =
+        listOf(
+          ContextVariableBuilder.empty()
+            .name("varOne")
+            .value(5)
+            .build()
+            .getOrThrow()
+            .evaluate(Extent())
+            .getOrThrow(),
+          ContextVariableBuilder.empty()
+            .name("varTwo")
+            .value(6)
+            .build()
+            .getOrThrow()
+            .evaluate(Extent())
+            .getOrThrow(),
+        )
 
-          final var output = service.invoke(variables, "some-id").get();
+      val service =
+        HttpServiceImplementation(
+          Parameters("http", false, "http", "localhost", 8000, "/plus", method)
+        )
 
-          assertEquals(1, output.size());
+      val result = service.invoke(variables, "some-id")
 
-          final var result = output.getFirst();
-          assertEquals("result", result.name());
-          assertEquals(11, result.value());
-        });
+      assertTrue(result.isSuccess)
+      result.onSuccess { output ->
+        assertEquals(1, output.size)
+        val first = output.first()
+        assertEquals("result", first.name)
+        assertEquals(11, first.value)
+      }
 
-        // HTTP error
-        assertThrows(ExecutionException.class, () -> {
-          final var service = new HttpServiceImplementation(
-            new Parameters("http", false, "http", "localhost", 8000, "/error", HttpMethod.POST)
-          );
+      // HTTP Error Case (500)
+      val errorService =
+        HttpServiceImplementation(
+          Parameters("http", false, "http", "localhost", 8000, "/error", method)
+        )
+      val errorResult = errorService.invoke(emptyList(), "some-id")
+      assertTrue(errorResult.isFailure)
 
-          service.invoke(new ArrayList<>(), "some-id").get();
-        });
-
-        // Invalid response type
-        assertThrows(ExecutionException.class, () -> {
-          final var service = new HttpServiceImplementation(
-            new Parameters(
-              "http",
-              false,
-              "http",
-              "localhost",
-              8000,
-              "/broken-response1",
-              HttpMethod.POST
-            )
-          );
-
-          service.invoke(new ArrayList<>(), "some-id").get();
-        });
-
-        // Invalid response type
-        assertThrows(ExecutionException.class, () -> {
-          final var service = new HttpServiceImplementation(
-            new Parameters(
-              "http",
-              false,
-              "http",
-              "localhost",
-              8000,
-              "/broken-response2",
-              HttpMethod.POST
-            )
-          );
-
-          service.invoke(new ArrayList<>(), "some-id").get();
-        });
-      });
+      // Invalid Protobuf Response
+      val brokenService =
+        HttpServiceImplementation(
+          Parameters("http", false, "http", "localhost", 8000, "/broken-response1", method)
+        )
+      val brokenResult = brokenService.invoke(emptyList(), "some-id")
+      assertTrue(brokenResult.isFailure)
+    }
   }
 }

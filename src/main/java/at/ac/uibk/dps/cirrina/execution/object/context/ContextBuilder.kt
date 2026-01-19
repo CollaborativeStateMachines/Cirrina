@@ -1,94 +1,41 @@
-package at.ac.uibk.dps.cirrina.execution.object.context;
+package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import at.ac.uibk.dps.cirrina.execution.object.expression.ExpressionBuilder;
-import jakarta.annotation.Nullable;
-import java.io.IOException;
-import java.util.Map;
+import at.ac.uibk.dps.cirrina.execution.`object`.expression.ExpressionBuilder
 
-/**
- * Context builder, builder for various context implementations.
- */
-public class ContextBuilder {
+class ContextBuilder
+private constructor(private val contextDescription: Map<String, String>? = null) {
+  private var context: Context? = null
 
-  private final @Nullable Map<String, String> contextDescription;
+  companion object {
+    @JvmStatic fun empty(): ContextBuilder = ContextBuilder()
 
-  private Context context;
-
-  /**
-   * Initializes this builder object.
-   */
-  private ContextBuilder() {
-    this.contextDescription = null;
+    @JvmStatic
+    fun from(contextDescription: Map<String, String>): ContextBuilder =
+      ContextBuilder(contextDescription)
   }
 
-  /**
-   * Initializes this builder object.
-   *
-   * @param contextDescription context class
-   */
-  private ContextBuilder(Map<String, String> contextDescription) {
-    this.contextDescription = contextDescription;
+  fun inMemoryContext(isLocal: Boolean): ContextBuilder = apply {
+    context = InMemoryContext(isLocal)
   }
 
-  /**
-   * Construct a builder from nothing.
-   *
-   * @return this builder
-   */
-  public static ContextBuilder empty() {
-    return new ContextBuilder();
-  }
+  fun build(): Result<Context> {
+    val currentContext =
+      context
+        ?: return Result.failure(
+          IllegalStateException("context implementation must be specified before building.")
+        )
 
-  /**
-   * Construct a builder from a context class.
-   *
-   * @param contextDescription context description
-   * @return this builder
-   */
-  public static ContextBuilder from(Map<String, String> contextDescription) {
-    return new ContextBuilder(contextDescription);
-  }
+    val description = contextDescription ?: return Result.success(currentContext)
 
-  /**
-   * Build an in-memory context.
-   *
-   * @param isLocal true if this context is local, otherwise false
-   * @return this builder
-   */
-  public ContextBuilder inMemoryContext(boolean isLocal) {
-    context = new InMemoryContext(isLocal);
+    return description.entries.fold(Result.success(currentContext)) { acc, (name, expr) ->
+      acc.mapCatching { ctx ->
+        val expression = ExpressionBuilder.from(expr).build().getOrThrow()
+        val value = expression.execute(Extent())
 
-    return this;
-  }
+        ctx.create(name, value).getOrThrow()
 
-  /**
-   * Builds the current context.
-   *
-   * @return Context.
-   * @throws IOException If the context could not be built.
-   */
-  public Context build() throws IOException {
-    assert context != null;
-
-    // Add all variables contained within the context class to the newly created context, only do this if there is a class
-    if (contextDescription != null) {
-      for (var varEntry : contextDescription.entrySet()) {
-        // Build the value expression
-        var expression = ExpressionBuilder.from(varEntry.getValue()).build();
-
-        // Acquire the variable name
-        var name = varEntry.getKey();
-
-        // Acquire the variable value
-        // We pass an empty extent here, I don't think that it makes too much sense to provide anything other than an empty extent here,
-        // because I currently don't see a use case for looking up variables in scope while constructing a context
-        var value = expression.execute(new Extent());
-
-        // Create the variable
-        context.create(name, value);
+        ctx
       }
     }
-
-    return context;
   }
 }

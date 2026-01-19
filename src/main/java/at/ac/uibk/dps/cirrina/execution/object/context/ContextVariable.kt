@@ -1,79 +1,40 @@
-package at.ac.uibk.dps.cirrina.execution.object.context;
+package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
-import java.util.Objects;
+import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 
-/**
- * Context variable, contained within a context.
- */
-public record ContextVariable(
-  /**
-   * Name of the context variable.
-   */
-  String name,
+data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolean = false) {
 
-  /**
-   * Value of the context variable. Can be an arbitrary value or must be an expression in case this context variable is lazy.
-   */
-  Object value,
+  companion object {
+    @JvmStatic
+    fun lazy(name: String, expression: Expression): ContextVariable =
+      ContextVariable(name, expression, isLazy = true)
 
-  /**
-   * Laziness of the context variable, if true, the value must be an expression and the value of the context variable is acquired through executing the expression.
-   */
-  boolean isLazy
-) {
-  public ContextVariable {
-    Objects.requireNonNull(name, "Name cannot be null");
+    @JvmStatic
+    fun eager(name: String, value: Any?): ContextVariable =
+      ContextVariable(name, value, isLazy = false)
   }
 
-  /**
-   * Initializes a lazy context variable.
-   *
-   * @param name  Name of the variable.
-   * @param value Value expression of the variable.
-   */
-  public ContextVariable(String name, Expression value) {
-    this(name, value, true);
+  init {
+    require(name.isNotBlank()) { "name cannot be null or blank" }
   }
 
-  /**
-   * Initializes a non-lazy context variable.
-   *
-   * @param name  Name of the variable.
-   * @param value Value of the variable.
-   */
-  public ContextVariable(String name, Object value) {
-    this(name, value, false);
-  }
+  fun evaluate(extent: Extent): Result<ContextVariable> {
+    if (!isLazy) return Result.success(this)
 
-  /**
-   * Evaluate this variable.
-   *
-   * @param extent Extent.
-   * @return Evaluated variable.
-   * @throws UnsupportedOperationException If the variable could not be evaluated (e.g. its expression could not be executed).
-   */
-  public ContextVariable evaluate(Extent extent) throws UnsupportedOperationException {
-    if (isLazy) {
-      final var expression = value;
+    return runCatching {
+        val expression =
+          value as? Expression
+            ?: throw IllegalStateException(
+              "variable '$name' is marked lazy but value is not an Expression"
+            )
 
-      assert expression instanceof Expression;
-
-      try {
-        return new ContextVariable(name, ((Expression) expression).execute(extent));
-      } catch (UnsupportedOperationException e) {
-        throw new UnsupportedOperationException(
-          "Could not evaluate variable '%s'".formatted(name),
-          e
-        );
+        val evaluatedValue = expression.execute(extent).getOrThrow()
+        copy(value = evaluatedValue, isLazy = false)
       }
-    } else {
-      return this;
-    }
+      .recoverCatching { ex ->
+        throw UnsupportedOperationException("could not evaluate variable '$name'", ex)
+      }
   }
 
-  @Override
-  public String toString() {
-    return "{" + name + " = " + value.toString() + "}";
-  }
+  override fun toString(): String = "{$name = $value}"
 }

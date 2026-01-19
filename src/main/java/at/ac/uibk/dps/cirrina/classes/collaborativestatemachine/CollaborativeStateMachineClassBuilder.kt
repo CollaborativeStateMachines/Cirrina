@@ -32,14 +32,19 @@ class CollaborativeStateMachineClassBuilder private constructor(private val csml
    *
    * @return the fully constructed collaborative state machine class.
    */
-  fun build(): Result<CollaborativeStateMachineClass> = runCatching {
-    val context = ContextBuilder.from(csml.persistent).inMemoryContext(true).build()
+  fun build(): Result<CollaborativeStateMachineClass> =
+    ContextBuilder.from(csml.persistent)
+      .inMemoryContext(true)
+      .build() // Returns Result<Context>
+      .map { context ->
+        // Use getAll() which also returns a Result
+        val variables = context.getAll().getOrDefault(emptyList())
 
-    CollaborativeStateMachineClass(context?.all ?: emptyList()).apply {
-      buildVertices(this)
-      buildEdges(this)
-    }
-  }
+        CollaborativeStateMachineClass(variables).apply {
+          buildVertices(this)
+          buildEdges(this)
+        }
+      }
 
   private fun buildVertices(collaborativeStateMachineClass: CollaborativeStateMachineClass) {
     csml.stateMachines.entries

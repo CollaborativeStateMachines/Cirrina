@@ -55,7 +55,7 @@ abstract class ContextTest {
         context.create("var2", "value2")
       }
 
-      val allVariables = assertDoesNotThrow { context.getAll() }
+      val allVariables = assertDoesNotThrow { context.getAll() }.getOrThrow()
       assertEquals(2, allVariables.size)
     }
   }
@@ -83,7 +83,7 @@ abstract class ContextTest {
           }
         }
       }
-      val allVariables = assertDoesNotThrow { context.getAll() }
+      val allVariables = assertDoesNotThrow { context.getAll() }.getOrThrow()
       assertEquals(
         threadCount * iterationsPerThread,
         allVariables.size,

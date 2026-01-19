@@ -41,7 +41,7 @@ class Runtime(
   val stateMachines: List<StateMachine>
 
   /** Top-level extent. */
-  val extent = Extent(persistentContext)
+  val extent = Extent.of(persistentContext)
 
   init {
     val collaborativeStateMachineClass =
@@ -58,11 +58,11 @@ class Runtime(
     logger.atFine().log("creating persistent context variables")
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
       runCatching {
-          logger.atFiner().log("creating persistent context variable '${variable.name()}'")
-          persistentContext.create(variable.name(), variable.value())
+          logger.atFiner().log("creating persistent context variable '${variable.name}'")
+          persistentContext.create(variable.name, variable.value)
         }
         .onFailure { _ ->
-          logger.atWarning().log("did not create persistent context variable '${variable.name()}'")
+          logger.atWarning().log("did not create persistent context variable '${variable.name}'")
         }
     }
 
@@ -85,7 +85,7 @@ class Runtime(
    * @return the state machine instance, or null if not found.
    */
   fun findInstance(stateMachineId: Id): StateMachine? =
-    stateMachines.firstOrNull { it.stateMachineInstanceId == stateMachineId }
+    stateMachines.firstOrNull { it.getStateMachineInstanceId() == stateMachineId }
 
   /** Run all state machines (blocking). */
   fun run() = runBlocking {
@@ -110,7 +110,7 @@ class Runtime(
     val nestedInstances =
       stateMachineClass.nestedStateMachineClasses.flatMap { buildInstances(it, instance) }
 
-    instance.setNestedStateMachineIds(nestedInstances.map { it.stateMachineInstanceId })
+    instance.setNestedStateMachineIds(nestedInstances.map { it.getStateMachineInstanceId() })
     return listOf(instance) + nestedInstances
   }
 }

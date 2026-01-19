@@ -10,7 +10,7 @@ class EtcdContextTest : ContextTest() {
     assumeFalse(etcdServerURL == null, "Skipping Etcd persistent context test")
 
     return assertDoesNotThrow {
-      EtcdContext(true, listOf(etcdServerURL)).apply { awaitInitialConnection() }
+      EtcdContext(true, listOf(etcdServerURL)).apply { awaitReady(10000) }
     }
   }
 }

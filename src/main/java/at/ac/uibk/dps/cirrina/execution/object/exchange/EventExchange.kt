@@ -1,131 +1,67 @@
-package at.ac.uibk.dps.cirrina.execution.object.exchange;
+package at.ac.uibk.dps.cirrina.execution.`object`.exchange
 
-import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import com.google.protobuf.InvalidProtocolBufferException;
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 
-/**
- * Event exchange, responsible for converting an event object to a consistent exchange format, using Protocol Buffers.
- * <p>
- * See the exchange protos for a protocol description.
- */
-public class EventExchange {
+class EventExchange(val event: Event) {
 
-  /**
-   * The event object.
-   */
-  private final Event event;
+  companion object {
+    @JvmStatic
+    fun fromBytes(data: ByteArray): Result<EventExchange> =
+      runCatching {
+          val eventProto = EventProtos.Event.parseFrom(data)
+          fromProto(eventProto).getOrThrow()
+        }
+        .map { EventExchange(it) }
+        .recoverCatching { ex ->
+          throw UnsupportedOperationException("received an event with an unsupported payload", ex)
+        }
 
-  /**
-   * Initializes this event exchange instance.
-   *
-   * @param event Event object.
-   */
-  public EventExchange(Event event) {
-    this.event = event;
-  }
+    @JvmStatic
+    fun fromProto(proto: EventProtos.Event): Result<Event> = runCatching {
+      val channel =
+        try {
+          EventChannel.valueOf(proto.channel.name)
+        } catch (e: IllegalArgumentException) {
+          throw UnsupportedOperationException("event has an unrecognized channel", e)
+        }
 
-  /**
-   * Construct an event exchange from byte data.
-   *
-   * @param data Byte data.
-   * @return Event exchange.
-   * @throws UnsupportedOperationException If the event could not be read.
-   * @throws UnsupportedOperationException If the event has an unrecognized channel.
-   */
-  public static EventExchange fromBytes(byte[] data) throws UnsupportedOperationException {
-    try {
-      final var eventProto = EventProtos.Event.parseFrom(data);
+      val data =
+        proto.dataList.map { contextVariableProto ->
+          ContextVariableExchange.fromProto(contextVariableProto).getOrThrow()
+        }
 
-      return new EventExchange(fromProto(eventProto));
-    } catch (InvalidProtocolBufferException e) {
-      throw new UnsupportedOperationException("Received an event with an unsupported payload", e);
+      Event(proto.name, channel, data, proto.id, proto.createdTime)
     }
   }
 
-  /**
-   * Construct an event object from a proto.
-   *
-   * @param proto Event proto.
-   * @return Event object.
-   * @throws UnsupportedOperationException If the event has an unrecognized channel.
-   */
-  public static Event fromProto(EventProtos.Event proto) {
-    try {
-      final var createdTime = proto.getCreatedTime();
-      final var id = proto.getId();
-      final var name = proto.getName();
-      final var channel = EventChannel.valueOf(proto.getChannel().name());
-      final var data = proto
-        .getDataList()
-        .stream()
-        .map(ContextVariableExchange::fromProto)
-        .toList();
-
-      return new Event(createdTime, id, name, channel, data);
-    } catch (IllegalArgumentException e) {
-      throw new UnsupportedOperationException("Event has an unrecognized channel", e);
+  fun toBytes(): Result<ByteArray> {
+    if (event.data.any { it.isLazy }) {
+      return Result.failure(
+        IllegalStateException("event '${event.name}' has unevaluated event data")
+      )
     }
+
+    return toProto().map { it.toByteArray() }
   }
 
-  /**
-   * Converts this exchange instance to bytes.
-   * <p>
-   * Event data must be evaluated before conversion to bytes can succeed.
-   *
-   * @return Bytes.
-   * @throws IllegalStateException If the event has unevaluated data.
-   */
-  public byte[] toBytes() throws IllegalStateException {
-    if (event.getData().stream().anyMatch(ContextVariable::isLazy)) {
-      throw new IllegalStateException(
-        "Event '%s' has unevaluated event data".formatted(event.getName())
-      );
-    }
+  fun toProto(): Result<EventProtos.Event> = runCatching {
+    val channel =
+      try {
+        EventProtos.Event.Channel.valueOf(event.channel.name)
+      } catch (e: IllegalArgumentException) {
+        throw UnsupportedOperationException("event '${event.name}' has an unrecognized channel", e)
+      }
 
-    return toProto().toByteArray();
-  }
+    val dataProtos =
+      event.data.map { variable -> ContextVariableExchange(variable).toProto().getOrThrow() }
 
-  /**
-   * Returns a proto from this exchange.
-   *
-   * @return Proto.
-   * @throws UnsupportedOperationException If the event has an unrecognized channel.
-   */
-  public EventProtos.Event toProto() throws UnsupportedOperationException {
-    EventProtos.Event.Channel channel;
-
-    try {
-      channel = EventProtos.Event.Channel.valueOf(event.getChannel().name());
-    } catch (IllegalArgumentException e) {
-      throw new UnsupportedOperationException(
-        "Event '%s' has an unrecognized channel".formatted(event.getName()),
-        e
-      );
-    }
-
-    final var dataProtos = event
-      .getData()
-      .stream()
-      .map(event -> new ContextVariableExchange(event).toProto())
-      .toList();
-
-    return EventProtos.Event.newBuilder()
-      .setCreatedTime(event.getCreatedTime())
-      .setId(event.getId())
-      .setName(event.getName())
+    EventProtos.Event.newBuilder()
+      .setCreatedTime(event.createdTime)
+      .setId(event.id)
+      .setName(event.name)
       .setChannel(channel)
       .addAllData(dataProtos)
-      .build();
-  }
-
-  /**
-   * Returns the event object.
-   *
-   * @return Event object.
-   */
-  public Event getEvent() {
-    return event;
+      .build()
   }
 }

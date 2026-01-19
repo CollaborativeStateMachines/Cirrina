@@ -32,7 +32,7 @@ internal class NatsEventHandlerTest {
         object : EventListener {
           val events = mutableListOf<Event>()
 
-          override fun onReceiveEvent(event: Event?): Boolean {
+          override fun onReceiveEvent(event: Event): Boolean {
             events.add(requireNotNull(event))
             latch.countDown()
             return true
@@ -40,9 +40,11 @@ internal class NatsEventHandlerTest {
         }
 
       // Create an event
-      val e1 = run {
-        EventBuilder.from(Csml.EventDescription("e1", channel, mapOf("varName" to "5"))).build()
-      }
+      val e1 =
+        run {
+            EventBuilder.from(Csml.EventDescription("e1", channel, mapOf("varName" to "5"))).build()
+          }
+          .getOrThrow()
 
       // Connect the event handler to the NATS server
       NatsEventHandler(natsServerURL).use { natsEventHandler ->
@@ -64,7 +66,7 @@ internal class NatsEventHandlerTest {
           // Send multiple events
           repeat(count) {
             natsEventHandler.sendEvent(
-              Event.ensureHasEvaluatedData(e1, Extent(localContext)),
+              Event.ensureHasEvaluatedData(e1, Extent.of(localContext)),
               "source",
             )
           }
@@ -75,11 +77,11 @@ internal class NatsEventHandlerTest {
           // Check if the events were received correctly
           assertEquals(5, eventListener.events.size)
           eventListener.events.forEach { e ->
-            assertEquals("e1", e.getName())
-            assertEquals(channel, e.getChannel())
-            assertEquals(1, e.getData().size)
+            assertEquals("e1", e.name)
+            assertEquals(channel, e.channel)
+            assertEquals(1, e.data.size)
 
-            val data = e.getData().first()
+            val data = e.data.first()
             assertEquals("varName", data.name)
             assertEquals(5, data.value)
             assertFalse(data.isLazy)
@@ -98,7 +100,7 @@ internal class NatsEventHandlerTest {
           // Send multiple events again
           repeat(count) {
             natsEventHandler.sendEvent(
-              Event.ensureHasEvaluatedData(e1, Extent(localContext)),
+              Event.ensureHasEvaluatedData(e1, Extent.of(localContext)),
               "source",
             )
           }
@@ -112,7 +114,7 @@ internal class NatsEventHandlerTest {
             // Send multiple events
             repeat(count) {
               natsEventHandler.sendEvent(
-                Event.ensureHasEvaluatedData(e1, Extent(localContext)),
+                Event.ensureHasEvaluatedData(e1, Extent.of(localContext)),
                 "source",
               )
             }

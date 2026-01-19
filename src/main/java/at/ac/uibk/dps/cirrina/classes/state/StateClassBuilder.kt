@@ -39,11 +39,10 @@ class StateClassBuilder private constructor(private val stateDescription: StateD
    * @return the fully constructed state class.
    */
   fun build(): Result<StateClass> = runCatching {
-    // resolves an action description into an action object
     fun resolveAction(desc: ActionDescription, actionName: String? = null): Action {
       val builder = ActionBuilder.from(desc)
       actionName?.takeUnless { it.isBlank() }?.let { builder.withName(it) }
-      return builder.build()
+      return builder.build().getOrThrow()
     }
 
     val entryActions = stateDescription.entry.map { resolveAction(it) }

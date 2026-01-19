@@ -1,27 +1,12 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutResetAction;
-import java.util.List;
+import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutResetAction
 
-public final class ActionTimeoutResetCommand extends ActionCommand {
+class ActionTimeoutResetCommand
+internal constructor(
+  executionContext: ExecutionContext,
+  val timeoutResetAction: TimeoutResetAction,
+) : ActionCommand(executionContext) {
 
-  private final TimeoutResetAction timeoutResetAction;
-
-  ActionTimeoutResetCommand(
-    ExecutionContext executionContext,
-    TimeoutResetAction timeoutResetAction
-  ) {
-    super(executionContext);
-    this.timeoutResetAction = timeoutResetAction;
-  }
-
-  @Override
-  public List<ActionCommand> execute() throws UnsupportedOperationException {
-    // Handled in StateMachine
-    return List.of();
-  }
-
-  public TimeoutResetAction getTimeoutResetAction() {
-    return timeoutResetAction;
-  }
+  override fun execute(): Result<List<ActionCommand>> = runCatching { emptyList() }
 }

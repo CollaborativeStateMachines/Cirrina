@@ -1,59 +1,33 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import at.ac.uibk.dps.cirrina.execution.object.event.EventListener;
-import at.ac.uibk.dps.cirrina.execution.object.statemachine.StateMachineEventHandler;
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector;
-import at.ac.uibk.dps.cirrina.tracing.Counters;
-import at.ac.uibk.dps.cirrina.tracing.Gauges;
-import jakarta.annotation.Nullable;
-import java.util.Objects;
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
+import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachineEventHandler
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.tracing.Counters
+import at.ac.uibk.dps.cirrina.tracing.Gauges
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
-public record ExecutionContext(
-  Scope scope,
-  @Nullable Event raisingEvent,
-  ServiceImplementationSelector serviceImplementationSelector,
-  StateMachineEventHandler eventHandler,
-  EventListener eventListener,
-  Gauges gauges,
-  Counters counters,
-  boolean isWhile
+data class ExecutionContext(
+  val scope: Scope,
+  val raisingEvent: Event? = null,
+  val serviceImplementationSelector: ServiceImplementationSelector,
+  val eventHandler: StateMachineEventHandler,
+  val eventListener: EventListener,
+  val gauges: Gauges,
+  val counters: Counters,
+  val isWhile: Boolean = false,
+  val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
 ) {
-  public ExecutionContext {
-    Objects.requireNonNull(scope, "Scope cannot be null");
-    Objects.requireNonNull(
-      serviceImplementationSelector,
-      "ServiceImplementationSelector cannot be null"
-    );
-    Objects.requireNonNull(eventHandler, "StateMachineEventHandler cannot be null");
-    Objects.requireNonNull(eventListener, "EventListener cannot be null");
-    Objects.requireNonNull(gauges, "Gauges cannot be null");
-    Objects.requireNonNull(counters, "Counters cannot be null");
+
+  fun close() {
+    coroutineScope.cancel()
   }
 
-  public ExecutionContext withScope(Scope scope) {
-    return new ExecutionContext(
-      scope,
-      raisingEvent,
-      serviceImplementationSelector,
-      eventHandler,
-      eventListener,
-      gauges,
-      counters,
-      isWhile
-    );
-  }
+  fun withScope(scope: Scope): ExecutionContext = copy(scope = scope)
 
-  public ExecutionContext withIsWhile(boolean isWhile) {
-    return new ExecutionContext(
-      scope,
-      raisingEvent,
-      serviceImplementationSelector,
-      eventHandler,
-      eventListener,
-      gauges,
-      counters,
-      isWhile
-    );
-  }
+  fun withIsWhile(isWhile: Boolean): ExecutionContext = copy(isWhile = isWhile)
 }

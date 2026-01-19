@@ -1,85 +1,34 @@
-package at.ac.uibk.dps.cirrina.execution.object.exchange;
+package at.ac.uibk.dps.cirrina.execution.`object`.exchange
 
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import com.google.protobuf.InvalidProtocolBufferException;
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 
-/**
- * Context variable exchange, responsible for converting a context variable object to a consistent exchange format, using Protocol Buffers.
- * <p>
- * See the exchange protos for a protocol description.
- */
-public class ContextVariableExchange {
+class ContextVariableExchange(val contextVariable: ContextVariable) {
 
-  /**
-   * The context variable object.
-   */
-  private final ContextVariable contextVariable;
+  companion object {
+    @JvmStatic
+    fun fromBytes(data: ByteArray): Result<ContextVariableExchange> =
+      runCatching {
+          val proto = ContextVariableProtos.ContextVariable.parseFrom(data)
+          fromProto(proto).getOrThrow()
+        }
+        .map { ContextVariableExchange(it) }
+        .recoverCatching { ex ->
+          throw UnsupportedOperationException("could not read context variable from bytes", ex)
+        }
 
-  /**
-   * Initializes this context variable exchange instance.
-   *
-   * @param contextVariable Context variable object.
-   */
-  public ContextVariableExchange(ContextVariable contextVariable) {
-    this.contextVariable = contextVariable;
+    @JvmStatic
+    fun fromProto(proto: ContextVariableProtos.ContextVariable): Result<ContextVariable> =
+      runCatching {
+        ContextVariable.eager(proto.name, ValueExchange.fromProto(proto.value).getOrThrow())
+      }
   }
 
-  /**
-   * Construct a context variable exchange from byte data.
-   *
-   * @param data Byte data.
-   * @return Context variable exchange.
-   * @throws UnsupportedOperationException If the context variable could not be read.
-   */
-  public static ContextVariableExchange fromBytes(byte[] data)
-    throws UnsupportedOperationException {
-    try {
-      return new ContextVariableExchange(
-        fromProto(ContextVariableProtos.ContextVariable.parseFrom(data))
-      );
-    } catch (InvalidProtocolBufferException e) {
-      throw new UnsupportedOperationException("Could not read context variable from bytes");
-    }
-  }
+  fun toBytes(): Result<ByteArray> = toProto().map { it.toByteArray() }
 
-  /**
-   * Construct a context variable object from a proto.
-   *
-   * @param proto Context variable proto.
-   * @return Context variable object.
-   */
-  public static ContextVariable fromProto(ContextVariableProtos.ContextVariable proto)
-    throws UnsupportedOperationException {
-    return new ContextVariable(proto.getName(), ValueExchange.fromProto(proto.getValue()));
-  }
-
-  /**
-   * Converts this exchange instance to bytes.
-   *
-   * @return Bytes.
-   */
-  public byte[] toBytes() {
-    return toProto().toByteArray();
-  }
-
-  /**
-   * Returns a proto from this exchange.
-   *
-   * @return Proto.
-   */
-  public ContextVariableProtos.ContextVariable toProto() {
-    return ContextVariableProtos.ContextVariable.newBuilder()
-      .setName(contextVariable.name())
-      .setValue(new ValueExchange(contextVariable.value()).toProto())
-      .build();
-  }
-
-  /**
-   * Returns the context variable object.
-   *
-   * @return Context variable object.
-   */
-  public ContextVariable getContextVariable() {
-    return contextVariable;
+  fun toProto(): Result<ContextVariableProtos.ContextVariable> = runCatching {
+    ContextVariableProtos.ContextVariable.newBuilder()
+      .setName(contextVariable.name)
+      .setValue(ValueExchange(contextVariable.value).toProto().getOrThrow())
+      .build()
   }
 }

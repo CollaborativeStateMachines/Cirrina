@@ -67,7 +67,7 @@ class TimeoutTest {
           .run()
 
         // This test counts up to 10, so the final value should be 10
-        assertEquals(10, mockPersistentContext["v"])
+        assertEquals(10, mockPersistentContext.get("v"))
       }
     }
   }

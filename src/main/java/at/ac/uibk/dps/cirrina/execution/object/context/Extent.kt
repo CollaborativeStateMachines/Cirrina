@@ -1,87 +1,55 @@
-package at.ac.uibk.dps.cirrina.execution.object.context;
+package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
+class Extent(val contexts: List<Context> = emptyList()) {
 
-public class Extent {
+  companion object {
+    @JvmStatic fun empty(): Extent = Extent()
 
-  private List<Context> extent;
-
-  public Extent() {
-    extent = new ArrayList<>();
+    @JvmStatic fun of(vararg contexts: Context): Extent = Extent(contexts.toList())
   }
 
-  public Extent(Context low) {
-    extent = List.of(low);
+  constructor(low: List<Context>, high: Context) : this(low + high)
+
+  constructor(low: Context, high: Context) : this(listOf(low, high))
+
+  fun setOrCreate(name: String, value: Any?): Result<Int> {
+    val last = high ?: return Result.failure(IllegalStateException("extent contains no contexts"))
+
+    return last.assign(name, value).recoverCatching { last.create(name, value).getOrThrow() }
   }
 
-  public Extent(Context low, Context high) {
-    extent = List.of(low, high);
-  }
-
-  public Extent(List<Context> low, Context high) {
-    extent = Stream.concat(low.stream(), Stream.of(high)).toList();
-  }
-
-  public int setOrCreate(String name, Object value) throws IOException {
-    final var last = extent.getLast();
-
-    try {
-      return last.assign(name, value);
-    } catch (IOException e) {
-      return last.create(name, value);
+  fun trySet(name: String, value: Any?): Result<SetResult> {
+    if (contexts.isEmpty()) {
+      return Result.failure(IllegalStateException("no contexts found to assign to"))
     }
-  }
 
-  public SetResult trySet(String name, Object value) throws IOException {
-    IOException lastException = null;
-
-    for (final var context : extent.reversed()) {
-      try {
-        final var size = context.assign(name, value);
-        return new SetResult(size, context);
-      } catch (IOException e) {
-        lastException = e;
+    for (context in contexts.reversed()) {
+      val result = context.assign(name, value)
+      if (result.isSuccess) {
+        return Result.success(SetResult(result.getOrThrow(), context))
       }
     }
 
-    if (lastException != null) {
-      throw lastException;
-    } else {
-      throw new IOException("Could not set variable value, no context could be found to assign to");
-    }
+    return Result.failure(
+      NoSuchElementException("variable '$name' could not be found in any context in the extent")
+    )
   }
 
-  public Extent extend(Context high) {
-    return new Extent(extent, high);
-  }
+  fun extend(high: Context): Extent = Extent(this.contexts, high)
 
-  public Context getLow() {
-    return extent.getFirst();
-  }
+  val low: Context?
+    get() = contexts.firstOrNull()
 
-  public Context getHigh() {
-    return extent.getLast();
-  }
+  val high: Context?
+    get() = contexts.lastOrNull()
 
-  public Optional<Object> resolve(String name) {
-    return extent
-      .reversed()
-      .stream()
-      .map(context -> {
-        try {
-          return Optional.ofNullable(context.get(name));
-        } catch (IOException e) {
-          return Optional.empty();
-        }
-      })
-      .filter(Optional::isPresent)
-      .map(Optional::get)
-      .findFirst();
-  }
+  fun resolve(name: String): Any? =
+    contexts
+      .asReversed()
+      .asSequence()
+      .map { it.get(name) }
+      .firstOrNull { it.isSuccess }
+      ?.getOrNull()
 
-  public record SetResult(int size, Context context) {}
+  data class SetResult(val size: Int, val context: Context)
 }
