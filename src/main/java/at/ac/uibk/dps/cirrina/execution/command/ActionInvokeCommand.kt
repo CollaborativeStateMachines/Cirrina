@@ -4,14 +4,20 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.action.InvokeAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
-import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachineEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
-import at.ac.uibk.dps.cirrina.tracing.SemanticConvention.*
-import at.ac.uibk.dps.cirrina.utils.Time
 import com.google.common.flogger.FluentLogger
 import kotlinx.coroutines.launch
 
+/**
+ * A command responsible for invoking an external service as defined by an [InvokeAction] within the
+ * provided [executionContext].
+ *
+ * This command selects an appropriate service implementation, prepares the required input
+ * variables, and triggers the service invocation asynchronously.
+ *
+ * @property executionContext the context in which the invocation occurs.
+ * @property invokeAction the definition of the service call and associated events.
+ */
 class ActionInvokeCommand(
   executionContext: ExecutionContext,
   private val invokeAction: InvokeAction,
@@ -21,70 +27,51 @@ class ActionInvokeCommand(
     private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
+  /**
+   * Executes the service invocation logic.
+   *
+   * @return a [Result] containing an empty list of [ActionCommand]s on success, or a failure if
+   *   service selection or input preparation fails.
+   */
   override fun execute(): Result<List<ActionCommand>> =
-    runCatching {
-        incrementInvocationCounter()
-        val start = Time.timeInMillisecondsSinceStart()
-
-        val serviceImplementation = selectServiceImplementation().getOrThrow()
-        val extent = executionContext.scope.extent
-        val input = prepareInput(extent).getOrThrow()
+    selectServiceImplementation()
+      .mapCatching { service ->
+        val input = prepareInput(executionContext.scope.extent).getOrThrow()
 
         executionContext.coroutineScope.launch {
-          serviceImplementation
-            .invoke(input, executionContext.scope.id)
-            .onSuccess { output ->
-              raiseEvents(output, executionContext.eventListener, executionContext.eventHandler)
-              measurePerformance(start, serviceImplementation)
-            }
-            .onFailure { ex ->
-              logger
-                .atWarning()
-                .withCause(ex)
-                .log(
-                  "service invocation failed for service '%s'",
-                  serviceImplementation.informationString,
-                )
-            }
+          service
+            .invoke(input)
+            .onSuccess { output -> raiseEvents(output) }
+            .onFailure { e -> logger.atWarning().withCause(e).log("service invocation failed") }
         }
-
         emptyList<ActionCommand>()
       }
-      .recoverCatching { ex ->
-        throw UnsupportedOperationException("could not execute invoke action", ex)
+      .recoverCatching { e ->
+        throw UnsupportedOperationException("could not execute invoke action", e)
       }
 
   private fun prepareInput(extent: Extent): Result<List<ContextVariable>> = runCatching {
-    invokeAction.input.map { variable -> variable.evaluate(extent).getOrThrow() }
-  }
-
-  private fun incrementInvocationCounter() {
-    executionContext.counters
-      .getCounter(COUNTER_INVOCATIONS)
-      .add(1, executionContext.counters.attributesForInvocation())
+    invokeAction.input.map { it.evaluate(extent).getOrThrow() }
   }
 
   private fun selectServiceImplementation(): Result<ServiceImplementation> {
     val serviceType = invokeAction.serviceType
     val mode = invokeAction.mode
 
-    return executionContext.serviceImplementationSelector.select(serviceType, mode).let { optional
-      ->
-      if (optional.isPresent) Result.success(optional.get())
-      else
+    return executionContext.serviceImplementationSelector
+      .select(serviceType, mode)
+      .map { Result.success(it) }
+      .orElseGet {
         Result.failure(
-          IllegalArgumentException(
-            "could not find a service implementation for the service type '$serviceType'"
-          )
+          IllegalArgumentException("no service implementation found for type '$serviceType'")
         )
-    }
+      }
   }
 
-  private fun raiseEvents(
-    output: List<ContextVariable>,
-    eventListener: EventListener,
-    eventHandler: StateMachineEventHandler,
-  ) {
+  private fun raiseEvents(output: List<ContextVariable>) {
+    val eventListener = executionContext.eventListener
+    val eventHandler = executionContext.eventHandler
+
     invokeAction.done
       .map { it.withData(output) }
       .forEach { event ->
@@ -94,22 +81,5 @@ class ActionInvokeCommand(
           eventHandler.sendEvent(event)
         }
       }
-  }
-
-  private fun measurePerformance(start: Double, serviceImplementation: ServiceImplementation) {
-    val now = Time.timeInMillisecondsSinceStart()
-    val gauges = executionContext.gauges
-
-    val location = if (serviceImplementation.isLocal) "local" else "remote"
-    gauges
-      .getGauge(GAUGE_ACTION_INVOKE_LATENCY)
-      .set(now - start, gauges.attributesForInvocation(location))
-
-    executionContext.raisingEvent?.let { raisingEvent ->
-      val delta = Time.timeInMillisecondsSinceEpoch() - raisingEvent.createdTime
-      gauges
-        .getGauge(GAUGE_EVENT_RESPONSE_TIME_INCLUSIVE)
-        .set(delta, gauges.attributesForEvent(raisingEvent.channel.toString()))
-    }
   }
 }

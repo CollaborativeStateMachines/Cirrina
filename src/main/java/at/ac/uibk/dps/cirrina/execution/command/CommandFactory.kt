@@ -1,42 +1,39 @@
-package at.ac.uibk.dps.cirrina.execution.command;
+package at.ac.uibk.dps.cirrina.execution.command
 
-import at.ac.uibk.dps.cirrina.execution.object.action.Action;
-import at.ac.uibk.dps.cirrina.execution.object.action.EvalAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.InvokeAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.MatchAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.RaiseAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutAction;
-import at.ac.uibk.dps.cirrina.execution.object.action.TimeoutResetAction;
+import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
+import at.ac.uibk.dps.cirrina.execution.`object`.action.EvalAction
+import at.ac.uibk.dps.cirrina.execution.`object`.action.InvokeAction
+import at.ac.uibk.dps.cirrina.execution.`object`.action.MatchAction
+import at.ac.uibk.dps.cirrina.execution.`object`.action.RaiseAction
+import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
+import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutResetAction
 
-public class CommandFactory {
+/**
+ * A factory responsible for creating [ActionCommand] instances from [Action] definitions.
+ *
+ * This factory maps domain-specific action definitions to their corresponding executable command
+ * implementations within the provided [executionContext].
+ *
+ * @property executionContext the context to be injected into the created commands.
+ */
+class CommandFactory(private val executionContext: ExecutionContext) {
 
-  private ExecutionContext executionContext;
-
-  public CommandFactory(ExecutionContext executionContext) {
-    this.executionContext = executionContext;
-  }
-
-  public ActionCommand createActionCommand(Action action) {
-    switch (action) {
-      case EvalAction evalAction -> {
-        return new ActionEvalCommand(executionContext, evalAction);
-      }
-      case InvokeAction invokeAction -> {
-        return new ActionInvokeCommand(executionContext, invokeAction);
-      }
-      case MatchAction matchAction -> {
-        return new ActionMatchCommand(executionContext, matchAction);
-      }
-      case RaiseAction raiseAction -> {
-        return new ActionRaiseCommand(executionContext, raiseAction);
-      }
-      case TimeoutAction timeoutAction -> {
-        return new ActionTimeoutCommand(executionContext, timeoutAction);
-      }
-      case TimeoutResetAction timeoutResetAction -> {
-        return new ActionTimeoutResetCommand(executionContext, timeoutResetAction);
-      }
-      default -> throw new IllegalArgumentException("Unexpected action");
+  /**
+   * Creates an [ActionCommand] for the given [action].
+   *
+   * @param action the action definition to convert.
+   * @return a [Result] containing the corresponding [ActionCommand] implementation on success, or a
+   *   failure if the action type is unexpected.
+   */
+  fun createActionCommand(action: Action): Result<ActionCommand> = runCatching {
+    when (action) {
+      is EvalAction -> ActionEvalCommand(executionContext, action)
+      is InvokeAction -> ActionInvokeCommand(executionContext, action)
+      is MatchAction -> ActionMatchCommand(executionContext, action)
+      is RaiseAction -> ActionRaiseCommand(executionContext, action)
+      is TimeoutAction -> ActionTimeoutCommand(executionContext, action)
+      is TimeoutResetAction -> ActionTimeoutResetCommand(executionContext, action)
+      else -> throw IllegalArgumentException("unexpected action type: ${action::class.simpleName}")
     }
   }
 }

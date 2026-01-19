@@ -100,7 +100,7 @@ class HttpServiceImplementationTest {
           Parameters("http", false, "http", "localhost", 8000, "/plus", method)
         )
 
-      val result = service.invoke(variables, "some-id")
+      val result = service.invoke(variables)
 
       assertTrue(result.isSuccess)
       result.onSuccess { output ->
@@ -115,7 +115,7 @@ class HttpServiceImplementationTest {
         HttpServiceImplementation(
           Parameters("http", false, "http", "localhost", 8000, "/error", method)
         )
-      val errorResult = errorService.invoke(emptyList(), "some-id")
+      val errorResult = errorService.invoke(emptyList())
       assertTrue(errorResult.isFailure)
 
       // Invalid Protobuf Response
@@ -123,7 +123,7 @@ class HttpServiceImplementationTest {
         HttpServiceImplementation(
           Parameters("http", false, "http", "localhost", 8000, "/broken-response1", method)
         )
-      val brokenResult = brokenService.invoke(emptyList(), "some-id")
+      val brokenResult = brokenService.invoke(emptyList())
       assertTrue(brokenResult.isFailure)
     }
   }

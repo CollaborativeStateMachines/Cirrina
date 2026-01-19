@@ -80,7 +80,6 @@ class Cirrina {
                 Runtime(
                   URI(EnvironmentVariables.appPath.get()),
                   EnvironmentVariables.instantiate.get(),
-                  openTelemetry,
                   RandomServiceImplementationSelector(
                     ServiceImplementationBuilder.from(serviceImplementationBindings).build()
                   ),

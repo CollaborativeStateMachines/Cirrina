@@ -1,43 +1,46 @@
 package at.ac.uibk.dps.cirrina.execution.command
 
 import at.ac.uibk.dps.cirrina.execution.`object`.action.MatchAction
-import com.google.common.flogger.FluentLogger
 
+/**
+ * A command that evaluates a match expression and executes the corresponding action(s) within the
+ * provided [executionContext].
+ *
+ * It evaluates a central value and compares it against a set of case expressions. If matches are
+ * found, those actions are converted into commands; otherwise, the default action is used.
+ *
+ * @property executionContext the context providing scope and command creation capabilities.
+ * @property matchAction the definition containing the value to match and the cases.
+ */
 class ActionMatchCommand(executionContext: ExecutionContext, private val matchAction: MatchAction) :
   ActionCommand(executionContext) {
 
-  companion object {
-    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
-  }
+  /**
+   * Executes the match logic.
+   *
+   * @return a [Result] containing a list of [ActionCommand]s to be scheduled for execution on
+   *   success, or a failure if an expression evaluation or command creation fails.
+   */
+  override fun execute(): Result<List<ActionCommand>> {
+    val extent = executionContext.scope.extent
+    val commandFactory = CommandFactory(executionContext)
 
-  override fun execute(): Result<List<ActionCommand>> =
-    runCatching {
-        val extent = executionContext.scope.getExtent()
-        val commandFactory = CommandFactory(executionContext)
-
-        // Evaluate the main match condition
-        val conditionValue = matchAction.value.execute(extent).getOrThrow()
-
-        // Filter for matching cases
+    return matchAction.value
+      .execute(extent)
+      .mapCatching { conditionValue ->
+        // Matching cases
         val matchingActions =
-          matchAction.`case`.entries
-            .filter { (expression, _) ->
-              val caseValue = expression.execute(extent).getOrThrow()
-              conditionValue == caseValue
-            }
+          matchAction.case.entries
+            .filter { (expression, _) -> expression.execute(extent).getOrThrow() == conditionValue }
             .map { it.value }
 
-        val finalActions =
-          when {
-            matchingActions.isNotEmpty() -> matchingActions
-            else -> listOf(matchAction.`default`)
-          }
+        // Default case
+        val finalActions = matchingActions.ifEmpty { listOf(matchAction.default) }
 
-        // Convert actions to commands
-        finalActions.map { commandFactory.createActionCommand(it) }
+        finalActions.map { commandFactory.createActionCommand(it).getOrThrow() }
       }
-      .recoverCatching { ex ->
-        logger.atWarning().withCause(ex).log("could not execute match action")
-        throw UnsupportedOperationException("could not execute match action", ex)
+      .recoverCatching { e ->
+        throw UnsupportedOperationException("could not execute match action", e)
       }
+  }
 }

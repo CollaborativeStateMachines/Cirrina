@@ -10,7 +10,6 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.utils.Id
 import com.google.common.flogger.FluentLogger
-import io.opentelemetry.api.OpenTelemetry
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -32,7 +31,6 @@ private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 class Runtime(
   main: URI,
   stateMachineNames: List<String>,
-  private val openTelemetry: OpenTelemetry,
   private var serviceImplementationSelector: ServiceImplementationSelector,
   val eventHandler: EventHandler,
   val persistentContext: Context,
@@ -85,7 +83,7 @@ class Runtime(
    * @return the state machine instance, or null if not found.
    */
   fun findInstance(stateMachineId: Id): StateMachine? =
-    stateMachines.firstOrNull { it.getStateMachineInstanceId() == stateMachineId }
+    stateMachines.firstOrNull { it.id == stateMachineId }
 
   /** Run all state machines (blocking). */
   fun run() = runBlocking {
@@ -98,19 +96,14 @@ class Runtime(
     parentInstance: StateMachine?,
   ): List<StateMachine> {
     val instance =
-      StateMachine(
-          this,
-          stateMachineClass,
-          serviceImplementationSelector,
-          openTelemetry,
-          parentInstance,
-        )
-        .also { eventHandler.addListener(it) }
+      StateMachine(this, stateMachineClass, serviceImplementationSelector, parentInstance).also {
+        eventHandler.addListener(it)
+      }
 
     val nestedInstances =
       stateMachineClass.nestedStateMachineClasses.flatMap { buildInstances(it, instance) }
 
-    instance.setNestedStateMachineIds(nestedInstances.map { it.getStateMachineInstanceId() })
+    instance.setNestedStateMachineIds(nestedInstances.map { it.id })
     return listOf(instance) + nestedInstances
   }
 }

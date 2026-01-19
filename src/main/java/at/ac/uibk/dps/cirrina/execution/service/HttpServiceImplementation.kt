@@ -12,6 +12,14 @@ import java.net.http.HttpResponse
 import java.util.concurrent.Executors
 import kotlinx.coroutines.future.await
 
+/**
+ * An HTTP-based implementation of a service.
+ *
+ * This implementation serializes context variables into a Protobuf payload, performs an
+ * asynchronous HTTP request, and parses the resulting Protobuf response back into variables.
+ *
+ * @property parameters the configuration parameters for the HTTP connection.
+ */
 class HttpServiceImplementation(parameters: Parameters) :
   ServiceImplementation(parameters.name, parameters.local) {
 
@@ -24,37 +32,44 @@ class HttpServiceImplementation(parameters: Parameters) :
   private val endPoint = parameters.endPoint
   private val method = parameters.method
 
-  override suspend fun invoke(
-    input: List<ContextVariable>,
-    id: String,
-  ): Result<List<ContextVariable>> = runCatching {
-    require(input.none { it.isLazy }) {
-      "All variables must be evaluated before service invocation"
-    }
+  /**
+   * Invokes the HTTP service with the provided input.
+   *
+   * @param input the list of context variables to be sent as the request payload.
+   * @return a [Result] containing the list of context variables returned by the service.
+   */
+  override suspend fun invoke(input: List<ContextVariable>): Result<List<ContextVariable>> =
+    runCatching {
+        require(input.none { it.isLazy }) {
+          "all variables must be evaluated before service invocation"
+        }
 
-    val payload =
-      if (input.isEmpty()) {
-        ByteArray(0)
-      } else {
-        ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(input.map { ContextVariableExchange(it).toProto().getOrThrow() })
-          .build()
-          .toByteArray()
+        val payload =
+          if (input.isEmpty()) {
+            ByteArray(0)
+          } else {
+            ContextVariableProtos.ContextVariables.newBuilder()
+              .addAllData(input.map { ContextVariableExchange(it).toProto().getOrThrow() })
+              .build()
+              .toByteArray()
+          }
+
+        val uri = URI(scheme, null, host, port, endPoint, null, null)
+        val request =
+          HttpRequest.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
+            .uri(uri)
+            .build()
+
+        val response =
+          httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
+
+        handleResponse(response).getOrThrow()
       }
-
-    val uri = URI(scheme, null, host, port, endPoint, null, null)
-    val request =
-      HttpRequest.newBuilder()
-        .version(HttpClient.Version.HTTP_1_1)
-        .header("Cirrina-Sender-ID", id)
-        .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
-        .uri(uri)
-        .build()
-
-    val response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
-
-    handleResponse(response).getOrThrow()
-  }
+      .recoverCatching { e ->
+        throw IllegalStateException("could not invoke http service: ${e.message}", e)
+      }
 
   private fun handleResponse(response: HttpResponse<ByteArray>): Result<List<ContextVariable>> =
     runCatching {
@@ -63,19 +78,14 @@ class HttpServiceImplementation(parameters: Parameters) :
       }
 
       val payload = response.body()
-      if (payload.isEmpty()) return Result.success(emptyList())
+      if (payload.isEmpty()) return@runCatching emptyList()
 
-      ContextVariableProtos.ContextVariables.parseFrom(payload)
-        .dataList
-        .map { ContextVariableExchange.fromProto(it) }
-        .map { it.getOrThrow() }
+      ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
+        ContextVariableExchange.fromProto(it).getOrThrow()
+      }
     }
 
-  override val informationString: String
-    get() =
-      runCatching { URI(scheme, null, host, port, endPoint, null, null).toString() }
-        .getOrElse { "Invalid URI: ${it.message}" }
-
+  /** Configuration parameters for an [HttpServiceImplementation]. */
   data class Parameters(
     val name: String,
     val local: Boolean,

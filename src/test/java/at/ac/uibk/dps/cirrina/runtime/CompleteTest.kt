@@ -13,7 +13,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.BuildVersion
-import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import java.time.Duration
 import org.junit.jupiter.api.Assertions.*
@@ -81,7 +80,6 @@ class CompleteTest {
                 Runtime(
                     DefaultDescriptions.complete,
                     listOf("completeStateMachine"),
-                    loggingOpenTelemetry(),
                     serviceImplementationSelector,
                     eventHandler,
                     context,
