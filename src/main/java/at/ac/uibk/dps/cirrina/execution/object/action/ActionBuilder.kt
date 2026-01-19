@@ -76,7 +76,6 @@ class ActionBuilder private constructor(private val actionDescription: ActionDes
     }
 
   companion object {
-    @JvmStatic
     fun from(actionDescription: ActionDescription): ActionBuilder = ActionBuilder(actionDescription)
 
     private fun buildVariableList(context: Map<String, String>): Result<List<ContextVariable>> =

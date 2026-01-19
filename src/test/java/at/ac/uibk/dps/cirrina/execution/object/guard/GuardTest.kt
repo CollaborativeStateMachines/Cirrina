@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.execution.`object`.guard
 
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import at.ac.uibk.dps.cirrina.utils.assertFailure
+import at.ac.uibk.dps.cirrina.utils.assertSuccess
 import org.junit.jupiter.api.Test
 
 class GuardTest {
@@ -15,15 +15,14 @@ class GuardTest {
       val extent = Extent.of(context)
 
       GuardBuilder.from("v==5").build().onSuccess { guard ->
-        guard.evaluate(extent).onSuccess { result -> assertTrue(result) }
+        guard.evaluate(extent).assertSuccess()
       }
 
       GuardBuilder.from("v==6").build().onSuccess { guard ->
-        guard.evaluate(extent).onSuccess { result -> assertFalse(result) }
+        guard.evaluate(extent).assertSuccess()
       }
 
-      val guardResult = GuardBuilder.from("v").build()
-      assertTrue(guardResult.isFailure)
+      GuardBuilder.from("v").build().onSuccess { guard -> guard.evaluate(extent).assertFailure() }
     }
   }
 }

@@ -8,7 +8,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.ExpressionBuilder
 class EventBuilder private constructor(private val eventDescription: EventDescription) {
 
   companion object {
-    @JvmStatic
     fun from(eventDescription: EventDescription): EventBuilder = EventBuilder(eventDescription)
 
     private fun buildVariableList(contextMap: Map<String, String>): Result<List<ContextVariable>> {

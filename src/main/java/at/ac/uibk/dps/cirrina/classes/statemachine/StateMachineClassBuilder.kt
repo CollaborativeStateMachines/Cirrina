@@ -18,7 +18,6 @@ private constructor(private val stateMachineDescription: StateMachineDescription
      * @param stateMachineDescription state machine description.
      * @return this builder.
      */
-    @JvmStatic
     fun from(stateMachineDescription: StateMachineDescription): StateMachineClassBuilder =
       StateMachineClassBuilder(stateMachineDescription)
   }

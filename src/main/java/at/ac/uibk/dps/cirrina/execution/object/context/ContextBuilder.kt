@@ -7,10 +7,9 @@ private constructor(private val contextDescription: Map<String, String>? = null)
   private var context: Context? = null
 
   companion object {
-    @JvmStatic fun empty(): ContextBuilder = ContextBuilder()
+    fun empty(): ContextBuilder = ContextBuilder()
 
-    @JvmStatic
-    fun from(contextDescription: Map<String, String>): ContextBuilder =
+    fun from(contextDescription: Map<String, String>?): ContextBuilder =
       ContextBuilder(contextDescription)
   }
 

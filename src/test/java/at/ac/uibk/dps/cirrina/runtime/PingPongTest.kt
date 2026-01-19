@@ -7,6 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
+import at.ac.uibk.dps.cirrina.utils.assertValue
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -70,7 +71,7 @@ class PingPongTest {
         println(measureTime { runtime.run() })
 
         // This test counts up to 100000, so the final value should be 100000
-        assertEquals(100000, mockPersistentContext.get("v"))
+        mockPersistentContext.get("v").assertValue(100000)
       }
     }
   }

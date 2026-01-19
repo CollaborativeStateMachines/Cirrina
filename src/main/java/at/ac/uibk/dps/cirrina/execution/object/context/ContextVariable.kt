@@ -5,11 +5,9 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolean = false) {
 
   companion object {
-    @JvmStatic
     fun lazy(name: String, expression: Expression): ContextVariable =
       ContextVariable(name, expression, isLazy = true)
 
-    @JvmStatic
     fun eager(name: String, value: Any?): ContextVariable =
       ContextVariable(name, value, isLazy = false)
   }

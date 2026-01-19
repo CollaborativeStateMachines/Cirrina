@@ -6,7 +6,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 class EventExchange(val event: Event) {
 
   companion object {
-    @JvmStatic
     fun fromBytes(data: ByteArray): Result<EventExchange> =
       runCatching {
           val eventProto = EventProtos.Event.parseFrom(data)
@@ -17,7 +16,6 @@ class EventExchange(val event: Event) {
           throw UnsupportedOperationException("received an event with an unsupported payload", ex)
         }
 
-    @JvmStatic
     fun fromProto(proto: EventProtos.Event): Result<Event> = runCatching {
       val channel =
         try {

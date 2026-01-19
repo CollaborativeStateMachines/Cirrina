@@ -34,7 +34,6 @@ data class Event(
     "Event(id='$id', name='$name', channel=$channel, createdTime=$createdTime)"
 
   companion object {
-    @JvmStatic
     fun ensureHasEvaluatedData(event: Event, extent: Extent): Event = event.evaluateData(extent)
   }
 }

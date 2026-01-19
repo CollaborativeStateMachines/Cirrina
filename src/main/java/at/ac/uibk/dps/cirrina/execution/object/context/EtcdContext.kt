@@ -88,7 +88,7 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
         val kv = response.kvs.firstOrNull()
 
         kv?.value?.bytes?.fromValueBytes()?.let { Result.success(it) }
-          ?: Result.failure(NoSuchElementException("variable '$name' does not exist"))
+          ?: error("variable does not exist")
       }
     }
 
@@ -105,8 +105,7 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
               .commit()
               .await()
 
-          if (txn.isSucceeded) bytes.size
-          else throw IllegalStateException("variable '$name' already exists")
+          if (txn.isSucceeded) bytes.size else error("variable already exists")
         }
       }
     }

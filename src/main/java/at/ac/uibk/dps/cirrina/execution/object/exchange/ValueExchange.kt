@@ -8,7 +8,6 @@ import com.google.protobuf.ByteString
 class ValueExchange(val value: Any?) {
 
   companion object {
-    @JvmStatic
     fun fromBytes(data: ByteArray): Result<ValueExchange> =
       runCatching {
           val proto = ContextVariableProtos.Value.parseFrom(data)
@@ -19,7 +18,6 @@ class ValueExchange(val value: Any?) {
           throw UnsupportedOperationException("could not read value from bytes", ex)
         }
 
-    @JvmStatic
     fun fromProto(proto: ContextVariableProtos.Value): Result<Any?> = runCatching {
       when (proto.valueCase) {
         ValueCase.INTEGER -> proto.integer
@@ -34,7 +32,6 @@ class ValueExchange(val value: Any?) {
         ValueCase.MAP -> fromMapProto(proto.map).getOrThrow()
         ValueCase.VALUE_NOT_SET,
         null -> null
-        else -> throw UnsupportedOperationException("context variable value type could not be read")
       }
     }
 

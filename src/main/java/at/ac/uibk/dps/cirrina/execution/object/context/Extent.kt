@@ -3,9 +3,9 @@ package at.ac.uibk.dps.cirrina.execution.`object`.context
 class Extent(val contexts: List<Context> = emptyList()) {
 
   companion object {
-    @JvmStatic fun empty(): Extent = Extent()
+    fun empty(): Extent = Extent()
 
-    @JvmStatic fun of(vararg contexts: Context): Extent = Extent(contexts.toList())
+    fun of(vararg contexts: Context): Extent = Extent(contexts.toList())
   }
 
   constructor(low: List<Context>, high: Context) : this(low + high)

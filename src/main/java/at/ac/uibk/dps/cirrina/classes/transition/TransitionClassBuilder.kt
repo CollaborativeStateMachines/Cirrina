@@ -15,7 +15,6 @@ private constructor(private val transitionDescription: TransitionDescription) {
      * @param transitionDescription transition description.
      * @return a new builder instance.
      */
-    @JvmStatic
     fun from(transitionDescription: TransitionDescription): TransitionClassBuilder =
       TransitionClassBuilder(transitionDescription)
   }

@@ -22,7 +22,6 @@ class CollaborativeStateMachineClassBuilder private constructor(private val csml
      * @param csml collaborative state machine description.
      * @return a new builder instance.
      */
-    @JvmStatic
     fun from(csml: Csml): CollaborativeStateMachineClassBuilder =
       CollaborativeStateMachineClassBuilder(csml)
   }

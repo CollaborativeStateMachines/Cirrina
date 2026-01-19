@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`.expression
 
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
+import at.ac.uibk.dps.cirrina.utils.assertValue
 import java.nio.ByteBuffer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -26,17 +27,15 @@ class ExpressionTest {
       context.create("varBad1dBytes", bytes)
       context.create("varVariousList", list)
 
-      assertDoesNotThrow {
-        assertEquals(2, "varPlusOneInt+1".eval(extent))
-        assertEquals(-2, "varNegativeOneInt-1".eval(extent))
-        assertEquals(2.0, "varPlusOneDouble+1.0".eval(extent))
-        assertEquals(-2.0, "varNegativeOneDouble-1.0".eval(extent))
-        assertEquals(false, "!varTrueBool".eval(extent))
-        assertEquals(true, "!varFalseBool".eval(extent))
-        assertEquals("foobar", "varFoobarString".eval(extent))
-        assertEquals(bytes, "varBad1dBytes".eval(extent))
-        assertEquals(list, "varVariousList".eval(extent))
-      }
+      "varPlusOneInt+1".eval(extent).assertValue(2)
+      "varNegativeOneInt-1".eval(extent).assertValue(-2)
+      "varPlusOneDouble+1.0".eval(extent).assertValue(2.0)
+      "varNegativeOneDouble-1.0".eval(extent).assertValue(-2.0)
+      "!varTrueBool".eval(extent).assertValue(false)
+      "!varFalseBool".eval(extent).assertValue(true)
+      "varFoobarString".eval(extent).assertValue("foobar")
+      "varBad1dBytes".eval(extent).assertValue(bytes)
+      "varVariousList".eval(extent).assertValue(list)
     }
   }
 
@@ -44,30 +43,28 @@ class ExpressionTest {
   fun testArrayArithmetic() {
     InMemoryContext(true).use { context ->
       val extent = Extent.of(context)
-      assertDoesNotThrow {
-        // Array with 1, 2, 3
-        context.create("someArray", "[1, 2, 3]".eval(extent))
+      // Array with 1, 2, 3
+      context.create("someArray", "[1, 2, 3]".eval(extent))
 
-        // Arithmetic additions
-        "someArray = someArray + [4]".eval(extent)
-        "someArray = someArray + {5}".eval(extent)
-        "someArray = someArray + [6, ...]".eval(extent)
+      // Arithmetic additions
+      "someArray = someArray + [4]".eval(extent)
+      "someArray = someArray + {5}".eval(extent)
+      "someArray = someArray + [6, ...]".eval(extent)
 
-        assertArrayEquals(arrayOf(1, 2, 3, 4, 5, 6), extent.resolve("someArray") as Array<*>)
+      assertArrayEquals(arrayOf(1, 2, 3, 4, 5, 6), extent.resolve("someArray") as Array<*>)
 
-        // Verifications
-        (1..6).forEach { assertEquals(true, "someArray.contains($it)".eval(extent)) }
+      // Verifications
+      (1..6).forEach { "someArray.contains($it)".eval(extent).assertValue(true) }
 
-        // Arithmetic subtractions
-        "someArray = someArray - [4]".eval(extent)
-        assertArrayEquals(arrayOf(1, 2, 3, 5, 6), extent.resolve("someArray") as Array<*>)
+      // Arithmetic subtractions
+      "someArray = someArray - [4]".eval(extent)
+      assertArrayEquals(arrayOf(1, 2, 3, 5, 6), extent.resolve("someArray") as Array<*>)
 
-        "someArray = someArray - {5}".eval(extent)
-        assertArrayEquals(arrayOf(1, 2, 3, 6), extent.resolve("someArray") as Array<*>)
+      "someArray = someArray - {5}".eval(extent)
+      assertArrayEquals(arrayOf(1, 2, 3, 6), extent.resolve("someArray") as Array<*>)
 
-        "someArray = someArray - [6, ...]".eval(extent)
-        assertArrayEquals(arrayOf(1, 2, 3), extent.resolve("someArray") as Array<*>)
-      }
+      "someArray = someArray - [6, ...]".eval(extent)
+      assertArrayEquals(arrayOf(1, 2, 3), extent.resolve("someArray") as Array<*>)
     }
   }
 
@@ -173,6 +170,8 @@ class ExpressionTest {
     }
   }
 
-  private fun String.eval(extent: Extent): Any? =
-    ExpressionBuilder.from(this).build().getOrThrow().execute(extent).getOrThrow()
+  private fun String.eval(extent: Extent): Result<Any?> =
+    ExpressionBuilder.from(this).build().mapCatching { expression ->
+      expression.execute(extent).getOrThrow()
+    }
 }

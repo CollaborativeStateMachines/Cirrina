@@ -1,53 +1,50 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import java.io.IOException
+import at.ac.uibk.dps.cirrina.utils.assertFailure
+import at.ac.uibk.dps.cirrina.utils.assertSuccess
 import java.util.concurrent.Executors
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 
 abstract class ContextTest {
   protected abstract fun createContext(): Context
 
   @Test
-  @Throws(Exception::class)
   fun testOperations() {
     createContext().use { context ->
-      assertDoesNotThrow { context.deleteAll() }
+      context.deleteAll().assertSuccess()
 
       // Create a variable
-      assertDoesNotThrow { context.create("testVar", 42) }
+      context.create("testVar", 42).assertSuccess()
 
-      // Assign it a new value
-      run {
-        val v = assertDoesNotThrow { context.get("testVar") }
-        assertEquals(42, v)
-      }
+      // Retrieve it should succeed
+      context.get("testVar").assertSuccess()
 
       // Try to create it again, which should fail
-      assertThrows<IOException> { context.create("testVar", 42) }
+      context.create("testVar", 42).assertFailure()
 
       // Non-existent variable should fail
-      assertThrows<IOException> { context.get("nonExistentVar") }
+      context.get("nonExistentVar").assertFailure()
 
       // Deleting a non-existent variable should fail
-      assertThrows<IOException> { context.delete("nonExistentVar") }
+      context.delete("nonExistentVar").assertFailure()
 
       // Assigning a value to a non-existent variable should fail
-      assertThrows<IOException> { context.assign("nonExistentVar", 1) }
+      context.assign("nonExistentVar", 1).assertFailure()
 
-      // Delete the variable
-      assertDoesNotThrow { context.delete("testVar") }
+      // Deleting the variable should succeed
+      assertTrue(context.delete("testVar").isSuccess)
 
       // Deleting it again should fail
-      assertThrows<IOException> { context.delete("testVar") }
+      context.delete("testVar").assertFailure()
 
       // It should not exist anymore
-      assertThrows<IOException> { context.get("testVar") }
+      context.get("testVar").assertFailure()
 
       // Assigning should fail
-      assertThrows<IOException> { context.assign("testVar", 42) }
+      context.assign("testVar", 42).assertFailure()
 
       // Get all variables
       assertDoesNotThrow {
@@ -61,7 +58,6 @@ abstract class ContextTest {
   }
 
   @Test
-  @Throws(Exception::class)
   fun testMultiThreadedCreateGet() {
     createContext().use { context ->
       assertDoesNotThrow { context.deleteAll() }
@@ -87,13 +83,12 @@ abstract class ContextTest {
       assertEquals(
         threadCount * iterationsPerThread,
         allVariables.size,
-        "Incorrect number of variables in the context",
+        "incorrect number of variables in the context",
       )
     }
   }
 
   @Test
-  @Throws(Exception::class)
   fun testMultiThreadedSetValueGetValue() {
     createContext().use { context ->
       assertDoesNotThrow { context.deleteAll() }
@@ -116,11 +111,11 @@ abstract class ContextTest {
           }
         }
       }
-      val v = assertDoesNotThrow { context.get(variableName) as Int }
+      val v = assertDoesNotThrow { context.get(variableName).getOrThrow() as Int }
       assertEquals(
         iterationsPerThread - 1,
         v,
-        "Incorrect final value after multi-threaded setValue",
+        "incorrect final value after multi-threaded setValue",
       )
     }
   }

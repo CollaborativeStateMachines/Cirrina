@@ -7,7 +7,7 @@ class ExpressionBuilder private constructor(private val source: String) {
   companion object {
     private val cache = ConcurrentHashMap<String, Expression>()
 
-    @JvmStatic fun from(source: String): ExpressionBuilder = ExpressionBuilder(source)
+    fun from(source: String): ExpressionBuilder = ExpressionBuilder(source)
   }
 
   fun build(): Result<Expression> {
