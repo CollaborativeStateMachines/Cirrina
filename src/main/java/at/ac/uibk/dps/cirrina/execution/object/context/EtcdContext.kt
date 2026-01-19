@@ -81,6 +81,10 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
       )
   }
 
+  override fun has(name: String): Result<Boolean> {
+    TODO("Not yet implemented")
+  }
+
   override fun get(name: String): Result<Any?> =
     runBlocking(scope.coroutineContext) {
       withClient { client ->

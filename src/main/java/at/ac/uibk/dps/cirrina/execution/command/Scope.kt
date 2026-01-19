@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.command
 
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.utils.Id
 
 /**
  * A representation of an execution scope containing data and state information.
@@ -15,5 +14,5 @@ interface Scope {
   val extent: Extent
 
   /** The unique identifier for this scope. */
-  val id: Id
+  val id: String
 }

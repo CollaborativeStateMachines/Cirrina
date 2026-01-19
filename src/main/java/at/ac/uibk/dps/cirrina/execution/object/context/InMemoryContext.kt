@@ -6,6 +6,8 @@ open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
 
   private val values = ConcurrentHashMap<String, Any?>()
 
+  override fun has(name: String): Result<Boolean> = Result.success(values.containsKey(name))
+
   override fun get(name: String): Result<Any?> =
     values[name]?.let { Result.success(it) }
       ?: Result.failure(NoSuchElementException("variable '$name' does not exist"))

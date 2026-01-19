@@ -1,5 +1,9 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
+/**
+ * Represents a hierarchical scope of [Context] objects. Values are resolved from 'high' (most
+ * specific) to 'low' (most general).
+ */
 class Extent(val contexts: List<Context> = emptyList()) {
 
   companion object {
@@ -12,44 +16,37 @@ class Extent(val contexts: List<Context> = emptyList()) {
 
   constructor(low: Context, high: Context) : this(listOf(low, high))
 
-  fun setOrCreate(name: String, value: Any?): Result<Int> {
-    val last = high ?: return Result.failure(IllegalStateException("extent contains no contexts"))
+  /**
+   * Attempts to assign a value to a variable in the 'high' context. If assignment fails, it
+   * attempts to create the variable instead.
+   */
+  fun setOrCreate(name: String, value: Any?): Result<Int> =
+    high?.let { last ->
+      last.assign(name, value).recoverCatching { last.create(name, value).getOrThrow() }
+    } ?: Result.failure(IllegalStateException("extent contains no contexts"))
 
-    return last.assign(name, value).recoverCatching { last.create(name, value).getOrThrow() }
-  }
+  /** Searches contexts from high to low to find where [name] exists and updates it. */
+  fun trySet(name: String, value: Any?): Result<SetResult> =
+    contexts
+      .asReversed()
+      .asSequence()
+      .filter { it.has(name).getOrDefault(false) }
+      .map { context -> context.assign(name, value).map { size -> SetResult(size, context) } }
+      .firstOrNull() ?: Result.failure(NoSuchElementException("variable not found in any context"))
 
-  fun trySet(name: String, value: Any?): Result<SetResult> {
-    if (contexts.isEmpty()) {
-      return Result.failure(IllegalStateException("no contexts found to assign to"))
-    }
-
-    for (context in contexts.reversed()) {
-      val result = context.assign(name, value)
-      if (result.isSuccess) {
-        return Result.success(SetResult(result.getOrThrow(), context))
-      }
-    }
-
-    return Result.failure(
-      NoSuchElementException("variable '$name' could not be found in any context in the extent")
-    )
-  }
-
-  fun extend(high: Context): Extent = Extent(this.contexts, high)
-
-  val low: Context?
-    get() = contexts.firstOrNull()
-
-  val high: Context?
-    get() = contexts.lastOrNull()
-
+  /** Resolves the value of [name] by searching through contexts from high to low. */
   fun resolve(name: String): Any? =
     contexts
       .asReversed()
       .asSequence()
-      .map { it.get(name) }
-      .firstOrNull { it.isSuccess }
-      ?.getOrNull()
+      .filter { it.has(name).getOrDefault(false) }
+      .map { it.get(name).getOrNull() }
+      .firstOrNull()
+
+  fun extend(high: Context): Extent = Extent(this.contexts, high)
+
+  val high: Context?
+    get() = contexts.lastOrNull()
 
   data class SetResult(val size: Int, val context: Context)
 }

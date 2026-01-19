@@ -8,7 +8,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
-import at.ac.uibk.dps.cirrina.utils.Id
 import com.google.common.flogger.FluentLogger
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +81,7 @@ class Runtime(
    * @param stateMachineId the ID of the state machine instance.
    * @return the state machine instance, or null if not found.
    */
-  fun findInstance(stateMachineId: Id): StateMachine? =
+  fun findInstance(stateMachineId: String): StateMachine? =
     stateMachines.firstOrNull { it.id == stateMachineId }
 
   /** Run all state machines (blocking). */

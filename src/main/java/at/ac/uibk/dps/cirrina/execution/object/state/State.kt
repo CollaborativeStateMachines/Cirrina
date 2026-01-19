@@ -10,7 +10,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
-import at.ac.uibk.dps.cirrina.utils.Id
 import org.jgrapht.Graph
 import org.jgrapht.traverse.TopologicalOrderIterator
 
@@ -50,7 +49,7 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
     get() = parent.extent.extend(staticContext)
 
   /** The unique identifier for this state, delegated to the parent state machine. */
-  override val id: Id
+  override val id: String
     get() = parent.id
 
   /**

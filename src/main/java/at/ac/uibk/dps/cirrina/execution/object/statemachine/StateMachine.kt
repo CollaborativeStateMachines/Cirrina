@@ -12,8 +12,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.state.State
 import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.utils.Id
 import com.google.common.flogger.FluentLogger
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class StateMachine(
@@ -28,7 +28,7 @@ class StateMachine(
     private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
-  private val stateMachineId = Id()
+  private val stateMachineId = UUID.randomUUID().toString()
   private val timeoutActionManager = TimeoutActionManager()
   private val eventQueue = ConcurrentLinkedQueue<Event>()
   private val stateMachineEventHandler = StateMachineEventHandler(this, runtime.eventHandler)
@@ -36,7 +36,7 @@ class StateMachine(
   private val localContext: Context
 
   private var activeState: State? = null
-  private var nestedStateMachineIds: List<Id> = emptyList()
+  private var nestedStateMachineIds: List<String> = emptyList()
 
   init {
     // Build local context
@@ -60,7 +60,7 @@ class StateMachine(
     get() = parentStateMachine?.extent?.extend(localContext) ?: runtime.extent.extend(localContext)
 
   /** The unique identifier for this state machine. */
-  override val id: Id
+  override val id: String
     get() = stateMachineId
 
   override fun onReceiveEvent(event: Event): Boolean {
@@ -264,7 +264,7 @@ class StateMachine(
 
   override fun toString(): String = "StateMachine(id=$id, name=${stateMachineClass.name})"
 
-  fun setNestedStateMachineIds(ids: List<Id>) {
+  fun setNestedStateMachineIds(ids: List<String>) {
     this.nestedStateMachineIds = ids
   }
 }
