@@ -23,6 +23,6 @@ class StateMachineEventHandler(
    * @param event the event to be sent.
    */
   fun sendEvent(event: Event) {
-    eventHandler.sendEvent(event, stateMachine.id.toString())
+    eventHandler.sendEvent(event, stateMachine.id)
   }
 }

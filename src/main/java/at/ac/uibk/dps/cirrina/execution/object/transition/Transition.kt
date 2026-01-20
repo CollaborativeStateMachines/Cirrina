@@ -3,6 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`.transition
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
+import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
 import org.jgrapht.traverse.TopologicalOrderIterator
 
 /**
@@ -16,6 +17,9 @@ import org.jgrapht.traverse.TopologicalOrderIterator
  * @property isOr indicates whether this transition represents an 'or' logic branch.
  */
 class Transition(private val transitionClass: TransitionClass, val isOr: Boolean) {
+
+  private val sortedActions: List<Action> =
+    TopologicalOrderIterator(transitionClass.actionGraph).asSequence().toList()
 
   init {
     require(!isOr || transitionClass.or != null) {
@@ -35,13 +39,10 @@ class Transition(private val transitionClass: TransitionClass, val isOr: Boolean
    * Retrieves the action commands associated with this transition.
    *
    * @param commandFactory the factory used to create the commands.
-   * @return a [Result] containing the list of [ActionCommand]s in topological order.
+   * @return the list of [ActionCommand]s mapped from the pre-sorted actions.
    */
   fun getActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    TopologicalOrderIterator(transitionClass.actionGraph)
-      .asSequence()
-      .map { commandFactory.createActionCommand(it) }
-      .toList()
+    sortedActions.map { commandFactory.createActionCommand(it) }
 
   override fun toString(): String =
     "Transition(internal=$isInternal, targetStateName=$targetStateName, isOr=$isOr)"
