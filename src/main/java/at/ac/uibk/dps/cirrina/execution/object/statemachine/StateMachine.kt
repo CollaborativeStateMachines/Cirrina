@@ -39,13 +39,11 @@ class StateMachine(
   private var nestedStateMachineIds: List<String> = emptyList()
 
   init {
-    // Build local context - unwrap Builder Result
     localContext =
       stateMachineClass.localContextDescription?.let {
         ContextBuilder.from(it).build().getOrThrow()
       } ?: ContextBuilder.empty().inMemoryContext(true).build().getOrThrow()
 
-    // Construct state instances
     stateInstances =
       stateMachineClass.vertexSet().associate { stateClass ->
         stateClass.name to State(stateClass, this)
@@ -101,7 +99,6 @@ class StateMachine(
     val selected =
       transitionObjects.mapNotNull { transitionObject ->
         val hasOr = transitionObject.or != null
-        // evaluate() now returns Boolean directly or throws
         val result = transitionObject.evaluate(extent)
         if (hasOr || result) Transition(transitionObject, hasOr && !result) else null
       }

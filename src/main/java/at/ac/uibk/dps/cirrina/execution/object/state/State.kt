@@ -26,27 +26,26 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
 
   private val staticContext: Context
 
+  private val entryActions: List<Action> = stateObject.entryActionGraph.asTopologicalList()
+  private val whileActions: List<Action> = stateObject.whileActionGraph.asTopologicalList()
+  private val exitActions: List<Action> = stateObject.exitActionGraph.asTopologicalList()
+  private val timeoutActions: List<TimeoutAction> =
+    stateObject.afterActionGraph.asTopologicalList().filterIsInstance<TimeoutAction>()
+
   init {
-    // Build the static context from the description or use an empty fallback
     staticContext =
       (stateObject.staticContextDescription?.let { ContextBuilder.from(it) }
           ?: ContextBuilder.empty())
         .inMemoryContext(true)
         .build()
-        .getOrElse {
-          throw IllegalStateException(
-            "could not build static context for state '${stateObject.name}'",
-            it,
-          )
-        }
+        .getOrThrow()
   }
 
   /**
    * The current extent of the state, created by extending the parent's extent with the state's
    * static context.
    */
-  override val extent: Extent
-    get() = parent.extent.extend(staticContext)
+  override val extent: Extent by lazy { parent.extent.extend(staticContext) }
 
   /** The unique identifier for this state, delegated to the parent state machine. */
   override val id: String
@@ -56,39 +55,35 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
    * Retrieves the entry action commands for this state.
    *
    * @param commandFactory the factory used to create the commands.
-   * @return a [Result] containing the list of [ActionCommand]s in topological order.
+   * @return the list of [ActionCommand]s.
    */
   fun getEntryActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    createCommands(stateObject.entryActionGraph.asTopologicalList(), commandFactory)
+    entryActions.map { commandFactory.createActionCommand(it) }
 
   /**
    * Retrieves the while action commands for this state.
    *
    * @param commandFactory the factory used to create the commands.
-   * @return a [Result] containing the list of [ActionCommand]s in topological order.
+   * @return the list of [ActionCommand]s.
    */
   fun getWhileActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    createCommands(stateObject.whileActionGraph.asTopologicalList(), commandFactory)
+    whileActions.map { commandFactory.createActionCommand(it) }
 
   /**
    * Retrieves the exit action commands for this state.
    *
    * @param commandFactory the factory used to create the commands.
-   * @return a [Result] containing the list of [ActionCommand]s in topological order.
+   * @return the list of [ActionCommand]s.
    */
   fun getExitActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    createCommands(stateObject.exitActionGraph.asTopologicalList(), commandFactory)
+    exitActions.map { commandFactory.createActionCommand(it) }
 
   /**
    * Retrieves the list of timeout actions defined for this state.
    *
-   * @return a list of [TimeoutAction]s extracted from the after-action graph.
+   * @return a list of [TimeoutAction]s.
    */
-  fun getTimeoutActionObjects(): List<TimeoutAction> =
-    stateObject.afterActionGraph.asTopologicalList().filterIsInstance<TimeoutAction>()
-
-  private fun createCommands(actions: List<Action>, factory: CommandFactory): List<ActionCommand> =
-    actions.map { factory.createActionCommand(it) }
+  fun getTimeoutActionObjects(): List<TimeoutAction> = timeoutActions
 
   private fun <V, E> Graph<V, E>.asTopologicalList(): List<V> =
     TopologicalOrderIterator(this).asSequence().toList()

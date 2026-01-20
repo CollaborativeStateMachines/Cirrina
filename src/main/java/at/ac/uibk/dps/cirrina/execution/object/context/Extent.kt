@@ -16,10 +16,7 @@ class Extent(val contexts: List<Context> = emptyList()) {
 
   constructor(low: Context, high: Context) : this(listOf(low, high))
 
-  /**
-   * Attempts to assign a value to a variable in the 'high' context. If assignment fails, it
-   * attempts to create the variable instead.
-   */
+  /** Attempts to assign a value to a variable in the 'high' context. */
   fun setOrCreate(name: String, value: Any?): Int =
     high?.let { ctx ->
       if (ctx.has(name)) {
@@ -29,19 +26,28 @@ class Extent(val contexts: List<Context> = emptyList()) {
       }
     } ?: error("extent contains no contexts")
 
-  /** Searches contexts from high to low to find where [name] exists and updates it. */
-  fun trySet(name: String, value: Any?): Int =
-    contexts
-      .asReversed()
-      .asSequence()
-      .filter { it.has(name) }
-      .map { context -> context.assign(name, value) }
-      .firstOrNull() ?: error("variable '${name}' not found in any context")
+  /** Updates [name] in the first context where it exists, searching high to low. */
+  fun trySet(name: String, value: Any?): Int {
+    for (i in contexts.indices.reversed()) {
+      val context = contexts[i]
+      if (context.has(name)) {
+        return context.assign(name, value)
+      }
+    }
+    error("variable '$name' not found in any context")
+  }
 
   /** Resolves the value of [name] by searching through contexts from high to low. */
-  fun resolve(name: String): Any =
-    contexts.asReversed().asSequence().filter { it.has(name) }.map { it.get(name) }.firstOrNull()
-      ?: error("variable '${name}' not found in any context")
+  fun resolve(name: String): Any {
+    for (i in contexts.indices.reversed()) {
+      val context = contexts[i]
+
+      if (context.has(name)) {
+        return context.get(name) ?: Unit
+      }
+    }
+    error("variable '$name' not found in any context")
+  }
 
   fun extend(high: Context): Extent = Extent(this.contexts, high)
 
