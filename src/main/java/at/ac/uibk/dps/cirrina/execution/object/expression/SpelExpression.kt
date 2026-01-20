@@ -12,41 +12,39 @@ class SpelExpression(source: String) : Expression(source) {
   private val spelExpression: org.springframework.expression.Expression =
     try {
       PARSER.parseExpression(source)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       error("the SpEL expression '$source' could not be parsed")
     }
 
   override fun execute(extent: Extent): Any? {
     return try {
-      val context =
-        StandardEvaluationContext().apply {
-          addPropertyAccessor(ExtentPropertyAccessor(extent))
-          setVariable("math", Math::class.java)
-          setVariable("std", Stdlib::class.java)
-          setRootObject(extent)
-        }
-      spelExpression.getValue(context)
+      val context = TEMPLATE_CONTEXT
+
+      ACCESSOR.extent = extent
+
+      spelExpression.getValue(context, extent)
     } catch (e: Exception) {
-      val s = e.message
-      println(e)
       error("Could not execute expression: ${e.message}")
     }
   }
 
-  private class ExtentPropertyAccessor(private val extent: Extent) : PropertyAccessor {
+  private class ExtentPropertyAccessor : PropertyAccessor {
+    var extent: Extent? = null
+
     override fun getSpecificTargetClasses(): Array<Class<*>> = arrayOf(Extent::class.java)
 
-    override fun canRead(context: EvaluationContext, target: Any?, name: String): Boolean =
-      extent.has(name)
+    override fun canRead(context: EvaluationContext, target: Any?, name: String): Boolean = true
 
-    override fun read(context: EvaluationContext, target: Any?, name: String): TypedValue =
-      TypedValue(extent.resolve(name))
+    override fun read(context: EvaluationContext, target: Any?, name: String): TypedValue {
+      val ext = extent ?: error("no extent bound to accessor")
+      return TypedValue(ext.resolve(name))
+    }
 
-    override fun canWrite(context: EvaluationContext, target: Any?, name: String): Boolean =
-      extent.has(name)
+    override fun canWrite(context: EvaluationContext, target: Any?, name: String): Boolean = true
 
     override fun write(context: EvaluationContext, target: Any?, name: String, newValue: Any?) {
-      extent.set(name, newValue)
+      val ext = extent ?: error("no extent bound to accessor")
+      ext.set(name, newValue)
     }
   }
 
@@ -54,5 +52,13 @@ class SpelExpression(source: String) : Expression(source) {
     private val CONFIG =
       SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, this::class.java.classLoader)
     private val PARSER = SpelExpressionParser(CONFIG)
+    private val ACCESSOR = ExtentPropertyAccessor()
+
+    private val TEMPLATE_CONTEXT =
+      StandardEvaluationContext().apply {
+        addPropertyAccessor(ACCESSOR)
+        setVariable("math", Math::class.java)
+        setVariable("std", Stdlib::class.java)
+      }
   }
 }
