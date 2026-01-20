@@ -77,7 +77,6 @@ dependencies {
 
   implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 
-  implementation("org.apache.commons:commons-jexl3:3.3")
   implementation("org.apache.commons:commons-lang3:3.19.0")
 
   implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
@@ -93,6 +92,8 @@ dependencies {
 
   implementation("org.pkl-lang:pkl-config-java:0.29.0")
   implementation("org.pkl-lang:pkl-codegen-java:0.29.0")
+
+  implementation("org.springframework:spring-expression:7.0.3")
 
   testImplementation(platform("org.junit:junit-bom:5.9.1"))
   testImplementation("org.junit.jupiter:junit-jupiter")

@@ -15,6 +15,6 @@ class ExpressionBuilder private constructor(private val source: String) {
       return Result.failure(IllegalArgumentException("expression source cannot be blank"))
     }
 
-    return runCatching { cache.computeIfAbsent(source) { JexlExpression(it) } }
+    return runCatching { cache.computeIfAbsent(source) { SpelExpression(it) } }
   }
 }
