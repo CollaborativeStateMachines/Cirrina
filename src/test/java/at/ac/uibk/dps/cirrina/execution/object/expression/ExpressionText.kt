@@ -171,7 +171,5 @@ class ExpressionTest {
   }
 
   private fun String.eval(extent: Extent): Result<Any?> =
-    ExpressionBuilder.from(this).build().mapCatching { expression ->
-      expression.execute(extent).getOrThrow()
-    }
+    ExpressionBuilder.from(this).build().mapCatching { expression -> expression.execute(extent) }
 }

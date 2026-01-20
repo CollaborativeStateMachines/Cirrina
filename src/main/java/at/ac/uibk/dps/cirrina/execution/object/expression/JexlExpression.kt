@@ -15,23 +15,22 @@ class JexlExpression(source: String) : Expression(source) {
       throw UnsupportedOperationException("the JEXL expression '$source' could not be parsed", e)
     }
 
-  override fun execute(extent: Extent): Result<Any?> =
-    runCatching { jexlScript.execute(ExtentJexlContext(extent)) }
-      .recoverCatching { e ->
-        throw UnsupportedOperationException(
-          "the JEXL expression '${jexlScript.sourceText}' could not be executed",
-          e,
-        )
-      }
+  override fun execute(extent: Extent): Any? {
+    try {
+      return jexlScript.execute(ExtentJexlContext(extent))
+    } catch (e: Exception) {
+      error("could not execute expression")
+    }
+  }
 
-  private inner class ExtentJexlContext(private val extent: Extent) : JexlContext {
-    override fun get(key: String): Any? = extent.resolve(key)
+  private class ExtentJexlContext(private val extent: Extent) : JexlContext {
+    override fun get(key: String): Any = extent.resolve(key)
 
     override fun set(key: String, value: Any?) {
-      extent.trySet(key, value)
+      extent.set(key, value)
     }
 
-    override fun has(key: String): Boolean = extent.resolve(key) != null
+    override fun has(key: String): Boolean = extent.has(key)
   }
 
   private companion object {
@@ -46,6 +45,7 @@ class JexlExpression(source: String) : Expression(source) {
         .permissions(JexlPermissions.UNRESTRICTED)
         .strict(true)
         .silent(false)
+        .antish(false)
         .create()
   }
 

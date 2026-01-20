@@ -25,11 +25,11 @@ class ActionMatchCommand(executionContext: ExecutionContext, private val matchAc
     val extent = executionContext.scope.extent
     val commandFactory = CommandFactory(executionContext)
 
-    val conditionValue = matchAction.value.execute(extent).getOrThrow()
+    val conditionValue = matchAction.value.execute(extent)
 
     val matchingActions =
       matchAction.case.entries
-        .filter { (expression, _) -> expression.execute(extent).getOrThrow() == conditionValue }
+        .filter { (expression, _) -> expression.execute(extent) == conditionValue }
         .map { it.value }
 
     val finalActions = matchingActions.ifEmpty { listOf(matchAction.default) }

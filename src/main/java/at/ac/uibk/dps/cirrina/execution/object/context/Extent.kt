@@ -27,7 +27,7 @@ class Extent(val contexts: List<Context> = emptyList()) {
     } ?: error("extent contains no contexts")
 
   /** Updates [name] in the first context where it exists, searching high to low. */
-  fun trySet(name: String, value: Any?): Int {
+  fun set(name: String, value: Any?): Int {
     for (i in contexts.indices.reversed()) {
       val context = contexts[i]
       if (context.has(name)) {
@@ -36,6 +36,8 @@ class Extent(val contexts: List<Context> = emptyList()) {
     }
     error("variable '$name' not found in any context")
   }
+
+  fun has(name: String): Boolean = contexts.any { it.has(name) }
 
   /** Resolves the value of [name] by searching through contexts from high to low. */
   fun resolve(name: String): Any {

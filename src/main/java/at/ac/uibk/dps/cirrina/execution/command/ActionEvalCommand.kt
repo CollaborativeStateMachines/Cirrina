@@ -22,7 +22,7 @@ class ActionEvalCommand(executionContext: ExecutionContext, private val evalActi
    * @throws Exception if the command execution fails due to an internal error.
    */
   override fun execute(): List<ActionCommand> {
-    evalAction.expression.execute(executionContext.scope.extent).getOrThrow()
+    evalAction.expression.execute(executionContext.scope.extent)
 
     return emptyList()
   }

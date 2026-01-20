@@ -23,7 +23,7 @@ data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolea
       value as? Expression
         ?: error("variable '$name' is marked lazy but value is not an Expression")
 
-    val evaluatedValue = expression.execute(extent).getOrThrow()
+    val evaluatedValue = expression.execute(extent)
 
     return copy(value = evaluatedValue, isLazy = false)
   }
