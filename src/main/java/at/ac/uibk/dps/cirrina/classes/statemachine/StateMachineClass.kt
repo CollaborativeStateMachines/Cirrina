@@ -29,17 +29,17 @@ class StateMachineClass internal constructor(parameters: Parameters) :
 
   val initialState: StateClass by lazy {
     vertexSet().firstOrNull { it.isInitial }
-      ?: error("State machine '$name' has no initial state defined")
+      ?: error("state machine '$name' has no initial state defined")
   }
 
-  fun findStateClassByName(stateName: String): StateClass? = stateNameMap[stateName]
+  fun getStateClassByName(stateName: String): StateClass? = stateNameMap[stateName]
 
-  fun findOnTransitionsFromStateByEventName(
+  fun getOnTransitionsFromStateByEventName(
     fromStateClass: StateClass,
     event: String,
   ): List<TransitionClass> = onTransitionsMap[fromStateClass]?.get(event) ?: emptyList()
 
-  fun findAlwaysTransitionsFromState(fromStateClass: StateClass): List<TransitionClass> =
+  fun getAlwaysTransitionsFromState(fromStateClass: StateClass): List<TransitionClass> =
     alwaysTransitionsMap[fromStateClass] ?: emptyList()
 
   val inputEvents: List<String> by lazy { edgeSet().mapNotNull { it.event }.distinct() }

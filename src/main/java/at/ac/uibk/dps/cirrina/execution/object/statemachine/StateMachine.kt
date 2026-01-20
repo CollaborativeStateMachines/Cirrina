@@ -163,7 +163,7 @@ class StateMachine(
     }
     activeState = state
 
-    val alwaysTransitions = stateMachineClass.findAlwaysTransitionsFromState(state.stateObject)
+    val alwaysTransitions = stateMachineClass.getAlwaysTransitionsFromState(state.stateObject)
     return trySelectTransition(alwaysTransitions, extent)
   }
 
@@ -188,7 +188,7 @@ class StateMachine(
 
     val eventExtent = extent.extend(eventDataContext)
     val onTransitions =
-      stateMachineClass.findOnTransitionsFromStateByEventName(activeState!!.stateObject, event.name)
+      stateMachineClass.getOnTransitionsFromStateByEventName(activeState!!.stateObject, event.name)
     val selected = trySelectTransition(onTransitions, eventExtent)
 
     selected?.let {

@@ -12,7 +12,7 @@ class SpelExpression(source: String) : Expression(source) {
   private val spelExpression: org.springframework.expression.Expression =
     try {
       PARSER.parseExpression(source)
-    } catch (_: Exception) {
+    } catch (e: Exception) {
       error("the SpEL expression '$source' could not be parsed")
     }
 

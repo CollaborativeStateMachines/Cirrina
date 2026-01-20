@@ -70,12 +70,12 @@ private constructor(private val stateMachineDescription: StateMachineDescription
 
     stateMachineDescription.states.forEach { (sourceName, stateDesc) ->
       // The source state is guaranteed to exist as it was added during buildBase
-      val sourceStateClass = stateMachine.findStateClassByName(sourceName)!!
+      val sourceStateClass = stateMachine.getStateClassByName(sourceName)!!
 
       fun processTransitionEntry(event: String?, description: TransitionDescription) {
         val targetStateClass =
           description.to?.let { targetName ->
-            stateMachine.findStateClassByName(targetName)
+            stateMachine.getStateClassByName(targetName)
               ?: throw IllegalArgumentException(
                 "transition '$name' has an invalid target state '$targetName'."
               )
