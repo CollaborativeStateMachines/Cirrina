@@ -1,10 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import at.ac.uibk.dps.cirrina.utils.assertFailure
-import at.ac.uibk.dps.cirrina.utils.assertSuccess
 import java.util.concurrent.Executors
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
@@ -14,37 +11,37 @@ abstract class ContextTest {
   @Test
   fun testOperations() {
     createContext().use { context ->
-      context.deleteAll().assertSuccess()
+      context.deleteAll()
 
       // Create a variable
-      context.create("testVar", 42).assertSuccess()
+      context.create("testVar", 42)
 
       // Retrieve it should succeed
-      context.get("testVar").assertSuccess()
+      context.get("testVar")
 
       // Try to create it again, which should fail
-      context.create("testVar", 42).assertFailure()
+      context.create("testVar", 42)
 
       // Non-existent variable should fail
-      context.get("nonExistentVar").assertFailure()
+      context.get("nonExistentVar")
 
       // Deleting a non-existent variable should fail
-      context.delete("nonExistentVar").assertFailure()
+      context.delete("nonExistentVar")
 
       // Assigning a value to a non-existent variable should fail
-      context.assign("nonExistentVar", 1).assertFailure()
+      context.assign("nonExistentVar", 1)
 
       // Deleting the variable should succeed
-      assertTrue(context.delete("testVar").isSuccess)
+      context.delete("testVar")
 
       // Deleting it again should fail
-      context.delete("testVar").assertFailure()
+      context.delete("testVar")
 
       // It should not exist anymore
-      context.get("testVar").assertFailure()
+      context.get("testVar")
 
       // Assigning should fail
-      context.assign("testVar", 42).assertFailure()
+      context.assign("testVar", 42)
 
       // Get all variables
       assertDoesNotThrow {
@@ -52,7 +49,7 @@ abstract class ContextTest {
         context.create("var2", "value2")
       }
 
-      val allVariables = assertDoesNotThrow { context.getAll() }.getOrThrow()
+      val allVariables = assertDoesNotThrow { context.getAll() }
       assertEquals(2, allVariables.size)
     }
   }
@@ -79,7 +76,7 @@ abstract class ContextTest {
           }
         }
       }
-      val allVariables = assertDoesNotThrow { context.getAll() }.getOrThrow()
+      val allVariables = assertDoesNotThrow { context.getAll() }
       assertEquals(
         threadCount * iterationsPerThread,
         allVariables.size,
@@ -111,7 +108,7 @@ abstract class ContextTest {
           }
         }
       }
-      val v = assertDoesNotThrow { context.get(variableName).getOrThrow() as Int }
+      val v = assertDoesNotThrow { context.get(variableName) as Int }
       assertEquals(
         iterationsPerThread - 1,
         v,

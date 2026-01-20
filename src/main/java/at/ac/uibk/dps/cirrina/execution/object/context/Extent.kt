@@ -20,33 +20,31 @@ class Extent(val contexts: List<Context> = emptyList()) {
    * Attempts to assign a value to a variable in the 'high' context. If assignment fails, it
    * attempts to create the variable instead.
    */
-  fun setOrCreate(name: String, value: Any?): Result<Int> =
-    high?.let { last ->
-      last.assign(name, value).recoverCatching { last.create(name, value).getOrThrow() }
-    } ?: Result.failure(IllegalStateException("extent contains no contexts"))
+  fun setOrCreate(name: String, value: Any?): Int =
+    high?.let { ctx ->
+      if (ctx.has(name)) {
+        ctx.assign(name, value)
+      } else {
+        ctx.create(name, value)
+      }
+    } ?: error("extent contains no contexts")
 
   /** Searches contexts from high to low to find where [name] exists and updates it. */
-  fun trySet(name: String, value: Any?): Result<SetResult> =
+  fun trySet(name: String, value: Any?): Int =
     contexts
       .asReversed()
       .asSequence()
-      .filter { it.has(name).getOrDefault(false) }
-      .map { context -> context.assign(name, value).map { size -> SetResult(size, context) } }
-      .firstOrNull() ?: Result.failure(NoSuchElementException("variable not found in any context"))
+      .filter { it.has(name) }
+      .map { context -> context.assign(name, value) }
+      .firstOrNull() ?: error("variable '${name}' not found in any context")
 
   /** Resolves the value of [name] by searching through contexts from high to low. */
-  fun resolve(name: String): Any? =
-    contexts
-      .asReversed()
-      .asSequence()
-      .filter { it.has(name).getOrDefault(false) }
-      .map { it.get(name).getOrNull() }
-      .firstOrNull()
+  fun resolve(name: String): Any =
+    contexts.asReversed().asSequence().filter { it.has(name) }.map { it.get(name) }.firstOrNull()
+      ?: error("variable '${name}' not found in any context")
 
   fun extend(high: Context): Extent = Extent(this.contexts, high)
 
   val high: Context?
     get() = contexts.lastOrNull()
-
-  data class SetResult(val size: Int, val context: Context)
 }

@@ -30,42 +30,34 @@ class ActionInvokeCommand(
   /**
    * Executes the service invocation logic.
    *
-   * @return a [Result] containing an empty list of [ActionCommand]s on success, or a failure if
-   *   service selection or input preparation fails.
+   * @return an empty list of [ActionCommand]s.
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): Result<List<ActionCommand>> =
-    selectServiceImplementation()
-      .mapCatching { service ->
-        val input = prepareInput(executionContext.scope.extent).getOrThrow()
+  override fun execute(): List<ActionCommand> {
+    val service = selectServiceImplementation()
 
-        executionContext.coroutineScope.launch {
-          service
-            .invoke(input)
-            .onSuccess { output -> raiseEvents(output) }
-            .onFailure { e -> logger.atWarning().withCause(e).log("service invocation failed") }
-        }
-        emptyList<ActionCommand>()
-      }
-      .recoverCatching { e ->
-        throw UnsupportedOperationException("could not execute invoke action", e)
-      }
+    val input = prepareInput(executionContext.scope.extent)
 
-  private fun prepareInput(extent: Extent): Result<List<ContextVariable>> = runCatching {
-    invokeAction.input.map { it.evaluate(extent).getOrThrow() }
+    executionContext.coroutineScope.launch {
+      try {
+        raiseEvents(service.invoke(input))
+      } catch (e: Exception) {
+        logger.atWarning().withCause(e).log("service invocation failed")
+      }
+    }
+
+    return emptyList()
   }
 
-  private fun selectServiceImplementation(): Result<ServiceImplementation> {
+  private fun prepareInput(extent: Extent): List<ContextVariable> =
+    invokeAction.input.map { it.evaluate(extent) }
+
+  private fun selectServiceImplementation(): ServiceImplementation {
     val serviceType = invokeAction.serviceType
     val mode = invokeAction.mode
 
-    return executionContext.serviceImplementationSelector
-      .select(serviceType, mode)
-      .map { Result.success(it) }
-      .orElseGet {
-        Result.failure(
-          IllegalArgumentException("no service implementation found for type '$serviceType'")
-        )
-      }
+    return executionContext.serviceImplementationSelector.select(serviceType, mode)
+      ?: error("no service implementation found for type '$serviceType'")
   }
 
   private fun raiseEvents(output: List<ContextVariable>) {

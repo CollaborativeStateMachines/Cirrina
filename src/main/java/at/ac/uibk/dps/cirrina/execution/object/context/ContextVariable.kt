@@ -16,22 +16,16 @@ data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolea
     require(name.isNotBlank()) { "name cannot be null or blank" }
   }
 
-  fun evaluate(extent: Extent): Result<ContextVariable> {
-    if (!isLazy) return Result.success(this)
+  fun evaluate(extent: Extent): ContextVariable {
+    if (!isLazy) return this
 
-    return runCatching {
-        val expression =
-          value as? Expression
-            ?: throw IllegalStateException(
-              "variable '$name' is marked lazy but value is not an Expression"
-            )
+    val expression =
+      value as? Expression
+        ?: error("variable '$name' is marked lazy but value is not an Expression")
 
-        val evaluatedValue = expression.execute(extent).getOrThrow()
-        copy(value = evaluatedValue, isLazy = false)
-      }
-      .recoverCatching { ex ->
-        throw UnsupportedOperationException("could not evaluate variable '$name'", ex)
-      }
+    val evaluatedValue = expression.execute(extent).getOrThrow()
+
+    return copy(value = evaluatedValue, isLazy = false)
   }
 
   override fun toString(): String = "{$name = $value}"

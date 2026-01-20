@@ -76,7 +76,7 @@ class InvokeTest {
             ServiceImplementationBindings.HttpMethod.GET,
           )
 
-        val services = ServiceImplementationBuilder.from(listOf(service)).build()
+        val services = ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)

@@ -2,54 +2,95 @@ package at.ac.uibk.dps.cirrina.execution.`object`.context
 
 import java.util.concurrent.ConcurrentHashMap
 
+/** In-memory context implementation. */
 open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
 
   private val values = ConcurrentHashMap<String, Any?>()
 
-  override fun has(name: String): Result<Boolean> = Result.success(values.containsKey(name))
+  /**
+   * Checks if a variable exists.
+   *
+   * @return true if the variable exists, false otherwise.
+   * @throws Exception if an internal error occurs.
+   */
+  override fun has(name: String): Boolean = values.containsKey(name)
 
-  override fun get(name: String): Result<Any?> =
-    values[name]?.let { Result.success(it) }
-      ?: Result.failure(NoSuchElementException("variable '$name' does not exist"))
-
-  override fun create(name: String, value: Any?): Result<Int> {
-    val existing = values.putIfAbsent(name, value)
-    return if (existing == null) {
-      Result.success(calculateSize(value))
+  /**
+   * Retrieves a variable value.
+   *
+   * @return the value of the variable.
+   * @throws Exception if the variable does not exist or if an internal error occurs.
+   */
+  override fun get(name: String): Any? =
+    if (values.containsKey(name)) {
+      values[name]
     } else {
-      Result.failure(IllegalStateException("variable '$name' already exists"))
+      error("variable '$name' does not exist")
     }
+
+  /**
+   * Creates a new variable.
+   *
+   * @return the size of the value.
+   * @throws Exception if the variable already exists or if an internal error occurs.
+   */
+  override fun create(name: String, value: Any?): Int {
+    val existing = values.putIfAbsent(name, value)
+    if (existing != null) {
+      error("variable '$name' already exists")
+    }
+    return calculateSize(value)
   }
 
-  override fun assign(name: String, value: Any?): Result<Int> {
+  /**
+   * Assigns a value to an existing variable.
+   *
+   * @return the size of the value.
+   * @throws Exception if the variable does not exist or if an internal error occurs.
+   */
+  override fun assign(name: String, value: Any?): Int {
     var keyExists = false
     values.computeIfPresent(name) { _, _ ->
       keyExists = true
       value
     }
 
-    return if (keyExists) {
-      Result.success(calculateSize(value))
-    } else {
-      Result.failure(NoSuchElementException("variable '$name' does not exist"))
+    if (!keyExists) {
+      error("variable '$name' does not exist")
+    }
+    return calculateSize(value)
+  }
+
+  /**
+   * Deletes a variable.
+   *
+   * @throws Exception if the variable does not exist or if an internal error occurs.
+   */
+  override fun delete(name: String) {
+    if (values.remove(name) == null) {
+      error("variable '$name' does not exist")
     }
   }
 
-  override fun delete(name: String): Result<Unit> =
-    if (values.remove(name) != null) {
-      Result.success(Unit)
-    } else {
-      Result.failure(NoSuchElementException("variable '$name' does not exist"))
-    }
-
-  override fun deleteAll(): Result<Unit> {
+  /**
+   * Deletes all variables.
+   *
+   * @throws Exception if the variable does not exist or if an internal error occurs.
+   */
+  override fun deleteAll() {
     values.clear()
-    return Result.success(Unit)
   }
 
-  override fun getAll(): Result<List<ContextVariable>> =
-    Result.success(values.map { (key, value) -> ContextVariable.eager(key, value) })
+  /**
+   * Returns all variables.
+   *
+   * @return a list of all variables.
+   * @throws Exception if an internal error occurs.
+   */
+  override fun getAll(): List<ContextVariable> =
+    values.map { (key, value) -> ContextVariable.eager(key, value) }
 
+  /** Closes the context. */
   override fun close() {}
 
   private fun calculateSize(value: Any?): Int = if (value is ByteArray) value.size else 0

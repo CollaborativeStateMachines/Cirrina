@@ -15,6 +15,7 @@ abstract class ActionCommand(protected val executionContext: ExecutionContext) {
    *
    * @return a [Result] containing a list of [ActionCommand]s to be scheduled for execution on
    *   success, or a failure if the command execution encounters an error.
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  abstract fun execute(): Result<List<ActionCommand>>
+  abstract fun execute(): List<ActionCommand>
 }

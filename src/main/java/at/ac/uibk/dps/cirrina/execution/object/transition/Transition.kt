@@ -37,16 +37,11 @@ class Transition(private val transitionClass: TransitionClass, val isOr: Boolean
    * @param commandFactory the factory used to create the commands.
    * @return a [Result] containing the list of [ActionCommand]s in topological order.
    */
-  fun getActionCommands(commandFactory: CommandFactory): Result<List<ActionCommand>> =
-    runCatching {
-        TopologicalOrderIterator(transitionClass.actionGraph)
-          .asSequence()
-          .map { commandFactory.createActionCommand(it).getOrThrow() }
-          .toList()
-      }
-      .recoverCatching { e ->
-        throw IllegalStateException("could not create transition commands", e)
-      }
+  fun getActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
+    TopologicalOrderIterator(transitionClass.actionGraph)
+      .asSequence()
+      .map { commandFactory.createActionCommand(it) }
+      .toList()
 
   override fun toString(): String =
     "Transition(internal=$isInternal, targetStateName=$targetStateName, isOr=$isOr)"

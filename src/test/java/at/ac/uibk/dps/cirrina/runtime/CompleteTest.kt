@@ -72,7 +72,7 @@ class CompleteTest {
                   ServiceImplementationBindings.HttpMethod.GET,
                 )
 
-              val services = ServiceImplementationBuilder.from(listOf(service)).build()
+              val services = ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
               val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
               // Create and run the runtime using one state machine (completeStateMachine)

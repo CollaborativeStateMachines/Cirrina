@@ -31,7 +31,7 @@ private constructor(private val contextDescription: Map<String, String>? = null)
         val expression = ExpressionBuilder.from(expr).build().getOrThrow()
         val value = expression.execute(Extent())
 
-        ctx.create(name, value).getOrThrow()
+        ctx.create(name, value)
 
         ctx
       }

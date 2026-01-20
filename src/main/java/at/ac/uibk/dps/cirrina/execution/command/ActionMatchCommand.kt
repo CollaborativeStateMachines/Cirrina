@@ -18,29 +18,22 @@ class ActionMatchCommand(executionContext: ExecutionContext, private val matchAc
   /**
    * Executes the match logic.
    *
-   * @return a [Result] containing a list of [ActionCommand]s to be scheduled for execution on
-   *   success, or a failure if an expression evaluation or command creation fails.
+   * @return a list of [ActionCommand]s to be scheduled for execution.
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): Result<List<ActionCommand>> {
+  override fun execute(): List<ActionCommand> {
     val extent = executionContext.scope.extent
     val commandFactory = CommandFactory(executionContext)
 
-    return matchAction.value
-      .execute(extent)
-      .mapCatching { conditionValue ->
-        // Matching cases
-        val matchingActions =
-          matchAction.case.entries
-            .filter { (expression, _) -> expression.execute(extent).getOrThrow() == conditionValue }
-            .map { it.value }
+    val conditionValue = matchAction.value.execute(extent).getOrThrow()
 
-        // Default case
-        val finalActions = matchingActions.ifEmpty { listOf(matchAction.default) }
+    val matchingActions =
+      matchAction.case.entries
+        .filter { (expression, _) -> expression.execute(extent).getOrThrow() == conditionValue }
+        .map { it.value }
 
-        finalActions.map { commandFactory.createActionCommand(it).getOrThrow() }
-      }
-      .recoverCatching { e ->
-        throw UnsupportedOperationException("could not execute match action", e)
-      }
+    val finalActions = matchingActions.ifEmpty { listOf(matchAction.default) }
+
+    return finalActions.map { action -> commandFactory.createActionCommand(action) }
   }
 }

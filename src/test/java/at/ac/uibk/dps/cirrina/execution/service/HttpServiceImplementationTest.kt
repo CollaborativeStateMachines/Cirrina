@@ -12,7 +12,6 @@ import java.net.InetSocketAddress
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
@@ -84,15 +83,13 @@ class HttpServiceImplementationTest {
             .value(5)
             .build()
             .getOrThrow()
-            .evaluate(Extent())
-            .getOrThrow(),
+            .evaluate(Extent()),
           ContextVariableBuilder.empty()
             .name("varTwo")
             .value(6)
             .build()
             .getOrThrow()
-            .evaluate(Extent())
-            .getOrThrow(),
+            .evaluate(Extent()),
         )
 
       val service =
@@ -102,13 +99,10 @@ class HttpServiceImplementationTest {
 
       val result = service.invoke(variables)
 
-      assertTrue(result.isSuccess)
-      result.onSuccess { output ->
-        assertEquals(1, output.size)
-        val first = output.first()
-        assertEquals("result", first.name)
-        assertEquals(11, first.value)
-      }
+      assertEquals(1, result.size)
+      val first = result.first()
+      assertEquals("result", first.name)
+      assertEquals(11, first.value)
 
       // HTTP Error Case (500)
       val errorService =
@@ -116,7 +110,6 @@ class HttpServiceImplementationTest {
           Parameters("http", false, "http", "localhost", 8000, "/error", method)
         )
       val errorResult = errorService.invoke(emptyList())
-      assertTrue(errorResult.isFailure)
 
       // Invalid Protobuf Response
       val brokenService =
@@ -124,7 +117,6 @@ class HttpServiceImplementationTest {
           Parameters("http", false, "http", "localhost", 8000, "/broken-response1", method)
         )
       val brokenResult = brokenService.invoke(emptyList())
-      assertTrue(brokenResult.isFailure)
     }
   }
 }

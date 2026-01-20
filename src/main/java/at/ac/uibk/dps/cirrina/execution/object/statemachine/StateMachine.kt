@@ -39,7 +39,7 @@ class StateMachine(
   private var nestedStateMachineIds: List<String> = emptyList()
 
   init {
-    // Build local context
+    // Build local context - unwrap Builder Result
     localContext =
       stateMachineClass.localContextDescription?.let {
         ContextBuilder.from(it).build().getOrThrow()
@@ -52,20 +52,15 @@ class StateMachine(
       }
   }
 
-  /**
-   * The current extent of the state, created by extending the parent's extent with the state's
-   * static context.
-   */
-  override val extent: Extent
-    get() = parentStateMachine?.extent?.extend(localContext) ?: runtime.extent.extend(localContext)
+  override val extent: Extent by lazy {
+    parentStateMachine?.extent?.extend(localContext) ?: runtime.extent.extend(localContext)
+  }
 
-  /** The unique identifier for this state machine. */
   override val id: String
     get() = stateMachineId
 
   override fun onReceiveEvent(event: Event): Boolean {
     if (isTerminated()) return false
-
     eventQueue.trySend(event)
 
     if (event.channel == EventChannel.INTERNAL) {
@@ -102,49 +97,42 @@ class StateMachine(
   private fun trySelectTransition(
     transitionObjects: List<TransitionClass>,
     extent: Extent,
-  ): Result<Transition?> =
-    runCatching {
-        val selected =
-          transitionObjects.mapNotNull { transitionObject ->
-            val hasOr = transitionObject.or != null
-            val result = transitionObject.evaluate(extent).getOrThrow()
-            if (hasOr || result) Transition(transitionObject, hasOr && !result) else null
-          }
-
-        when (selected.size) {
-          0 -> null
-          1 -> selected.first()
-          else -> throw IllegalStateException("non-determinism detected")
-        }
-      }
-      .recoverCatching { ex -> throw IllegalStateException("no transition could be selected", ex) }
-
-  private fun executeCommands(commands: List<ActionCommand>): Result<Unit> =
-    runCatching {
-        commands.forEach { command ->
-          val nextCommands = command.execute().getOrThrow()
-          if (command is ActionTimeoutResetCommand) {
-            stopTimeoutAction(command.timeoutResetAction.action)
-          }
-          executeCommands(nextCommands).getOrThrow()
-        }
-      }
-      .recoverCatching { ex ->
-        throw UnsupportedOperationException("could not execute action commands", ex)
+  ): Transition? {
+    val selected =
+      transitionObjects.mapNotNull { transitionObject ->
+        val hasOr = transitionObject.or != null
+        // evaluate() now returns Boolean directly or throws
+        val result = transitionObject.evaluate(extent)
+        if (hasOr || result) Transition(transitionObject, hasOr && !result) else null
       }
 
-  private fun startTimeoutActions(timeoutActions: List<TimeoutAction>): Result<Unit> = runCatching {
+    return when (selected.size) {
+      0 -> null
+      1 -> selected.first()
+      else -> error("non-determinism detected: multiple transitions match")
+    }
+  }
+
+  private fun executeCommands(commands: List<ActionCommand>) {
+    commands.forEach { command ->
+      val nextCommands = command.execute()
+      if (command is ActionTimeoutResetCommand) {
+        stopTimeoutAction(command.timeoutResetAction.action)
+      }
+      executeCommands(nextCommands)
+    }
+  }
+
+  private fun startTimeoutActions(timeoutActions: List<TimeoutAction>) {
     timeoutActions.forEach { timeout ->
-      val delay = timeout.delay.execute(extent).getOrThrow()
+      val delay = timeout.delay.execute(extent)
       if (delay !is Number) {
-        throw UnsupportedOperationException(
-          "the delay expression '${timeout.delay}' did not evaluate to a numeric value"
-        )
+        error("delay expression '${timeout.delay}' evaluated to non-numeric: $delay")
       }
 
       val command = createCommandFactory(this, null).createActionCommand(timeout.action)
       if (command !is ActionRaiseCommand) {
-        throw IllegalArgumentException("a timeout action must be a raise action")
+        error("a timeout action must be a raise action, found: ${command::class.simpleName}")
       }
 
       timeoutActionManager.start(timeout.name, delay) { executeCommands(listOf(command)) }
@@ -155,101 +143,91 @@ class StateMachine(
 
   private fun stopAllTimeoutActions() = timeoutActionManager.stopAll()
 
-  private fun doExit(state: State, event: Event?): Result<Unit> {
+  private fun doExit(state: State, event: Event?) {
     stopAllTimeoutActions()
-    // TODO: Cancel while actions
-    val commands = state.getExitActionCommands(createCommandFactory(state, event)).getOrThrow()
-    return executeCommands(commands)
+    val commands = state.getExitActionCommands(createCommandFactory(state, event))
+    executeCommands(commands)
   }
 
-  private fun doTransition(transition: Transition, event: Event?): Result<Unit> {
-    if (transition.isOr) return Result.success(Unit)
-    val commands = transition.getActionCommands(createCommandFactory(this, event)).getOrThrow()
-    return executeCommands(commands)
+  private fun doTransition(transition: Transition, event: Event?) {
+    if (transition.isOr) return
+    val commands = transition.getActionCommands(createCommandFactory(this, event))
+    executeCommands(commands)
   }
 
-  private fun doEnter(state: State, event: Event?): Result<Transition?> = runCatching {
-    executeCommands(state.getEntryActionCommands(createCommandFactory(state, event)).getOrThrow())
-      .getOrThrow()
-    executeCommands(
-        state.getWhileActionCommands(createCommandFactory(state, event, true)).getOrThrow()
-      )
-      .getOrThrow()
+  private fun doEnter(state: State, event: Event?): Transition? {
+    executeCommands(state.getEntryActionCommands(createCommandFactory(state, event)))
+    executeCommands(state.getWhileActionCommands(createCommandFactory(state, event, true)))
 
-    startTimeoutActions(state.getTimeoutActionObjects()).getOrThrow()
+    startTimeoutActions(state.getTimeoutActionObjects())
 
-    if (!stateInstances.containsValue(state)) {
-      throw IllegalArgumentException("a state '${state.stateObject.name}' does not exist")
+    check(stateInstances.containsValue(state)) {
+      "state '${state.stateObject.name}' does not exist"
     }
     activeState = state
 
     val alwaysTransitions = stateMachineClass.findAlwaysTransitionsFromState(state.stateObject)
-    trySelectTransition(alwaysTransitions, extent).getOrThrow()
+    return trySelectTransition(alwaysTransitions, extent)
   }
 
-  private fun handleTransition(transition: Transition, event: Event?): Result<Unit> = runCatching {
+  private fun handleTransition(transition: Transition, event: Event?) {
     if (transition.isInternal) {
-      doTransition(transition, event).getOrThrow()
+      doTransition(transition, event)
     } else {
-      val targetName =
-        transition.targetStateName ?: error("target state name missing for external transition")
-      val targetState =
-        stateInstances[targetName] ?: error("target state '$targetName' cannot be found")
+      val targetName = transition.targetStateName ?: error("target state name missing")
+      val targetState = stateInstances[targetName] ?: error("target state '$targetName' not found")
 
-      doExit(activeState!!, event).getOrThrow()
-      doTransition(transition, event).getOrThrow()
+      doExit(activeState!!, event)
+      doTransition(transition, event)
 
-      val next = doEnter(targetState, event).getOrThrow()
-      next?.let { handleTransition(it, event).getOrThrow() }
+      val next = doEnter(targetState, event)
+      next?.let { handleTransition(it, event) }
     }
   }
 
-  private fun handleEvent(event: Event): Result<Transition?> = runCatching {
+  private fun handleEvent(event: Event): Transition? {
     val eventDataContext = InMemoryContext(true)
-    event.data.forEach {
-      eventDataContext.create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value).getOrThrow()
-    }
+    event.data.forEach { eventDataContext.create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
 
-    val extent = extent.extend(eventDataContext)
+    val eventExtent = extent.extend(eventDataContext)
     val onTransitions =
       stateMachineClass.findOnTransitionsFromStateByEventName(activeState!!.stateObject, event.name)
-    val selected = trySelectTransition(onTransitions, extent).getOrThrow()
+    val selected = trySelectTransition(onTransitions, eventExtent)
 
     selected?.let {
       event.data.forEach { varData ->
-        extent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value).getOrNull()
+        eventExtent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
       }
     }
-    selected
+    return selected
   }
 
   suspend fun start() {
-    runCatching {
-        val initialState =
-          stateInstances[stateMachineClass.initialState.name]
-            ?: error("Initial state '${stateMachineClass.initialState.name}' not found")
+    try {
+      val initialState =
+        stateInstances[stateMachineClass.initialState.name]
+          ?: error("Initial state '${stateMachineClass.initialState.name}' not found")
 
-        var nextTransition: Transition? = doEnter(initialState, null).getOrThrow()
+      var nextTransition: Transition? = doEnter(initialState, null)
 
-        while (!isTerminated()) {
-          var currentEvent: Event? = null
+      while (!isTerminated()) {
+        var currentEvent: Event? = null
 
-          if (nextTransition == null) {
-            // This suspends the coroutine until an event is available
-            currentEvent = eventQueue.receive()
-            nextTransition = handleEvent(currentEvent).getOrThrow()
-          }
+        if (nextTransition == null) {
+          currentEvent = eventQueue.receive()
+          nextTransition = handleEvent(currentEvent)
+        }
 
-          nextTransition?.let {
-            handleTransition(it, currentEvent).getOrThrow()
-            nextTransition = null
-          }
+        nextTransition?.let {
+          handleTransition(it, currentEvent)
+          nextTransition = null
         }
       }
-      .onFailure { ex ->
-        logger.atSevere().withCause(ex).log("State machine '$this' encountered a fatal error")
-      }
-      .onSuccess { logger.atInfo().log("State machine '$this' stopped successfully") }
+      logger.atInfo().log("State machine '$this' stopped successfully")
+    } catch (ex: Exception) {
+      logger.atSevere().withCause(ex).log("State machine '$this' encountered a fatal error")
+      // Re-throw if we need parents to know, or just let it die here as a terminal failure
+    }
   }
 
   override fun toString(): String = "StateMachine(id=$id, name=${stateMachineClass.name})"

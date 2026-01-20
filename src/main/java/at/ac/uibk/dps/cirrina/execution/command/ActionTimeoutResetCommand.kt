@@ -21,7 +21,8 @@ internal constructor(
   /**
    * Executes the timeout reset logic.
    *
-   * @return a [Result] containing an empty list of [ActionCommand]s.
+   * @return an empty list of [ActionCommand].
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): Result<List<ActionCommand>> = Result.success(emptyList())
+  override fun execute(): List<ActionCommand> = emptyList()
 }

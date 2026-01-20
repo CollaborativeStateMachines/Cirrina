@@ -1,94 +1,53 @@
-package at.ac.uibk.dps.cirrina.execution.service;
+package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpServiceImplementationBinding;
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.ServiceImplementationBinding;
-import at.ac.uibk.dps.cirrina.execution.service.HttpServiceImplementation.Parameters;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import java.util.ArrayList;
-import java.util.List;
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import com.google.common.collect.ArrayListMultimap
+import com.google.common.collect.Multimap
 
-/**
- * Service implementation builder, builds service implementation objects.
- */
-public class ServiceImplementationBuilder {
+class ServiceImplementationBuilder
+private constructor(
+  private val bindings: List<ServiceImplementationBindings.ServiceImplementationBinding>
+) {
 
-  private final List<? extends ServiceImplementationBinding> serviceImplementationBindings;
+  companion object {
+    fun from(
+      binding: ServiceImplementationBindings.ServiceImplementationBinding
+    ): ServiceImplementationBuilder = ServiceImplementationBuilder(listOf(binding))
 
-  private ServiceImplementationBuilder(
-    List<? extends ServiceImplementationBinding> serviceImplementationBindings
-  ) {
-    this.serviceImplementationBindings = serviceImplementationBindings;
+    fun from(
+      bindings: List<ServiceImplementationBindings.ServiceImplementationBinding>
+    ): ServiceImplementationBuilder = ServiceImplementationBuilder(bindings)
   }
 
-  /**
-   * Construct a builder from service implementation bindings.
-   *
-   * @param serviceImplementationBinding Service implementation binding.
-   * @return Builder.
-   */
-  public static ServiceImplementationBuilder from(
-    ServiceImplementationBinding serviceImplementationBinding
-  ) {
-    var list = new ArrayList<ServiceImplementationBinding>();
-    list.add(serviceImplementationBinding);
-    return new ServiceImplementationBuilder(list);
+  fun build(): Result<Multimap<String, ServiceImplementation>> = runCatching {
+    val services: Multimap<String, ServiceImplementation> = ArrayListMultimap.create()
+
+    for (binding in bindings) {
+      val service = buildOne(binding).getOrThrow()
+      services.put(service.name, service)
+    }
+
+    services
   }
 
-  /**
-   * Construct a builder from multiple service implementation bindings.
-   *
-   * @param serviceImplementationBindings Service implementation bindings.
-   * @return Builder.
-   */
-  public static ServiceImplementationBuilder from(
-    List<? extends ServiceImplementationBinding> serviceImplementationBindings
-  ) {
-    return new ServiceImplementationBuilder(serviceImplementationBindings);
-  }
-
-  /**
-   * Builds the service implementation.
-   *
-   * @return Service implementation.
-   */
-  private static ServiceImplementation buildOne(
-    ServiceImplementationBinding serviceImplementationBinding
-  ) {
-    switch (serviceImplementationBinding) {
-      case HttpServiceImplementationBinding s -> {
-        return new HttpServiceImplementation(
-          new Parameters(
-            s.getName(),
-            s.isLocal(),
-            s.getScheme(),
-            s.getHost(),
-            s.getPort(),
-            s.getEndPoint(),
-            s.getMethod()
+  private fun buildOne(
+    binding: ServiceImplementationBindings.ServiceImplementationBinding
+  ): Result<ServiceImplementation> = runCatching {
+    when (binding) {
+      is ServiceImplementationBindings.HttpServiceImplementationBinding -> {
+        HttpServiceImplementation(
+          HttpServiceImplementation.Parameters(
+            binding.name,
+            binding.isLocal,
+            binding.scheme,
+            binding.host,
+            binding.port,
+            binding.endPoint,
+            binding.method,
           )
-        );
+        )
       }
-      default -> throw new IllegalStateException(
-        String.format("Unexpected value: %s", serviceImplementationBinding.getType())
-      );
+      else -> error("unexpected service binding type: ${binding.javaClass.simpleName}")
     }
-  }
-
-  /**
-   * Builds the service implementations.
-   *
-   * @return Service implementations.
-   */
-  public Multimap<String, ServiceImplementation> build() {
-    Multimap<String, ServiceImplementation> services = ArrayListMultimap.create();
-
-    for (var serviceDescription : serviceImplementationBindings) {
-      var service = buildOne(serviceDescription);
-
-      services.put(service.getName(), service);
-    }
-
-    return services;
   }
 }

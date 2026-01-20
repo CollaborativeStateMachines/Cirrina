@@ -18,17 +18,11 @@ open class TransitionClass internal constructor(parameters: Parameters) : Defaul
 
   val actionGraph: ActionGraph = ActionGraphBuilder.from(`do`).build()
 
-  @Throws(UnsupportedOperationException::class)
-  fun evaluate(extent: Extent): Result<Boolean> =
-    iif?.evaluate(extent)
-      ?: Result.success(true).recoverCatching { error ->
-        when (error) {
-          is IllegalArgumentException,
-          is UnsupportedOperationException ->
-            throw UnsupportedOperationException("transition could not be evaluated", error)
-          else -> throw error
-        }
-      }
+  fun evaluate(extent: Extent): Boolean {
+    val guard = iif ?: return true
+
+    return guard.evaluate(extent)
+  }
 
   public override fun getSource(): StateClass = super.getSource() as StateClass
 

@@ -7,7 +7,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
-import at.ac.uibk.dps.cirrina.utils.assertValue
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -53,7 +52,7 @@ class PingPongTest {
           )
 
         // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val services = ServiceImplementationBuilder.from(listOf()).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2).
@@ -71,7 +70,7 @@ class PingPongTest {
         println(measureTime { runtime.run() })
 
         // This test counts up to 100000, so the final value should be 100000
-        mockPersistentContext.get("v").assertValue(100000)
+        assertEquals(100000, mockPersistentContext.get("v"))
       }
     }
   }

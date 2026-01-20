@@ -18,8 +18,7 @@ abstract class ServiceImplementation(val name: String, val isLocal: Boolean) {
    * Invokes the service implementation asynchronously with the provided input.
    *
    * @param input the list of context variables to be passed to the service.
-   * @return a [Result] containing the list of context variables returned by the service on success,
-   *   or a failure if the invocation or response parsing fails.
+   * @return a list of context variables
    */
-  abstract suspend fun invoke(input: List<ContextVariable>): Result<List<ContextVariable>>
+  abstract suspend fun invoke(input: List<ContextVariable>): List<ContextVariable>
 }

@@ -40,7 +40,7 @@ class NoopTest {
         val mockPersistentContext = mockPersistentContext()
 
         // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val services = ServiceImplementationBuilder.from(listOf()).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using a single state machine.

@@ -15,18 +15,15 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 class ActionTimeoutCommand
 internal constructor(executionContext: ExecutionContext, private val timeoutAction: TimeoutAction) :
   ActionCommand(executionContext) {
-
   /**
    * Executes the timeout logic by delegating to the inner action.
    *
-   * @return a [Result] containing a list with the single [ActionCommand] generated from the inner
-   *   action on success, or a failure if the command creation fails.
+   * @return a list with the single [ActionCommand] generated from the inner action.
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): Result<List<ActionCommand>> =
-    runCatching {
-        val innerCommand =
-          CommandFactory(executionContext).createActionCommand(timeoutAction.action).getOrThrow()
-        listOf(innerCommand)
-      }
-      .recoverCatching { e -> throw IllegalStateException("could not execute timeout action", e) }
+  override fun execute(): List<ActionCommand> {
+    val innerCommand = CommandFactory(executionContext).createActionCommand(timeoutAction.action)
+
+    return listOf(innerCommand)
+  }
 }

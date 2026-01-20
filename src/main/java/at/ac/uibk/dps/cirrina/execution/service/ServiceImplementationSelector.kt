@@ -1,30 +1,23 @@
-package at.ac.uibk.dps.cirrina.execution.service;
+package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
-import com.google.common.collect.Multimap;
-import java.util.Optional;
+import at.ac.uibk.dps.cirrina.csm.Csml
+import com.google.common.collect.Multimap
 
-public abstract class ServiceImplementationSelector {
-
-  protected final Multimap<String, ServiceImplementation> serviceImplementations;
-
-  /**
-   * Initializes this service implementation selector.
-   *
-   * @param serviceImplementations known service implementations
-   */
-  public ServiceImplementationSelector(
-    Multimap<String, ServiceImplementation> serviceImplementations
-  ) {
-    this.serviceImplementations = serviceImplementations;
-  }
+/**
+ * Strategy for selecting a specific service implementation from a pool of available candidates.
+ *
+ * @property serviceImplementations A multimap of available service implementations indexed by name.
+ */
+abstract class ServiceImplementationSelector(
+  protected val serviceImplementations: Multimap<String, ServiceImplementation>
+) {
 
   /**
-   * Selects, given the known service implementations, a matching service implementation.
+   * Selects a matching service implementation based on the requested name and invocation mode.
    *
-   * @param name name of the requested service implementation
-   * @param mode the invocation mode
-   * @return selected service implementation
+   * @param name The name of the requested service implementation.
+   * @param mode The invocation mode (e.g., synchronous, asynchronous).
+   * @return The selected [ServiceImplementation], or `null` if no match is found.
    */
-  public abstract Optional<ServiceImplementation> select(String name, InvocationMode mode);
+  abstract fun select(name: String, mode: Csml.InvocationMode): ServiceImplementation?
 }

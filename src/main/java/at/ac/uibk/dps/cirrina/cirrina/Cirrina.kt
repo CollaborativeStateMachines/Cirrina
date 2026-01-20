@@ -66,10 +66,8 @@ class Cirrina {
               }
             }
             .use { persistentContext ->
-              val openTelemetry = getOpenTelemetry()
-
               logger.atFine().log("loading service implementation bindings")
-              var serviceImplementationBindings =
+              val serviceImplementationBindings =
                 CsmParser.parseServiceImplementationBindings(
                     URI(EnvironmentVariables.serviceBindingsPath.get())
                   )
@@ -81,7 +79,9 @@ class Cirrina {
                   URI(EnvironmentVariables.appPath.get()),
                   EnvironmentVariables.instantiate.get(),
                   RandomServiceImplementationSelector(
-                    ServiceImplementationBuilder.from(serviceImplementationBindings).build()
+                    ServiceImplementationBuilder.from(serviceImplementationBindings)
+                      .build()
+                      .getOrThrow()
                   ),
                   eventHandler,
                   persistentContext,

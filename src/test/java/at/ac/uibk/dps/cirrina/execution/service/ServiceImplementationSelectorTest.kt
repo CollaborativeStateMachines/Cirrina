@@ -1,109 +1,83 @@
-package at.ac.uibk.dps.cirrina.execution.service;
+package at.ac.uibk.dps.cirrina.execution.service
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
-import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod;
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpServiceImplementationBinding;
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.ServiceImplementationBinding;
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.Type;
-import java.util.List;
-import org.junit.jupiter.api.Test;
+import at.ac.uibk.dps.cirrina.csm.Csml
+import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import org.hibernate.validator.internal.util.Contracts.assertNotNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 
 class ServiceImplementationSelectorTest {
 
   @Test
-  void testSelectMatchingServices() {
-    final var serviceBindings = new ServiceImplementationBinding[5];
+  fun testSelectMatchingServices() {
+    // Define service bindings using idiomatic Kotlin list creation
+    val serviceBindings =
+      listOf(
+        // Service A (Local)
+        ServiceImplementationBindings.HttpServiceImplementationBinding(
+          "A",
+          true,
+          ServiceImplementationBindings.Type.HTTP,
+          "http",
+          "localhost",
+          12345,
+          "",
+          ServiceImplementationBindings.HttpMethod.GET,
+        ),
+        // Service A (Remote)
+        ServiceImplementationBindings.HttpServiceImplementationBinding(
+          "A",
+          false,
+          ServiceImplementationBindings.Type.HTTP,
+          "http",
+          "localhost",
+          12345,
+          "",
+          ServiceImplementationBindings.HttpMethod.GET,
+        ),
+        // Service B (Remote)
+        ServiceImplementationBindings.HttpServiceImplementationBinding(
+          "B",
+          false,
+          ServiceImplementationBindings.Type.HTTP,
+          "http",
+          "localhost",
+          12345,
+          "",
+          ServiceImplementationBindings.HttpMethod.GET,
+        ),
+        // Service B (Remote duplicate)
+        ServiceImplementationBindings.HttpServiceImplementationBinding(
+          "B",
+          false,
+          ServiceImplementationBindings.Type.HTTP,
+          "http",
+          "localhost",
+          12345,
+          "",
+          ServiceImplementationBindings.HttpMethod.GET,
+        ),
+        // Service C (Local)
+        ServiceImplementationBindings.HttpServiceImplementationBinding(
+          "C",
+          true,
+          ServiceImplementationBindings.Type.HTTP,
+          "http",
+          "localhost",
+          12345,
+          "",
+          ServiceImplementationBindings.HttpMethod.GET,
+        ),
+      )
 
-    // Service one
-    {
-      final var service = new HttpServiceImplementationBinding(
-        "A",
-        true,
-        Type.HTTP,
-        "http",
-        "localhost",
-        12345,
-        "",
-        HttpMethod.GET
-      );
+    // Builders return Result, so we unwrap here for the test setup
+    val services = ServiceImplementationBuilder.from(serviceBindings).build().getOrThrow()
 
-      serviceBindings[0] = service;
+    val serviceSelector = RandomServiceImplementationSelector(services)
+
+    assertDoesNotThrow {
+      val selected = serviceSelector.select("A", Csml.InvocationMode.REMOTE)
+      assertNotNull(selected, "Selector should find a remote implementation for service 'A'")
     }
-
-    // Service two
-    {
-      final var service = new HttpServiceImplementationBinding(
-        "A",
-        false,
-        Type.HTTP,
-        "http",
-        "localhost",
-        12345,
-        "",
-        HttpMethod.GET
-      );
-
-      serviceBindings[1] = service;
-    }
-
-    // Service three
-    {
-      final var service = new HttpServiceImplementationBinding(
-        "B",
-        false,
-        Type.HTTP,
-        "http",
-        "localhost",
-        12345,
-        "",
-        HttpMethod.GET
-      );
-
-      serviceBindings[2] = service;
-    }
-
-    // Service four
-    {
-      final var service = new HttpServiceImplementationBinding(
-        "B",
-        false,
-        Type.HTTP,
-        "http",
-        "localhost",
-        12345,
-        "",
-        HttpMethod.GET
-      );
-
-      serviceBindings[3] = service;
-    }
-
-    // Service five
-    {
-      final var service = new HttpServiceImplementationBinding(
-        "C",
-        true,
-        Type.HTTP,
-        "http",
-        "localhost",
-        12345,
-        "",
-        HttpMethod.GET
-      );
-
-      serviceBindings[4] = service;
-    }
-
-    final var services = ServiceImplementationBuilder.from(List.of(serviceBindings)).build();
-
-    final var serviceSelector = new RandomServiceImplementationSelector(services);
-
-    assertDoesNotThrow(() -> {
-      var selected = serviceSelector.select("A", InvocationMode.REMOTE);
-    });
-
-    // TODO: Add additional tests
   }
 }

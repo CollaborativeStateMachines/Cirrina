@@ -58,7 +58,7 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
    * @param commandFactory the factory used to create the commands.
    * @return a [Result] containing the list of [ActionCommand]s in topological order.
    */
-  fun getEntryActionCommands(commandFactory: CommandFactory): Result<List<ActionCommand>> =
+  fun getEntryActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
     createCommands(stateObject.entryActionGraph.asTopologicalList(), commandFactory)
 
   /**
@@ -67,7 +67,7 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
    * @param commandFactory the factory used to create the commands.
    * @return a [Result] containing the list of [ActionCommand]s in topological order.
    */
-  fun getWhileActionCommands(commandFactory: CommandFactory): Result<List<ActionCommand>> =
+  fun getWhileActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
     createCommands(stateObject.whileActionGraph.asTopologicalList(), commandFactory)
 
   /**
@@ -76,7 +76,7 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
    * @param commandFactory the factory used to create the commands.
    * @return a [Result] containing the list of [ActionCommand]s in topological order.
    */
-  fun getExitActionCommands(commandFactory: CommandFactory): Result<List<ActionCommand>> =
+  fun getExitActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
     createCommands(stateObject.exitActionGraph.asTopologicalList(), commandFactory)
 
   /**
@@ -87,12 +87,8 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
   fun getTimeoutActionObjects(): List<TimeoutAction> =
     stateObject.afterActionGraph.asTopologicalList().filterIsInstance<TimeoutAction>()
 
-  private fun createCommands(
-    actions: List<Action>,
-    factory: CommandFactory,
-  ): Result<List<ActionCommand>> =
-    runCatching { actions.map { factory.createActionCommand(it).getOrThrow() } }
-      .recoverCatching { e -> throw IllegalStateException("could not create action commands", e) }
+  private fun createCommands(actions: List<Action>, factory: CommandFactory): List<ActionCommand> =
+    actions.map { factory.createActionCommand(it) }
 
   private fun <V, E> Graph<V, E>.asTopologicalList(): List<V> =
     TopologicalOrderIterator(this).asSequence().toList()

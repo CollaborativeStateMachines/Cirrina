@@ -1,51 +1,33 @@
-package at.ac.uibk.dps.cirrina.execution.service;
+package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import java.util.ArrayList;
-import java.util.Optional;
-import java.util.Random;
+import at.ac.uibk.dps.cirrina.csm.Csml
+import com.google.common.collect.Multimap
 
-public class RandomServiceImplementationSelector extends ServiceImplementationSelector {
-
-  /**
-   * Initializes this service implementation selector.
-   *
-   * @param serviceImplementations known service implementations
-   */
-  public RandomServiceImplementationSelector(
-    Multimap<String, ServiceImplementation> serviceImplementations
-  ) {
-    super(serviceImplementations);
-  }
+/**
+ * A service implementation selector that randomly picks from available candidates.
+ *
+ * @param serviceImplementations The pool of available service implementations.
+ */
+class RandomServiceImplementationSelector(
+  serviceImplementations: Multimap<String, ServiceImplementation>
+) : ServiceImplementationSelector(serviceImplementations) {
 
   /**
-   * Selects, given the known service implementations, a random matching service implementation.
+   * Selects a random matching service implementation using idiomatic Kotlin extensions.
    *
-   * @param name name of the requested service implementation
-   * @param mode the invocation mode
-   * @return selected service implementation
+   * @param name The name of the requested service implementation.
+   * @param mode The invocation mode (LOCAL or REMOTE).
+   * @return A random [ServiceImplementation], or `null` if no match is found.
    */
-  @Override
-  public Optional<ServiceImplementation> select(String name, InvocationMode mode) {
-    final var serviceImplementationsWithName = new ArrayList<>(
-      mode == InvocationMode.LOCAL
-        ? Multimaps.filterValues(
-          serviceImplementations,
-          serviceImplementation -> serviceImplementation != null && serviceImplementation.isLocal()
-        ).get(name)
-        : serviceImplementations.get(name)
-    );
+  override fun select(name: String, mode: Csml.InvocationMode): ServiceImplementation? {
+    val candidates = serviceImplementations[name] ?: return null
 
-    if (serviceImplementationsWithName.isEmpty()) {
-      return Optional.empty();
+    return if (mode == Csml.InvocationMode.LOCAL) {
+      // Filter and pick one at random, or null if empty
+      candidates.filter { it.isLocal }.randomOrNull()
+    } else {
+      // Pick any at random, or null if empty
+      candidates.randomOrNull()
     }
-
-    ServiceImplementation randomImplementation = serviceImplementationsWithName.get(
-      new Random().nextInt(serviceImplementationsWithName.size())
-    );
-
-    return Optional.of(randomImplementation);
   }
 }

@@ -25,7 +25,7 @@ class CommandFactory(private val executionContext: ExecutionContext) {
    * @return a [Result] containing the corresponding [ActionCommand] implementation on success, or a
    *   failure if the action type is unexpected.
    */
-  fun createActionCommand(action: Action): Result<ActionCommand> = runCatching {
+  fun createActionCommand(action: Action): ActionCommand =
     when (action) {
       is EvalAction -> ActionEvalCommand(executionContext, action)
       is InvokeAction -> ActionInvokeCommand(executionContext, action)
@@ -33,7 +33,6 @@ class CommandFactory(private val executionContext: ExecutionContext) {
       is RaiseAction -> ActionRaiseCommand(executionContext, action)
       is TimeoutAction -> ActionTimeoutCommand(executionContext, action)
       is TimeoutResetAction -> ActionTimeoutResetCommand(executionContext, action)
-      else -> throw IllegalArgumentException("unexpected action type: ${action::class.simpleName}")
+      else -> error("unexpected action type: ${action::class.simpleName}")
     }
-  }
 }

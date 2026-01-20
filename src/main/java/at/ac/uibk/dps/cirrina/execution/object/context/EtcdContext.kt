@@ -56,13 +56,6 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
   private val asyncConn = AsyncEtcdConnection(endpoints)
   private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-  private suspend fun <T> withClient(block: suspend (Client) -> Result<T>): Result<T> =
-    asyncConn.getClient().fold(onSuccess = { block(it) }, onFailure = { Result.failure(it) })
-
-  private fun Any?.toBytes(): Result<ByteArray> = ValueExchange(this).toBytes()
-
-  private fun ByteArray.fromValueBytes(): Any? = ValueExchange.fromBytes(this).getOrNull()?.value
-
   fun awaitReady(timeoutMs: Long): Result<Unit> = runBlocking {
     asyncConn
       .getClient()
@@ -81,89 +74,106 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
       )
   }
 
-  override fun has(name: String): Result<Boolean> {
-    TODO("Not yet implemented")
+  private suspend fun <T> withClient(operation: String, block: suspend (Client) -> T): T {
+    return try {
+      val client = asyncConn.getClient().getOrThrow()
+      block(client)
+    } catch (ex: Exception) {
+      error("Etcd context failure during '$operation': ${ex.message ?: "Unknown error"}")
+    }
   }
 
-  override fun get(name: String): Result<Any?> =
+  private fun Any?.toBytes(): ByteArray = ValueExchange(this).toBytes().getOrThrow()
+
+  private fun ByteArray.fromValueBytes(): Any? = ValueExchange.fromBytes(this).getOrThrow().value
+
+  override fun has(name: String): Boolean =
     runBlocking(scope.coroutineContext) {
-      withClient { client ->
+      withClient("has") { client ->
         val response = client.kvClient.get(name.toByteSequence()).await()
-        val kv = response.kvs.firstOrNull()
-
-        kv?.value?.bytes?.fromValueBytes()?.let { Result.success(it) }
-          ?: error("variable does not exist")
+        response.count > 0L
       }
     }
 
-  override fun create(name: String, value: Any?): Result<Int> =
+  override fun get(name: String): Any? =
     runBlocking(scope.coroutineContext) {
-      withClient { client ->
-        value.toBytes().mapCatching { bytes ->
-          val key = name.toByteSequence()
-          val txn =
-            client.kvClient
-              .txn()
-              .If(Cmp(key, Cmp.Op.EQUAL, CmpTarget.createRevision(0)))
-              .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
-              .commit()
-              .await()
+      withClient("get") { client ->
+        val response = client.kvClient.get(name.toByteSequence()).await()
+        val kv = response.kvs.firstOrNull() ?: error("variable '$name' does not exist in Etcd")
 
-          if (txn.isSucceeded) bytes.size else error("variable already exists")
-        }
+        kv.value.bytes.fromValueBytes()
       }
     }
 
-  override fun assign(name: String, value: Any?): Result<Int> =
+  override fun create(name: String, value: Any?): Int =
     runBlocking(scope.coroutineContext) {
-      withClient { client ->
-        value.toBytes().mapCatching { bytes ->
-          val key = name.toByteSequence()
-          val txn =
-            client.kvClient
-              .txn()
-              .If(Cmp(key, Cmp.Op.GREATER, CmpTarget.createRevision(0)))
-              .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
-              .commit()
-              .await()
+      withClient("create") { client ->
+        val bytes = value.toBytes()
+        val key = name.toByteSequence()
 
-          if (txn.isSucceeded) bytes.size
-          else throw NoSuchElementException("variable '$name' does not exist")
-        }
+        val txn =
+          client.kvClient
+            .txn()
+            .If(Cmp(key, Cmp.Op.EQUAL, CmpTarget.createRevision(0)))
+            .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
+            .commit()
+            .await()
+
+        if (!txn.isSucceeded) error("variable '$name' already exists in Etcd")
+        bytes.size
       }
     }
 
-  override fun delete(name: String): Result<Unit> =
+  override fun assign(name: String, value: Any?): Int =
     runBlocking(scope.coroutineContext) {
-      withClient { client ->
+      withClient("assign") { client ->
+        val bytes = value.toBytes()
+        val key = name.toByteSequence()
+
+        val txn =
+          client.kvClient
+            .txn()
+            .If(Cmp(key, Cmp.Op.GREATER, CmpTarget.createRevision(0)))
+            .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
+            .commit()
+            .await()
+
+        if (!txn.isSucceeded) error("variable '$name' does not exist in Etcd")
+        bytes.size
+      }
+    }
+
+  override fun delete(name: String) =
+    runBlocking(scope.coroutineContext) {
+      withClient("delete") { client ->
         val response = client.kvClient.delete(name.toByteSequence()).await()
-        if (response.deleted == 0L)
-          Result.failure(NoSuchElementException("variable '$name' does not exist"))
-        else Result.success(Unit)
+        if (response.deleted == 0L) {
+          error("variable '$name' does not exist in Etcd")
+        }
       }
     }
 
-  override fun deleteAll(): Result<Unit> =
+  override fun deleteAll() =
     runBlocking(scope.coroutineContext) {
-      withClient { client ->
+      withClient("deleteAll") { client ->
         client.kvClient
           .delete("*".toByteSequence(), DeleteOption.builder().isPrefix(true).build())
           .await()
-        Result.success(Unit)
+        Unit
       }
     }
 
-  override fun getAll(): Result<List<ContextVariable>> =
+  override fun getAll(): List<ContextVariable> =
     runBlocking(scope.coroutineContext) {
-      withClient { client ->
+      withClient("getAll") { client ->
         val response =
           client.kvClient
             .get("*".toByteSequence(), GetOption.builder().isPrefix(true).build())
             .await()
 
-        val variables =
-          response.kvs.map { ContextVariable(it.key.toString(), it.value.bytes.fromValueBytes()) }
-        Result.success(variables)
+        response.kvs.map {
+          ContextVariable.eager(it.key.toString(), it.value.bytes.fromValueBytes())
+        }
       }
     }
 

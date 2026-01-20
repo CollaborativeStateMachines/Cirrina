@@ -18,12 +18,12 @@ class ActionEvalCommand(executionContext: ExecutionContext, private val evalActi
   /**
    * Executes the evaluation logic.
    *
-   * @return a [Result] containing an empty list of [ActionCommand]s on success, or a failure if the
-   *   expression evaluation fails.
+   * @return an empty list of [ActionCommand]s.
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): Result<List<ActionCommand>> =
-    evalAction.expression
-      .execute(executionContext.scope.extent)
-      .map { emptyList<ActionCommand>() }
-      .recoverCatching { e -> throw IllegalStateException("could not execute eval action", e) }
+  override fun execute(): List<ActionCommand> {
+    evalAction.expression.execute(executionContext.scope.extent).getOrThrow()
+
+    return emptyList()
+  }
 }

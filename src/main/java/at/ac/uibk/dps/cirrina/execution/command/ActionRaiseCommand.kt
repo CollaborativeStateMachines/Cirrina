@@ -21,14 +21,17 @@ internal constructor(executionContext: ExecutionContext, private val raiseAction
   /**
    * Executes the raise logic by evaluating event data and dispatching it.
    *
-   * @return a [Result] containing an empty list of [ActionCommand]s on success, as raise actions do
-   *   not generate further commands, or a failure if event data evaluation fails.
+   * @return an empty list of [ActionCommand]s.
+   * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): Result<List<ActionCommand>> =
-    runCatching { Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent) }
-      .onSuccess { evaluatedEvent -> dispatch(evaluatedEvent) }
-      .map { emptyList<ActionCommand>() }
-      .recoverCatching { e -> throw IllegalStateException("could not execute raise action", e) }
+  override fun execute(): List<ActionCommand> {
+    val evaluatedEvent =
+      Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent)
+
+    dispatch(evaluatedEvent)
+
+    return emptyList()
+  }
 
   private fun dispatch(event: Event) {
     if (event.channel == EventChannel.INTERNAL) {

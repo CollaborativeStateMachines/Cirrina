@@ -14,15 +14,7 @@ data class Event(
   val createdTime: Double = Time.timeInMillisecondsSinceEpoch(),
 ) {
   fun evaluateData(extent: Extent): Event {
-    val evaluatedData =
-      data.map { variable ->
-        variable.evaluate(extent).getOrElse { ex ->
-          throw UnsupportedOperationException(
-            "The event data variable '${variable.name}' could not be evaluated",
-            ex,
-          )
-        }
-      }
+    val evaluatedData = data.map { variable -> variable.evaluate(extent) }
     return copy(data = evaluatedData)
   }
 
