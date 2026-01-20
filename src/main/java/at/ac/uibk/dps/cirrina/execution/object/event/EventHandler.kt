@@ -1,15 +1,20 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.event
 
 import java.lang.AutoCloseable
+import java.util.concurrent.CopyOnWriteArrayList
 
 abstract class EventHandler : AutoCloseable {
-  private val listeners: MutableList<EventListener?> = ArrayList()
-  private val lock = Any()
+
+  private val listeners = CopyOnWriteArrayList<EventListener>()
 
   abstract fun sendEvent(event: Event, source: String?)
 
-  fun addListener(listener: EventListener?) {
-    synchronized(lock) { listeners.add(listener) }
+  /**
+   * Adds a listener to the handler. Note: We use non-nullable EventListener to avoid unnecessary
+   * null checks.
+   */
+  fun addListener(listener: EventListener) {
+    listeners.addIfAbsent(listener)
   }
 
   abstract fun subscribe(subject: String)
@@ -20,9 +25,9 @@ abstract class EventHandler : AutoCloseable {
 
   abstract fun unsubscribe(source: String, subject: String)
 
+  /** Propagates the event to all registered listeners. */
   protected open fun propagateEvent(event: Event) {
-    synchronized(lock) {
-      listeners.removeIf { eventListener: EventListener? -> !eventListener!!.onReceiveEvent(event) }
-    }
+    // TODO: This can be async
+    listeners.forEach { it.onReceiveEvent(event) }
   }
 }

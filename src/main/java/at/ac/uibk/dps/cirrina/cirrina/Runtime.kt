@@ -11,8 +11,8 @@ import at.ac.uibk.dps.cirrina.io.CsmParser
 import com.google.common.flogger.FluentLogger
 import java.net.URI
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 private val logger: FluentLogger = FluentLogger.forEnclosingClass()
@@ -86,7 +86,7 @@ class Runtime(
 
   /** Run all state machines (blocking). */
   fun run() = runBlocking {
-    stateMachines.map { instance -> async(Dispatchers.Default) { instance.run() } }.awaitAll()
+    stateMachines.map { launch(Dispatchers.Unconfined) { it.start() } }.joinAll()
   }
 
   // Recursively builds all state machine instances and returns them in a flat list.

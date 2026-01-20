@@ -14,14 +14,14 @@ import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import com.google.common.flogger.FluentLogger
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
+import kotlinx.coroutines.channels.Channel
 
 class StateMachine(
   private val runtime: Runtime,
   val stateMachineClass: StateMachineClass,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   private val parentStateMachine: StateMachine? = null,
-) : Runnable, EventListener, Scope {
+) : EventListener, Scope {
 
   companion object {
     const val EVENT_DATA_VARIABLE_PREFIX = "$"
@@ -30,7 +30,7 @@ class StateMachine(
 
   private val stateMachineId = UUID.randomUUID().toString()
   private val timeoutActionManager = TimeoutActionManager()
-  private val eventQueue = ConcurrentLinkedQueue<Event>()
+  private val eventQueue = Channel<Event>(Channel.UNLIMITED)
   private val stateMachineEventHandler = StateMachineEventHandler(this, runtime.eventHandler)
   private val stateInstances: Map<String, State>
   private val localContext: Context
@@ -66,18 +66,12 @@ class StateMachine(
   override fun onReceiveEvent(event: Event): Boolean {
     if (isTerminated()) return false
 
-    eventQueue.add(event)
-
-    synchronized(this) { (this as Object).notify() }
+    eventQueue.trySend(event)
 
     if (event.channel == EventChannel.INTERNAL) {
       nestedStateMachineIds.forEach { nestedId ->
-        val nestedInstance =
-          runtime.findInstance(nestedId)
-            ?: throw IllegalStateException(
-              "nested state machine could not be found, could not propagate event"
-            )
-        nestedInstance.onReceiveEvent(event)
+        runtime.findInstance(nestedId)?.onReceiveEvent(event)
+          ?: error("nested state machine $nestedId not found")
       }
     }
     return true
@@ -229,37 +223,33 @@ class StateMachine(
     selected
   }
 
-  override fun run() {
-    try {
-      val initialState = stateInstances[stateMachineClass.initialState.name]!!
-      var nextTransition = doEnter(initialState, null).getOrThrow()
+  suspend fun start() {
+    runCatching {
+        val initialState =
+          stateInstances[stateMachineClass.initialState.name]
+            ?: error("Initial state '${stateMachineClass.initialState.name}' not found")
 
-      while (!isTerminated()) {
-        var currentEvent: Event? = null
+        var nextTransition: Transition? = doEnter(initialState, null).getOrThrow()
 
-        if (nextTransition == null) {
-          synchronized(this) {
-            while (eventQueue.isEmpty()) {
-              (this as Object).wait()
-            }
-            currentEvent = eventQueue.poll()
+        while (!isTerminated()) {
+          var currentEvent: Event? = null
+
+          if (nextTransition == null) {
+            // This suspends the coroutine until an event is available
+            currentEvent = eventQueue.receive()
+            nextTransition = handleEvent(currentEvent).getOrThrow()
           }
-          nextTransition = handleEvent(currentEvent!!).getOrThrow()
-        }
 
-        nextTransition?.let {
-          handleTransition(it, currentEvent).getOrThrow()
-          nextTransition = null
+          nextTransition?.let {
+            handleTransition(it, currentEvent).getOrThrow()
+            nextTransition = null
+          }
         }
       }
-    } catch (e: InterruptedException) {
-      Thread.currentThread().interrupt()
-      logger.atSevere().withCause(e).log("State machine '$this': Interrupted")
-    } catch (e: Exception) {
-      logger.atSevere().withCause(e).log("State machine '$this': Received a fatal error")
-    } finally {
-      logger.atInfo().log("State machine '$this': Stopped")
-    }
+      .onFailure { ex ->
+        logger.atSevere().withCause(ex).log("State machine '$this' encountered a fatal error")
+      }
+      .onSuccess { logger.atInfo().log("State machine '$this' stopped successfully") }
   }
 
   override fun toString(): String = "StateMachine(id=$id, name=${stateMachineClass.name})"
