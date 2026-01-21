@@ -9,8 +9,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.ExpressionBuilder
 
 /**
- * A functional builder responsible for transforming [ActionDescription]s into executable [Action]
- * objects.
+ * A builder responsible for transforming [ActionDescription]s into executable [Action] objects.
  *
  * @property actionDescription the source description used to construct the action.
  * @property name an optional identifier, required specifically for [TimeoutAction] instances.

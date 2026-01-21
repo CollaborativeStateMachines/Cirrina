@@ -51,7 +51,7 @@ class StateMachine(
     runtime.phaser.register()
 
     localContext =
-      stateMachineClass.localContextDescription?.let {
+      stateMachineClass.transientContextDescription?.let {
         ContextBuilder.from(it).build().getOrThrow()
       } ?: ContextBuilder.empty().inMemoryContext(true).build().getOrThrow()
 
@@ -81,7 +81,7 @@ class StateMachine(
   }
 
   private fun isTerminated(): Boolean =
-    parentStateMachine?.isTerminated() ?: false || activeState!!.stateObject.isTerminal
+    parentStateMachine?.isTerminated() ?: false || activeState!!.stateObject.terminal
 
   private fun handleTermination() {
     if (isTerminated()) {

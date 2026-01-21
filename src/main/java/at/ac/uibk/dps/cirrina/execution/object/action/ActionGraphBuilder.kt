@@ -22,7 +22,7 @@ private constructor(
   }
 
   /**
-   * Builds the [ActionGraph] using a functional fold to link vertices.
+   * Builds the [ActionGraph].
    *
    * @return the populated [ActionGraph].
    */

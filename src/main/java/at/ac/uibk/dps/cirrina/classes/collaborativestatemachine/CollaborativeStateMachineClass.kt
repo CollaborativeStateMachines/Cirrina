@@ -5,13 +5,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import org.jgrapht.graph.DirectedPseudograph
 
-/**
- * Collaborative state machine class describes the structure of a collaborative state machine.
- *
- * A collaborative state machine is a graph with state machine classes as vertices and events as
- * edges. An edge in the collaborative state machine graph represents how a state machine can be
- * activated by another state machine based on an event.
- */
+/** Represents the structure of a collaborative state machine. */
 class CollaborativeStateMachineClass
 internal constructor(val persistentContextVariables: List<ContextVariable>) :
   DirectedPseudograph<StateMachineClass, Event>(Event::class.java) {

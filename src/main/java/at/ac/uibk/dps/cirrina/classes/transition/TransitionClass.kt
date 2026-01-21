@@ -8,33 +8,43 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.guard.Guard
 import org.jgrapht.graph.DefaultEdge
 
-open class TransitionClass internal constructor(parameters: Parameters) : DefaultEdge() {
+/**
+ * Represents a transition between two states in the state machine.
+ *
+ * @property event the name of the event that triggers this transition.
+ * @property to the name of the target state.
+ * @property iif an optional [Guard] condition.
+ * @property do the list of actions to be executed during the transition.
+ * @property or an optional alternative state.
+ */
+open class TransitionClass
+internal constructor(
+  val event: String?,
+  val to: String?,
+  val iif: Guard?,
+  val `do`: List<Action>,
+  val or: String?,
+) : DefaultEdge() {
 
-  val to: String? = parameters.to
-  val `do`: List<Action> = parameters.`do`
-  val iif: Guard? = parameters.iif
-  val or: String? = parameters.or
-  val event: String? = parameters.event
-
+  /** The executable representation of the transition's behavior. */
   val actionGraph: ActionGraph = ActionGraphBuilder.from(`do`).build()
 
-  fun evaluate(extent: Extent): Boolean {
-    val guard = iif ?: return true
-
-    return guard.evaluate(extent)
-  }
+  /**
+   * Evaluates whether this transition is eligible to fire based on the current context.
+   *
+   * @param extent the scope used for guard evaluation.
+   * @return true if no guard is defined or if the [iif] guard evaluates to true; false otherwise.
+   */
+  fun evaluate(extent: Extent): Boolean = iif?.evaluate(extent) ?: true
 
   public override fun getSource(): StateClass = super.getSource() as StateClass
 
   public override fun getTarget(): StateClass = super.getTarget() as StateClass
 
+  /**
+   * Filters and returns actions of a specific type [T].
+   *
+   * @return a list of actions matching type [T].
+   */
   inline fun <reified T> getActionsOfType(): List<T> = actionGraph.getActionsOfType<T>()
-
-  data class Parameters(
-    val to: String?,
-    val `do`: List<Action>,
-    val iif: Guard?,
-    val or: String?,
-    val event: String?,
-  )
 }

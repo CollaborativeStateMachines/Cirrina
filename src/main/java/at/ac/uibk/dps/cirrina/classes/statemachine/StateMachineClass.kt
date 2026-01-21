@@ -4,16 +4,34 @@ import at.ac.uibk.dps.cirrina.classes.state.StateClass
 import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass
 import at.ac.uibk.dps.cirrina.execution.`object`.action.EventRaisingAction
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import java.util.UUID
 import org.jgrapht.graph.DirectedPseudograph
 
-class StateMachineClass internal constructor(parameters: Parameters) :
-  DirectedPseudograph<StateClass, TransitionClass>(TransitionClass::class.java) {
+/**
+ * An immutable blueprint representing the structure and behavior of a state machine.
+ *
+ * This class extends [DirectedPseudograph] to define states as vertices and transitions as edges.
+ * It provides lookups for transitions based on events and state context.
+ *
+ * @property name the unique identifier of the state machine.
+ * @property nestedStateMachineClasses a list of nested machines contained within this machine.
+ * @property transientContextDescription mapping of transient context variables.
+ */
+class StateMachineClass
+internal constructor(
+  val name: String,
+  val nestedStateMachineClasses: List<StateMachineClass>,
+  val transientContextDescription: Map<String, String>?,
+) : DirectedPseudograph<StateClass, TransitionClass>(TransitionClass::class.java) {
 
-  val id: UUID = UUID.randomUUID()
-  val name: String = parameters.name
-  val localContextDescription: Map<String, String>? = parameters.transientContextDescription
-  val nestedStateMachineClasses: List<StateMachineClass> = parameters.nestedStateMachineClasses
+  /**
+   * The designated entry point of the state machine.
+   *
+   * @throws Exception if no state is marked as initial.
+   */
+  val initialState: StateClass by lazy {
+    vertexSet().firstOrNull { it.initial }
+      ?: error("State machine '$name' must have an initial state.")
+  }
 
   private val stateNameMap: Map<String, StateClass> by lazy { vertexSet().associateBy { it.name } }
 
@@ -27,34 +45,29 @@ class StateMachineClass internal constructor(parameters: Parameters) :
     }
   }
 
-  val initialState: StateClass by lazy {
-    vertexSet().firstOrNull { it.isInitial }
-      ?: error("state machine '$name' has no initial state defined")
-  }
-
+  /** Resolves a state by its unique name. */
   fun getStateClassByName(stateName: String): StateClass? = stateNameMap[stateName]
 
+  /** Returns a list of transitions originating from [fromStateClass] triggered by [event]. */
   fun getOnTransitionsFromStateByEventName(
     fromStateClass: StateClass,
     event: String,
-  ): List<TransitionClass> = onTransitionsMap[fromStateClass]?.get(event) ?: emptyList()
+  ): List<TransitionClass> = onTransitionsMap[fromStateClass]?.get(event).orEmpty()
 
+  /** Returns a list of transitions originating from [fromStateClass] that require no event. */
   fun getAlwaysTransitionsFromState(fromStateClass: StateClass): List<TransitionClass> =
-    alwaysTransitionsMap[fromStateClass] ?: emptyList()
+    alwaysTransitionsMap[fromStateClass].orEmpty()
 
+  /** All unique event names that can trigger a transition within this machine. */
   val inputEvents: List<String> by lazy { edgeSet().mapNotNull { it.event }.distinct() }
 
+  /**
+   * All events potentially produced by actions within states or along transitions. This traverses
+   * all [EventRaisingAction] instances in the graph.
+   */
   val outputEvents: List<Event> by lazy {
-    val vertexActions = vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() }
-    val edgeActions = edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() }
-    (vertexActions + edgeActions).flatMap { it.raises() }
+    (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
+        edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
+      .flatMap { it.raises() }
   }
-
-  override fun toString(): String = name
-
-  data class Parameters(
-    val name: String,
-    val transientContextDescription: Map<String, String>?,
-    val nestedStateMachineClasses: List<StateMachineClass>,
-  )
 }
