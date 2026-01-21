@@ -62,9 +62,9 @@ class PingPongTest {
           Runtime(
             DefaultDescriptions.pingPong,
             listOf("pingStateMachine", "pongStateMachine"),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
 
         println(measureTime { runtime.run() })

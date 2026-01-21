@@ -8,8 +8,6 @@ import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelec
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import com.google.common.flogger.FluentLogger
-import io.opentelemetry.api.OpenTelemetry
-import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
 import java.net.URI
 import java.util.logging.LogManager
 import org.apache.commons.lang3.builder.ToStringBuilder
@@ -17,7 +15,6 @@ import org.apache.commons.lang3.builder.ToStringStyle.SIMPLE_STYLE
 
 private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
-/** Cirrina entry class. */
 class Cirrina {
   companion object {
     const val NATS_CONNECTION_TIMEOUT = 60000L
@@ -41,7 +38,6 @@ class Cirrina {
     }
   }
 
-  /** Run Cirrina as configured. */
   fun run() {
     try {
       logger.atFine().log("creating the event handler")
@@ -49,7 +45,7 @@ class Cirrina {
         .apply {
           if (this is NatsEventHandler) {
             logger.atFine().log("awaiting connection to NATS as the event handler")
-            awaitInitialConnection(NATS_CONNECTION_TIMEOUT)
+            awaitReady(NATS_CONNECTION_TIMEOUT)
           }
         }
         .use { eventHandler ->
@@ -78,13 +74,13 @@ class Cirrina {
                 Runtime(
                   URI(EnvironmentVariables.appPath.get()),
                   EnvironmentVariables.instantiate.get(),
+                  eventHandler,
+                  persistentContext,
                   RandomServiceImplementationSelector(
                     ServiceImplementationBuilder.from(serviceImplementationBindings)
                       .build()
                       .getOrThrow()
                   ),
-                  eventHandler,
-                  persistentContext,
                 )
 
               logger.atFine().log("running the runtime")
@@ -98,29 +94,21 @@ class Cirrina {
     }
   }
 
-  // Construct a new event handler as configured.
   private fun newEventHandler(): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.NATS -> newNatsEventHandler()
     }
 
-  // Construct a new NATS event handler as configured.
   private fun newNatsEventHandler(): NatsEventHandler =
     NatsEventHandler(EnvironmentVariables.natsEventUrl.get())
 
-  // Construct a new persistent context based as configured.
   private fun newPersistentContext(): Context =
     when (EnvironmentVariables.contextProvider.get()) {
       PersistentContextProvider.ETCD -> newEtcdPersistentContext()
     }
 
-  // Construct a new Etcd persistent context as configured.
   private fun newEtcdPersistentContext(): EtcdContext =
     EtcdContext(false, listOf(EnvironmentVariables.etcdContextUrl.get()))
-
-  // Construct a new OpenTelemetry instance as configured.
-  private fun getOpenTelemetry(): OpenTelemetry =
-    AutoConfiguredOpenTelemetrySdk.initialize().openTelemetrySdk
 }
 
 fun main() {

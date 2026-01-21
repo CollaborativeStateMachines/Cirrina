@@ -14,23 +14,24 @@ import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import com.google.common.flogger.FluentLogger
 import java.util.*
-import kotlinx.coroutines.channels.Channel
 
 class StateMachine(
+  private val stateMachineClass: StateMachineClass,
   private val runtime: Runtime,
-  val stateMachineClass: StateMachineClass,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   private val parentStateMachine: StateMachine? = null,
 ) : EventListener, Scope {
 
   companion object {
     const val EVENT_DATA_VARIABLE_PREFIX = "$"
+
     private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
+  @Volatile private var isReady = false
+
   private val stateMachineId = UUID.randomUUID().toString()
   private val timeoutActionManager = TimeoutActionManager()
-  private val eventQueue = Channel<Event>(Channel.UNLIMITED)
   private val stateMachineEventHandler = StateMachineEventHandler(this, runtime.eventHandler)
   private val stateInstances: Map<String, State>
   private val localContext: Context
@@ -39,6 +40,8 @@ class StateMachine(
   private var nestedStateMachineIds: List<String> = emptyList()
 
   init {
+    runtime.phaser.register()
+
     localContext =
       stateMachineClass.localContextDescription?.let {
         ContextBuilder.from(it).build().getOrThrow()
@@ -57,9 +60,8 @@ class StateMachine(
   override val id: String
     get() = stateMachineId
 
-  override fun onReceiveEvent(event: Event): Boolean {
-    if (isTerminated()) return false
-    eventQueue.trySend(event)
+  override fun onReceiveEvent(event: Event) {
+    handleEvent(event)?.let { next -> handleTransition(next, event) }
 
     if (event.channel == EventChannel.INTERNAL) {
       nestedStateMachineIds.forEach { nestedId ->
@@ -67,13 +69,15 @@ class StateMachine(
           ?: error("nested state machine $nestedId not found")
       }
     }
-    return true
   }
 
-  fun isTerminated(): Boolean {
-    val currentActive = activeState ?: return false
-    if (parentStateMachine?.isTerminated() == true) return true
-    return currentActive.stateObject.isTerminal
+  private fun isTerminated(): Boolean =
+    parentStateMachine?.isTerminated() ?: false || activeState!!.stateObject.isTerminal
+
+  private fun handleTermination() {
+    if (isTerminated()) {
+      runtime.phaser.arriveAndDeregister()
+    }
   }
 
   private fun createCommandFactory(
@@ -163,6 +167,9 @@ class StateMachine(
     }
     activeState = state
 
+    handleTermination()
+    if (isTerminated()) return null
+
     val alwaysTransitions = stateMachineClass.getAlwaysTransitionsFromState(state.stateObject)
     return trySelectTransition(alwaysTransitions, extent)
   }
@@ -182,48 +189,42 @@ class StateMachine(
     }
   }
 
-  private fun handleEvent(event: Event): Transition? {
-    val eventDataContext = InMemoryContext(true)
-    event.data.forEach { eventDataContext.create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
-
-    val eventExtent = extent.extend(eventDataContext)
-    val onTransitions =
-      stateMachineClass.getOnTransitionsFromStateByEventName(activeState!!.stateObject, event.name)
-    val selected = trySelectTransition(onTransitions, eventExtent)
-
-    selected?.let {
-      event.data.forEach { varData ->
-        eventExtent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
+  private fun handleEvent(event: Event): Transition? =
+    extent
+      .extend(
+        event.data.fold(InMemoryContext(true)) { context, it ->
+          context.apply { create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
+        }
+      )
+      .let { eventExtent ->
+        // Attempt to find a transition matching the event name and guard conditions
+        trySelectTransition(
+            stateMachineClass.getOnTransitionsFromStateByEventName(
+              activeState!!.stateObject,
+              event.name,
+            ),
+            eventExtent,
+          )
+          ?.also {
+            // Persist event data into the extent variables for subsequent action execution
+            event.data.forEach { varData ->
+              eventExtent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
+            }
+          }
       }
-    }
-    return selected
-  }
 
-  suspend fun start() {
+  fun start() {
     try {
-      val initialState =
-        stateInstances[stateMachineClass.initialState.name]
-          ?: error("Initial state '${stateMachineClass.initialState.name}' not found")
+      // Handle the initial state immediately
+      doEnter(
+          stateInstances[stateMachineClass.initialState.name] ?: error("initial state not found"),
+          null,
+        )
+        ?.let { next -> handleTransition(next, null) }
 
-      var nextTransition: Transition? = doEnter(initialState, null)
-
-      while (!isTerminated()) {
-        var currentEvent: Event? = null
-
-        if (nextTransition == null) {
-          currentEvent = eventQueue.receive()
-          nextTransition = handleEvent(currentEvent)
-        }
-
-        nextTransition?.let {
-          handleTransition(it, currentEvent)
-          nextTransition = null
-        }
-      }
-      logger.atInfo().log("State machine '$this' stopped successfully")
+      isReady = true
     } catch (ex: Exception) {
-      logger.atSevere().withCause(ex).log("State machine '$this' encountered a fatal error")
-      // Re-throw if we need parents to know, or just let it die here as a terminal failure
+      logger.atSevere().withCause(ex).log("Fatal error in $this")
     }
   }
 

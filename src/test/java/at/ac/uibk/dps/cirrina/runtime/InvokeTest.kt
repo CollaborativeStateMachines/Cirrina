@@ -83,9 +83,9 @@ class InvokeTest {
         Runtime(
             DefaultDescriptions.invoke,
             listOf("invokeStateMachine"),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
           .run()
 

@@ -32,10 +32,9 @@ internal class NatsEventHandlerTest {
         object : EventListener {
           val events = mutableListOf<Event>()
 
-          override fun onReceiveEvent(event: Event): Boolean {
+          override fun onReceiveEvent(event: Event) {
             events.add(requireNotNull(event))
             latch.countDown()
-            return true
           }
         }
 
@@ -49,10 +48,10 @@ internal class NatsEventHandlerTest {
       // Connect the event handler to the NATS server
       NatsEventHandler(natsServerURL).use { natsEventHandler ->
         // Expect it to connect
-        assertTrue(natsEventHandler.awaitInitialConnection())
+        assertTrue(natsEventHandler.awaitReady())
 
         // Create a listener
-        natsEventHandler.addListener(eventListener)
+        natsEventHandler.listener = eventListener
 
         // Global and external events can be sent using the event handler
         if (channel == Csml.EventChannel.GLOBAL || channel == Csml.EventChannel.EXTERNAL) {

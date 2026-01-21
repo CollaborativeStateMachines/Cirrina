@@ -4,41 +4,53 @@ import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeSta
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import com.google.common.flogger.FluentLogger
+import com.lmax.disruptor.BlockingWaitStrategy
+import com.lmax.disruptor.EventHandler as LmaxEventHandler
+import com.lmax.disruptor.dsl.Disruptor
+import com.lmax.disruptor.dsl.ProducerType
+import com.lmax.disruptor.util.DaemonThreadFactory
 import java.net.URI
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
+import java.util.concurrent.Phaser
 import kotlinx.coroutines.runBlocking
 
 private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
-/**
- * Runtime for executing state machines defined in a Cirrina CSML project.
- *
- * @param main main (main.pkl) URI.
- * @param stateMachineNames list of state machine names to execute.
- * @property openTelemetry the OpenTelemetry instance for tracing state machine execution.
- * @property serviceImplementationSelector the service implementation selector.
- * @property eventHandler the event handler that will dispatch events to state machines.
- * @property persistentContext the persistent context where state machine variables are stored.
- */
 class Runtime(
   main: URI,
   stateMachineNames: List<String>,
-  private var serviceImplementationSelector: ServiceImplementationSelector,
   val eventHandler: EventHandler,
-  val persistentContext: Context,
-) {
-  /** Instantiated state machines. */
+  private val persistentContext: Context,
+  private val serviceImplementationSelector: ServiceImplementationSelector,
+) : EventListener {
+  companion object {
+    const val RING_BUFFER_SIZE = 1024
+  }
+
   val stateMachines: List<StateMachine>
 
-  /** Top-level extent. */
   val extent = Extent.of(persistentContext)
+
+  val phaser = Phaser(1)
+
+  private class EventEnvelope {
+    var event: Event? = null
+  }
+
+  private val disruptor =
+    Disruptor(
+      { EventEnvelope() },
+      RING_BUFFER_SIZE,
+      DaemonThreadFactory.INSTANCE,
+      ProducerType.MULTI,
+      BlockingWaitStrategy(),
+    )
 
   init {
     val collaborativeStateMachineClass =
@@ -73,36 +85,46 @@ class Runtime(
             }
         }
         .flatMap { buildInstances(it, null) }
+
+    disruptor.handleEventsWith(
+      LmaxEventHandler { envelope, _, _ ->
+        stateMachines.forEach { it.onReceiveEvent(envelope.event!!) }
+      }
+    )
+    disruptor.start()
+
+    eventHandler.listener = this
   }
 
-  /**
-   * Find a state machine instance by its ID.
-   *
-   * @param stateMachineId the ID of the state machine instance.
-   * @return the state machine instance, or null if not found.
-   */
   fun findInstance(stateMachineId: String): StateMachine? =
     stateMachines.firstOrNull { it.id == stateMachineId }
 
-  /** Run all state machines (blocking). */
   fun run() = runBlocking {
-    stateMachines.map { launch(Dispatchers.Unconfined) { it.start() } }.joinAll()
+    stateMachines.forEach { it.start() }
+
+    phaser.arriveAndDeregister()
+
+    while (phaser.registeredParties > 0) {
+      println(phaser.registeredParties)
+      phaser.awaitAdvance(phaser.phase)
+    }
   }
 
-  // Recursively builds all state machine instances and returns them in a flat list.
   private fun buildInstances(
     stateMachineClass: StateMachineClass,
     parentInstance: StateMachine?,
   ): List<StateMachine> {
     val instance =
-      StateMachine(this, stateMachineClass, serviceImplementationSelector, parentInstance).also {
-        eventHandler.addListener(it)
-      }
+      StateMachine(stateMachineClass, this, serviceImplementationSelector, parentInstance)
 
     val nestedInstances =
       stateMachineClass.nestedStateMachineClasses.flatMap { buildInstances(it, instance) }
 
     instance.setNestedStateMachineIds(nestedInstances.map { it.id })
     return listOf(instance) + nestedInstances
+  }
+
+  override fun onReceiveEvent(event: Event) {
+    disruptor.publishEvent { envelope, _ -> envelope.event = event }
   }
 }

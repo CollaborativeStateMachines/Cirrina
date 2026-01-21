@@ -223,6 +223,6 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
    * @param timeoutMs the maximum time to wait in milliseconds
    * @return true if connection was established, false if timeout occurred
    */
-  fun awaitInitialConnection(timeoutMs: Long = 5000) =
+  fun awaitReady(timeoutMs: Long = 5000) =
     connectedLatch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
 }

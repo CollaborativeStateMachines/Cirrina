@@ -47,9 +47,9 @@ class NoopTest {
         Runtime(
             DefaultDescriptions.noop,
             listOf("noopStateMachine"),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
           .run()
       }

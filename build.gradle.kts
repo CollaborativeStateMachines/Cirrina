@@ -63,6 +63,8 @@ dependencies {
 
   implementation("com.google.protobuf:protobuf-java:4.32.0")
 
+  implementation("com.lmax:disruptor:4.0.0")
+
   implementation("io.etcd:jetcd-core:0.8.5")
 
   implementation("io.nats:jnats:2.17.3")

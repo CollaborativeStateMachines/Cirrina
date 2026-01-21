@@ -58,9 +58,9 @@ class TimeoutTest {
         Runtime(
             DefaultDescriptions.timeout,
             listOf("timeoutStateMachine"),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
           .run()
 
