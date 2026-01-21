@@ -193,29 +193,26 @@ class StateMachine(
     }
   }
 
-  private fun handleEvent(event: Event): Transition? =
-    extent
+  private fun handleEvent(event: Event): Transition? {
+    val candidateClasses =
+      stateMachineClass.getOnTransitionsFromStateByEventName(activeState!!.stateObject, event.name)
+
+    if (candidateClasses.isEmpty()) return null
+
+    return extent
       .extend(
         event.data.fold(InMemoryContext(true)) { context, it ->
           context.apply { create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
         }
       )
       .let { eventExtent ->
-        // Attempt to find a transition matching the event name and guard conditions
-        trySelectTransition(
-            stateMachineClass.getOnTransitionsFromStateByEventName(
-              activeState!!.stateObject,
-              event.name,
-            ),
-            eventExtent,
-          )
-          ?.also {
-            // Persist event data into the extent variables for subsequent action execution
-            event.data.forEach { varData ->
-              eventExtent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
-            }
+        trySelectTransition(candidateClasses, eventExtent)?.also {
+          event.data.forEach { varData ->
+            eventExtent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
           }
+        }
       }
+  }
 
   fun start() {
     try {
