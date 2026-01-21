@@ -47,10 +47,6 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
    */
   override val extent: Extent by lazy { parent.extent.extend(staticContext) }
 
-  /** The unique identifier for this state, delegated to the parent state machine. */
-  override val id: String
-    get() = parent.id
-
   /**
    * Retrieves the entry action commands for this state.
    *

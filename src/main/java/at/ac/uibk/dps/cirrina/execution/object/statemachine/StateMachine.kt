@@ -15,6 +15,10 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import com.google.common.flogger.FluentLogger
 import java.util.*
 import java.util.concurrent.CountDownLatch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 class StateMachine(
   private val stateMachineClass: StateMachineClass,
@@ -29,9 +33,12 @@ class StateMachine(
     private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
+  val id = UUID.randomUUID().toString()
+
   private val readySignal = CountDownLatch(1)
 
-  private val stateMachineId = UUID.randomUUID().toString()
+  private val machineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
   private val timeoutActionManager = TimeoutActionManager()
   private val stateMachineEventHandler = StateMachineEventHandler(this, runtime.eventHandler)
   private val stateInstances: Map<String, State>
@@ -58,9 +65,6 @@ class StateMachine(
     parentStateMachine?.extent?.extend(localContext) ?: runtime.extent.extend(localContext)
   }
 
-  override val id: String
-    get() = stateMachineId
-
   override fun onReceiveEvent(event: Event) {
     readySignal.await()
 
@@ -81,6 +85,7 @@ class StateMachine(
 
   private fun handleTermination() {
     if (isTerminated()) {
+      machineScope.cancel()
       runtime.phaser.arriveAndDeregister()
     }
   }
@@ -93,10 +98,11 @@ class StateMachine(
     CommandFactory(
       ExecutionContext(
         scope,
-        raisingEvent,
         serviceImplementationSelector,
         stateMachineEventHandler,
         this,
+        machineScope,
+        raisingEvent,
         isWhile,
       )
     )

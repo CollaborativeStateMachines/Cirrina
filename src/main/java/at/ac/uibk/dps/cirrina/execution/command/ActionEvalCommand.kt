@@ -9,10 +9,10 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.EvalAction
  * This command extracts the current scope extent and executes the underlying expression. Eval
  * actions do not generate further commands.
  *
- * @property executionContext the context in which the evaluation occurs.
  * @property evalAction the specific action definition containing the expression to be evaluated.
+ * @property executionContext the context in which the evaluation occurs.
  */
-class ActionEvalCommand(executionContext: ExecutionContext, private val evalAction: EvalAction) :
+class ActionEvalCommand(private val evalAction: EvalAction, executionContext: ExecutionContext) :
   ActionCommand(executionContext) {
 
   /**
@@ -21,9 +21,6 @@ class ActionEvalCommand(executionContext: ExecutionContext, private val evalActi
    * @return an empty list of [ActionCommand]s.
    * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): List<ActionCommand> {
-    evalAction.expression.execute(executionContext.scope.extent)
-
-    return emptyList()
-  }
+  override fun execute(): List<ActionCommand> =
+    evalAction.expression.execute(executionContext.scope.extent).run { emptyList() }
 }

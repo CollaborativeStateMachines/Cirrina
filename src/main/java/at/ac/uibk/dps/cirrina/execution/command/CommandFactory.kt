@@ -11,8 +11,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutResetAction
 /**
  * A factory responsible for creating [ActionCommand] instances from [Action] definitions.
  *
- * This factory maps domain-specific action definitions to their corresponding executable command
- * implementations within the provided [executionContext].
+ * This factory maps action definitions to their corresponding executable command implementations
+ * within the provided [executionContext].
  *
  * @property executionContext the context to be injected into the created commands.
  */
@@ -22,17 +22,17 @@ class CommandFactory(private val executionContext: ExecutionContext) {
    * Creates an [ActionCommand] for the given [action].
    *
    * @param action the action definition to convert.
-   * @return a [Result] containing the corresponding [ActionCommand] implementation on success, or a
-   *   failure if the action type is unexpected.
+   * @return the corresponding [ActionCommand] implementation.
+   * @throws Exception if the command execution fails due to an internal error.
    */
   fun createActionCommand(action: Action): ActionCommand =
     when (action) {
-      is EvalAction -> ActionEvalCommand(executionContext, action)
-      is InvokeAction -> ActionInvokeCommand(executionContext, action)
-      is MatchAction -> ActionMatchCommand(executionContext, action)
-      is RaiseAction -> ActionRaiseCommand(executionContext, action)
-      is TimeoutAction -> ActionTimeoutCommand(executionContext, action)
-      is TimeoutResetAction -> ActionTimeoutResetCommand(executionContext, action)
+      is EvalAction -> ActionEvalCommand(action, executionContext)
+      is InvokeAction -> ActionInvokeCommand(action, executionContext)
+      is MatchAction -> ActionMatchCommand(action, executionContext)
+      is RaiseAction -> ActionRaiseCommand(action, executionContext)
+      is TimeoutAction -> ActionTimeoutCommand(action, executionContext)
+      is TimeoutResetAction -> ActionTimeoutResetCommand(action, executionContext)
       else -> error("unexpected action type: ${action::class.simpleName}")
     }
 }

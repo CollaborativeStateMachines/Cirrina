@@ -11,11 +11,11 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
  * This command ensures that any data associated with the event is evaluated within the current
  * scope before routing the event to the appropriate internal or external handler.
  *
- * @property executionContext the context providing the event listener and state machine handler.
  * @property raiseAction the definition of the event to be raised.
+ * @property executionContext the context providing the event listener and state machine handler.
  */
 class ActionRaiseCommand
-internal constructor(executionContext: ExecutionContext, private val raiseAction: RaiseAction) :
+internal constructor(private val raiseAction: RaiseAction, executionContext: ExecutionContext) :
   ActionCommand(executionContext) {
 
   /**
@@ -24,20 +24,13 @@ internal constructor(executionContext: ExecutionContext, private val raiseAction
    * @return an empty list of [ActionCommand]s.
    * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): List<ActionCommand> {
-    val evaluatedEvent =
-      Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent)
-
-    dispatch(evaluatedEvent)
-
-    return emptyList()
-  }
-
-  private fun dispatch(event: Event) {
-    if (event.channel == EventChannel.INTERNAL) {
-      executionContext.eventListener.onReceiveEvent(event)
-    } else {
-      executionContext.eventHandler.sendEvent(event)
-    }
-  }
+  override fun execute(): List<ActionCommand> =
+    Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent)
+      .also { event ->
+        when (event.channel) {
+          EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
+          else -> executionContext.eventHandler::sendEvent
+        }.invoke(event)
+      }
+      .run { emptyList() }
 }

@@ -15,17 +15,13 @@ import kotlinx.coroutines.launch
  * This command selects an appropriate service implementation, prepares the required input
  * variables, and triggers the service invocation asynchronously.
  *
- * @property executionContext the context in which the invocation occurs.
  * @property invokeAction the definition of the service call and associated events.
+ * @property executionContext the context in which the invocation occurs.
  */
 class ActionInvokeCommand(
-  executionContext: ExecutionContext,
   private val invokeAction: InvokeAction,
+  executionContext: ExecutionContext,
 ) : ActionCommand(executionContext) {
-
-  companion object {
-    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
-  }
 
   /**
    * Executes the service invocation logic.
@@ -33,45 +29,38 @@ class ActionInvokeCommand(
    * @return an empty list of [ActionCommand]s.
    * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): List<ActionCommand> {
-    val service = selectServiceImplementation()
-
-    val input = prepareInput(executionContext.scope.extent)
-
-    executionContext.coroutineScope.launch {
-      try {
-        raiseEvents(service.invoke(input))
-      } catch (e: Exception) {
-        logger.atWarning().withCause(e).log("service invocation failed")
+  override fun execute(): List<ActionCommand> =
+    selectServiceImplementation()
+      .let { service -> service to prepareInput(executionContext.scope.extent) }
+      .run {
+        executionContext.coroutineScope.launch {
+          runCatching { first.invoke(second) }
+            .onSuccess { raiseEvents(it) }
+            .onFailure { logger.atWarning().withCause(it).log("service invocation failed") }
+        }
+        emptyList()
       }
-    }
 
-    return emptyList()
-  }
+  private fun selectServiceImplementation(): ServiceImplementation =
+    executionContext.serviceImplementationSelector.select(
+      invokeAction.serviceType,
+      invokeAction.mode,
+    ) ?: error("no service implementation found for type '$invokeAction.serviceType'")
 
   private fun prepareInput(extent: Extent): List<ContextVariable> =
     invokeAction.input.map { it.evaluate(extent) }
 
-  private fun selectServiceImplementation(): ServiceImplementation {
-    val serviceType = invokeAction.serviceType
-    val mode = invokeAction.mode
-
-    return executionContext.serviceImplementationSelector.select(serviceType, mode)
-      ?: error("no service implementation found for type '$serviceType'")
-  }
-
-  private fun raiseEvents(output: List<ContextVariable>) {
-    val eventListener = executionContext.eventListener
-    val eventHandler = executionContext.eventHandler
-
+  private fun raiseEvents(output: List<ContextVariable>) =
     invokeAction.done
       .map { it.withData(output) }
       .forEach { event ->
-        if (event.channel == EventChannel.INTERNAL) {
-          eventListener.onReceiveEvent(event)
-        } else {
-          eventHandler.sendEvent(event)
-        }
+        when (event.channel) {
+          EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
+          else -> executionContext.eventHandler::sendEvent
+        }.invoke(event)
       }
+
+  companion object {
+    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 }
