@@ -18,10 +18,9 @@ import kotlinx.coroutines.launch
  * @property invokeAction the definition of the service call and associated events.
  * @property executionContext the context in which the invocation occurs.
  */
-class ActionInvokeCommand(
-  private val invokeAction: InvokeAction,
-  executionContext: ExecutionContext,
-) : ActionCommand(executionContext) {
+class ActionInvokeCommand
+internal constructor(private val invokeAction: InvokeAction, executionContext: ExecutionContext) :
+  ActionCommand(executionContext) {
 
   /**
    * Executes the service invocation logic.

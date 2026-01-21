@@ -5,4 +5,4 @@ package at.ac.uibk.dps.cirrina.execution.`object`.action
  *
  * @property action the name of the timeout action to be reset.
  */
-class TimeoutResetAction(val action: String) : Action()
+class TimeoutResetAction internal constructor(val action: String) : Action()

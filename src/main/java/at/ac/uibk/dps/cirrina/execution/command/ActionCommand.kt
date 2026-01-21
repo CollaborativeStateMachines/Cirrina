@@ -8,7 +8,8 @@ package at.ac.uibk.dps.cirrina.execution.command
  *
  * @property executionContext the context providing access to scope, gauges, and environment data.
  */
-abstract class ActionCommand(protected val executionContext: ExecutionContext) {
+abstract class ActionCommand
+internal constructor(protected val executionContext: ExecutionContext) {
 
   /**
    * Executes the internal logic of the command.

@@ -7,4 +7,4 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
  *
  * @property expression the expression to be evaluated.
  */
-class EvalAction(val expression: Expression) : Action()
+class EvalAction internal constructor(val expression: Expression) : Action()

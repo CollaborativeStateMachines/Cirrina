@@ -10,7 +10,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
  * @property cases a mapping of expressions to their corresponding actions.
  * @property default the fallback action to execute if no cases match.
  */
-class MatchAction(
+class MatchAction
+internal constructor(
   val value: Expression,
   val cases: Map<Expression, Action>,
   val default: Action? = null,

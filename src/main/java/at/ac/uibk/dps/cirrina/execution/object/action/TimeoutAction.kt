@@ -10,7 +10,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
  * @property delay the expression determining the wait time in milliseconds.
  * @property do the action to be triggered once the delay expires.
  */
-class TimeoutAction(val name: String, val delay: Expression, val `do`: Action) :
+class TimeoutAction
+internal constructor(val name: String, val delay: Expression, val `do`: Action) :
   Action(), EventRaisingAction {
 
   /**

@@ -12,7 +12,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.EvalAction
  * @property evalAction the specific action definition containing the expression to be evaluated.
  * @property executionContext the context in which the evaluation occurs.
  */
-class ActionEvalCommand(private val evalAction: EvalAction, executionContext: ExecutionContext) :
+class ActionEvalCommand
+internal constructor(private val evalAction: EvalAction, executionContext: ExecutionContext) :
   ActionCommand(executionContext) {
 
   /**

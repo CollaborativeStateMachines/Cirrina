@@ -12,7 +12,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.MatchAction
  * @property matchAction the definition containing the value to match and the cases.
  * @property executionContext the context providing scope and command creation capabilities.
  */
-class ActionMatchCommand(private val matchAction: MatchAction, executionContext: ExecutionContext) :
+class ActionMatchCommand
+internal constructor(private val matchAction: MatchAction, executionContext: ExecutionContext) :
   ActionCommand(executionContext) {
 
   /**

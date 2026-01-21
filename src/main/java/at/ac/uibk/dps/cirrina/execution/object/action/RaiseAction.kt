@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
  *
  * @property event the event to be raised.
  */
-class RaiseAction(val event: Event) : Action(), EventRaisingAction {
+class RaiseAction internal constructor(val event: Event) : Action(), EventRaisingAction {
 
   /**
    * Returns the list of [Event]s to be triggered by this action.

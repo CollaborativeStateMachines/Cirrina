@@ -12,7 +12,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
  * @property input the list of context variables passed as input to the service.
  * @property raises the list of events to be raised upon successful service completion.
  */
-class InvokeAction(
+class InvokeAction
+internal constructor(
   val type: String,
   val mode: InvocationMode,
   val input: List<ContextVariable>,

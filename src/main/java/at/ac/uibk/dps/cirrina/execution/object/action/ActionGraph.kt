@@ -12,7 +12,7 @@ import org.jgrapht.graph.SimpleDirectedGraph
 class ActionGraph : SimpleDirectedGraph<Action, DefaultEdge> {
 
   /** Initializes an empty action graph. */
-  constructor() : super(DefaultEdge::class.java)
+  internal constructor() : super(DefaultEdge::class.java)
 
   /**
    * Filters and returns actions of a specific type [T].
