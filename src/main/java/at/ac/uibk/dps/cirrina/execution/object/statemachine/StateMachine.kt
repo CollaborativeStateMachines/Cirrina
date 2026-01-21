@@ -61,6 +61,10 @@ class StateMachine(
     get() = stateMachineId
 
   override fun onReceiveEvent(event: Event) {
+    while (!isReady) {
+      Thread.onSpinWait()
+    }
+
     handleEvent(event)?.let { next -> handleTransition(next, event) }
 
     if (event.channel == EventChannel.INTERNAL) {

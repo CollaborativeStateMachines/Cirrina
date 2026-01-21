@@ -83,13 +83,13 @@ class HttpServiceImplementationTest {
             .value(5)
             .build()
             .getOrThrow()
-            .evaluate(Extent()),
+            .evaluate(Extent.empty()),
           ContextVariableBuilder.empty()
             .name("varTwo")
             .value(6)
             .build()
             .getOrThrow()
-            .evaluate(Extent()),
+            .evaluate(Extent.empty()),
         )
 
       val service =

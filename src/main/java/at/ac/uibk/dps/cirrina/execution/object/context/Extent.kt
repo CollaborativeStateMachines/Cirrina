@@ -1,58 +1,56 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-/**
- * Represents a hierarchical scope of [Context] objects. Values are resolved from 'high' (most
- * specific) to 'low' (most general).
- */
-class Extent(val contexts: List<Context> = emptyList()) {
+class Extent private constructor(private val contexts: Array<Context>) {
+
+  private val size: Int = contexts.size
+
+  val high: Context? = if (size > 0) contexts[size - 1] else null
 
   companion object {
-    fun empty(): Extent = Extent()
+    private val EMPTY_ARRAY = emptyArray<Context>()
 
-    fun of(vararg contexts: Context): Extent = Extent(contexts.toList())
+    fun empty(): Extent = Extent(EMPTY_ARRAY)
+
+    fun of(vararg contexts: Context): Extent = Extent(Array(contexts.size) { contexts[it] })
   }
 
-  constructor(low: List<Context>, high: Context) : this(low + high)
+  constructor(
+    low: List<Context>,
+    high: Context,
+  ) : this(Array(low.size + 1) { i -> if (i < low.size) low[i] else high })
 
-  constructor(low: Context, high: Context) : this(listOf(low, high))
+  constructor(low: Context, high: Context) : this(arrayOf(low, high))
 
-  /** Attempts to assign a value to a variable in the 'high' context. */
   fun setOrCreate(name: String, value: Any?): Int =
-    high?.let { ctx ->
-      if (ctx.has(name)) {
-        ctx.assign(name, value)
-      } else {
-        ctx.create(name, value)
-      }
-    } ?: error("extent contains no contexts")
+    high?.let { ctx -> if (ctx.has(name)) ctx.assign(name, value) else ctx.create(name, value) }
+      ?: error("extent contains no contexts")
 
-  /** Updates [name] in the first context where it exists, searching high to low. */
   fun set(name: String, value: Any?): Int {
-    for (i in contexts.indices.reversed()) {
-      val context = contexts[i]
-      if (context.has(name)) {
-        return context.assign(name, value)
+    var i = size - 1
+    while (i >= 0) {
+      val ctx = contexts[i]
+      if (ctx.has(name)) {
+        return ctx.assign(name, value)
       }
+      --i
     }
     error("variable '$name' not found in any context")
   }
 
-  fun has(name: String): Boolean = contexts.any { it.has(name) }
-
-  /** Resolves the value of [name] by searching through contexts from high to low. */
   fun resolve(name: String): Any {
-    for (i in contexts.indices.reversed()) {
-      val context = contexts[i]
-
-      if (context.has(name)) {
-        return context.get(name) ?: Unit
+    var i = size - 1
+    while (i >= 0) {
+      val ctx = contexts[i]
+      if (ctx.has(name)) {
+        return ctx.get(name) ?: Unit
       }
+      --i
     }
     error("variable '$name' not found in any context")
   }
 
-  fun extend(high: Context): Extent = Extent(this.contexts, high)
-
-  val high: Context?
-    get() = contexts.lastOrNull()
+  fun extend(high: Context): Extent {
+    val newArray = Array(size + 1) { i -> if (i < size) contexts[i] else high }
+    return Extent(newArray)
+  }
 }

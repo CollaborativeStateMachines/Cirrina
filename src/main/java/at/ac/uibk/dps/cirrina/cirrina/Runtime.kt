@@ -11,7 +11,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import com.google.common.flogger.FluentLogger
-import com.lmax.disruptor.BlockingWaitStrategy
+import com.lmax.disruptor.BusySpinWaitStrategy
 import com.lmax.disruptor.EventHandler as LmaxEventHandler
 import com.lmax.disruptor.dsl.Disruptor
 import com.lmax.disruptor.dsl.ProducerType
@@ -49,7 +49,7 @@ class Runtime(
       RING_BUFFER_SIZE,
       DaemonThreadFactory.INSTANCE,
       ProducerType.MULTI,
-      BlockingWaitStrategy(),
+      BusySpinWaitStrategy(),
     )
 
   init {
@@ -105,7 +105,6 @@ class Runtime(
     phaser.arriveAndDeregister()
 
     while (phaser.registeredParties > 0) {
-      println(phaser.registeredParties)
       phaser.awaitAdvance(phaser.phase)
     }
   }

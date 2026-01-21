@@ -29,7 +29,7 @@ private constructor(private val contextDescription: Map<String, String>? = null)
     return description.entries.fold(Result.success(currentContext)) { acc, (name, expr) ->
       acc.mapCatching { ctx ->
         val expression = ExpressionBuilder.from(expr).build().getOrThrow()
-        val value = expression.execute(Extent())
+        val value = expression.execute(Extent.empty())
 
         ctx.create(name, value)
 

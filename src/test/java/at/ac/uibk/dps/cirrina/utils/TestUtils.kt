@@ -9,7 +9,6 @@ import java.net.InetSocketAddress
 import java.net.URI
 import java.nio.file.Paths
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.fail
 
 fun <T> Result<T>.assertValue(expected: T) {
@@ -20,12 +19,6 @@ fun <T> Result<T>.assertValue(expected: T) {
     },
   )
 }
-
-fun Result<*>.assertFailure() =
-  assertTrue(this.isFailure, "expected Result.failure but was success")
-
-fun Result<*>.assertSuccess() =
-  assertTrue(this.isSuccess, "expected Result.success but was failure")
 
 object TestUtils {
   fun resourceUri(path: String): URI {
