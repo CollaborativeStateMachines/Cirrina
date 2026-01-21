@@ -14,6 +14,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import com.google.common.flogger.FluentLogger
 import java.util.*
+import java.util.concurrent.CountDownLatch
 
 class StateMachine(
   private val stateMachineClass: StateMachineClass,
@@ -28,7 +29,7 @@ class StateMachine(
     private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
-  @Volatile private var isReady = false
+  private val readySignal = CountDownLatch(1)
 
   private val stateMachineId = UUID.randomUUID().toString()
   private val timeoutActionManager = TimeoutActionManager()
@@ -61,9 +62,9 @@ class StateMachine(
     get() = stateMachineId
 
   override fun onReceiveEvent(event: Event) {
-    while (!isReady) {
-      Thread.onSpinWait()
-    }
+    readySignal.await()
+
+    if (isTerminated()) return
 
     handleEvent(event)?.let { next -> handleTransition(next, event) }
 
@@ -222,10 +223,10 @@ class StateMachine(
           null,
         )
         ?.let { next -> handleTransition(next, null) }
-
-      isReady = true
     } catch (ex: Exception) {
-      logger.atSevere().withCause(ex).log("Fatal error in $this")
+      logger.atSevere().withCause(ex).log("fatal error in $this")
+    } finally {
+      readySignal.countDown()
     }
   }
 
