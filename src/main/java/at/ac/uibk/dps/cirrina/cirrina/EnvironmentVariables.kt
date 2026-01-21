@@ -23,12 +23,8 @@ data class EnvironmentVariable<T>(
     return when {
       value != null -> mapper(value)
       default != null -> default
-      required ->
-        throw EnvironmentVariableError.Missing("missing required environment variable: $name")
-      else ->
-        throw EnvironmentVariableError.Missing(
-          "environment variable '$name' is missing but not marked required"
-        )
+      required -> error("missing required environment variable: $name")
+      else -> error("environment variable '$name' is missing but not marked required")
     }
   }
 }
@@ -64,11 +60,7 @@ object EnvironmentVariables {
         try {
           EventProvider.valueOf(value.uppercase())
         } catch (_: IllegalArgumentException) {
-          throw EnvironmentVariableError.Invalid(
-            "EVENT_PROVIDER",
-            value,
-            EventProvider.entries.toString(),
-          )
+          error("invalid value for environment variable EVENT_PROVIDER")
         }
       },
     )
@@ -82,11 +74,7 @@ object EnvironmentVariables {
         try {
           PersistentContextProvider.valueOf(value.uppercase())
         } catch (_: IllegalArgumentException) {
-          throw EnvironmentVariableError.Invalid(
-            "CONTEXT_PROVIDER",
-            value,
-            PersistentContextProvider.entries.toString(),
-          )
+          error("invalid value for environment variable CONTEXT_PROVIDER")
         }
       },
     )

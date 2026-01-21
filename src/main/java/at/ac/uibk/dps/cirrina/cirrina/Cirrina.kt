@@ -15,102 +15,90 @@ import org.apache.commons.lang3.builder.ToStringStyle.SIMPLE_STYLE
 
 private val logger: FluentLogger = FluentLogger.forEnclosingClass()
 
+/** The primary orchestrator for the Cirrina runtime environment. */
 class Cirrina {
+
+  /** Bootstraps and executes the runtime. */
+  fun run() {
+    try {
+      setupEventHandler().use { eventHandler ->
+        setupPersistentContext().use { persistentContext ->
+          buildRuntime(eventHandler, persistentContext).run()
+        }
+      }
+    } catch (ex: Exception) {
+      logger.atSevere().withCause(ex).log("a fatal error occurred during runtime execution")
+    }
+  }
+
+  private fun setupEventHandler(): EventHandler =
+    newEventHandler().also { handler ->
+      if (handler is NatsEventHandler) {
+        logger.atFine().log("awaiting NATS connection...")
+        handler.awaitReady(NATS_CONNECTION_TIMEOUT)
+        handler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
+        handler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
+      }
+    }
+
+  private fun setupPersistentContext(): Context =
+    newPersistentContext().also { context ->
+      if (context is EtcdContext) {
+        logger.atFine().log("awaiting Etcd connection...")
+        context.awaitReady(ETCD_CONNECTION_TIMEOUT)
+      }
+    }
+
+  private fun buildRuntime(eventHandler: EventHandler, persistentContext: Context): Runtime =
+    CsmParser.parseServiceImplementationBindings(
+        URI(EnvironmentVariables.serviceBindingsPath.get())
+      )
+      .let { bindings ->
+        Runtime(
+          URI(EnvironmentVariables.appPath.get()),
+          EnvironmentVariables.instantiate.get(),
+          eventHandler,
+          persistentContext,
+          RandomServiceImplementationSelector(
+            ServiceImplementationBuilder.from(bindings.bindings).build().getOrThrow()
+          ),
+        )
+      }
+
+  private fun newEventHandler(): EventHandler =
+    when (EnvironmentVariables.eventProvider.get()) {
+      EventProvider.NATS -> NatsEventHandler(EnvironmentVariables.natsEventUrl.get())
+    }
+
+  private fun newPersistentContext(): Context =
+    when (EnvironmentVariables.contextProvider.get()) {
+      PersistentContextProvider.ETCD ->
+        EtcdContext(false, listOf(EnvironmentVariables.etcdContextUrl.get()))
+    }
+
   companion object {
     const val NATS_CONNECTION_TIMEOUT = 60000L
     const val ETCD_CONNECTION_TIMEOUT = 60000L
 
     init {
       ToStringBuilder.setDefaultStyle(SIMPLE_STYLE)
+      configureLogging()
+      startHealthService()
+    }
 
+    private fun configureLogging() =
       runCatching {
-          Cirrina::class.java.getResourceAsStream("/logging.properties")?.use { inputStream ->
-            LogManager.getLogManager().readConfiguration(inputStream)
+          Cirrina::class.java.getResourceAsStream("/logging.properties")?.use {
+            LogManager.getLogManager().readConfiguration(it)
           } ?: logger.atWarning().log("logging properties file not found")
         }
-        .onFailure { ex ->
-          logger.atSevere().withCause(ex).log("could not load logging properties")
-        }
+        .onFailure { logger.atSevere().withCause(it).log("could not load logging properties") }
 
-      logger.atFine().log("starting health service")
+    private fun startHealthService() =
       runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
-        .getOrElse { e -> logger.atSevere().withCause(e).log("could not start the health service") }
-    }
+        .onFailure { logger.atSevere().withCause(it).log("could not start health service") }
   }
-
-  fun run() {
-    try {
-      logger.atFine().log("creating the event handler")
-      newEventHandler()
-        .apply {
-          if (this is NatsEventHandler) {
-            logger.atFine().log("awaiting connection to NATS as the event handler")
-            awaitReady(NATS_CONNECTION_TIMEOUT)
-          }
-        }
-        .use { eventHandler ->
-          logger.atFiner().log("Subscribing to event sources")
-          eventHandler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
-          eventHandler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
-
-          logger.atFine().log("creating the persistent context")
-          newPersistentContext()
-            .apply {
-              if (this is EtcdContext) {
-                logger.atFine().log("awaiting connection to Etcd as the persistent context")
-                awaitReady(ETCD_CONNECTION_TIMEOUT)
-              }
-            }
-            .use { persistentContext ->
-              logger.atFine().log("loading service implementation bindings")
-              val serviceImplementationBindings =
-                CsmParser.parseServiceImplementationBindings(
-                    URI(EnvironmentVariables.serviceBindingsPath.get())
-                  )
-                  .bindings
-
-              logger.atFine().log("creating the runtime")
-              val runtime =
-                Runtime(
-                  URI(EnvironmentVariables.appPath.get()),
-                  EnvironmentVariables.instantiate.get(),
-                  eventHandler,
-                  persistentContext,
-                  RandomServiceImplementationSelector(
-                    ServiceImplementationBuilder.from(serviceImplementationBindings)
-                      .build()
-                      .getOrThrow()
-                  ),
-                )
-
-              logger.atFine().log("running the runtime")
-              runtime.run()
-            }
-        }
-    } catch (e: ConfigurationError) {
-      logger.atSevere().withCause(e).log("there is an error in the current configuration")
-    } catch (e: Exception) {
-      logger.atSevere().withCause(e).log("there was an unknown in the runtime execution")
-    }
-  }
-
-  private fun newEventHandler(): EventHandler =
-    when (EnvironmentVariables.eventProvider.get()) {
-      EventProvider.NATS -> newNatsEventHandler()
-    }
-
-  private fun newNatsEventHandler(): NatsEventHandler =
-    NatsEventHandler(EnvironmentVariables.natsEventUrl.get())
-
-  private fun newPersistentContext(): Context =
-    when (EnvironmentVariables.contextProvider.get()) {
-      PersistentContextProvider.ETCD -> newEtcdPersistentContext()
-    }
-
-  private fun newEtcdPersistentContext(): EtcdContext =
-    EtcdContext(false, listOf(EnvironmentVariables.etcdContextUrl.get()))
 }
 
-fun main() {
-  Cirrina().run()
-}
+/** Global application entry point. */
+fun main() = Cirrina().run()
