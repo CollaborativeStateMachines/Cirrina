@@ -22,12 +22,12 @@ class ActionMatchCommand(private val matchAction: MatchAction, executionContext:
    * @throws Exception if the command execution fails due to an internal error.
    */
   override fun execute(): List<ActionCommand> =
-    matchAction.case.entries
+    matchAction.cases.entries
       .filter { (expression, _) ->
         expression.execute(executionContext.scope.extent) ==
           matchAction.value.execute(executionContext.scope.extent)
       }
       .map { it.value }
-      .ifEmpty { listOf(matchAction.default) }
+      .ifEmpty { listOfNotNull(matchAction.default) }
       .map { action -> CommandFactory(executionContext).createActionCommand(action) }
 }

@@ -26,9 +26,9 @@ class StateClass internal constructor(parameters: Parameters) {
    * @param type The class type to filter by.
    * @return A list of actions matching the specified type.
    */
-  fun <T> getActionsOfType(type: Class<T>): List<T> =
+  inline fun <reified T> getActionsOfType(): List<T> =
     listOf(entryActionGraph, exitActionGraph, whileActionGraph, afterActionGraph).flatMap {
-      it.getActionsOfType(type)
+      it.getActionsOfType<T>()
     }
 
   override fun toString(): String = name

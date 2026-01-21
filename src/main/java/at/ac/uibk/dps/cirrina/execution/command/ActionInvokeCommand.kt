@@ -42,16 +42,14 @@ class ActionInvokeCommand(
       }
 
   private fun selectServiceImplementation(): ServiceImplementation =
-    executionContext.serviceImplementationSelector.select(
-      invokeAction.serviceType,
-      invokeAction.mode,
-    ) ?: error("no service implementation found for type '$invokeAction.serviceType'")
+    executionContext.serviceImplementationSelector.select(invokeAction.type, invokeAction.mode)
+      ?: error("no service implementation found for type '$invokeAction.serviceType'")
 
   private fun prepareInput(extent: Extent): List<ContextVariable> =
     invokeAction.input.map { it.evaluate(extent) }
 
   private fun raiseEvents(output: List<ContextVariable>) =
-    invokeAction.done
+    invokeAction.raises
       .map { it.withData(output) }
       .forEach { event ->
         when (event.channel) {

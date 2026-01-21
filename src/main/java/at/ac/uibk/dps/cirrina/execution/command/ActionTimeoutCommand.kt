@@ -22,5 +22,5 @@ internal constructor(private val timeoutAction: TimeoutAction, executionContext:
    * @throws Exception if the command execution fails due to an internal error.
    */
   override fun execute(): List<ActionCommand> =
-    listOf(CommandFactory(executionContext).createActionCommand(timeoutAction.action))
+    listOf(CommandFactory(executionContext).createActionCommand(timeoutAction.`do`))
 }

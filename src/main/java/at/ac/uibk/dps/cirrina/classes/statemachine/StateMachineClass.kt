@@ -45,8 +45,8 @@ class StateMachineClass internal constructor(parameters: Parameters) :
   val inputEvents: List<String> by lazy { edgeSet().mapNotNull { it.event }.distinct() }
 
   val outputEvents: List<Event> by lazy {
-    val vertexActions = vertexSet().flatMap { it.getActionsOfType(EventRaisingAction::class.java) }
-    val edgeActions = edgeSet().flatMap { it.getActionsOfType(EventRaisingAction::class.java) }
+    val vertexActions = vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() }
+    val edgeActions = edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() }
     (vertexActions + edgeActions).flatMap { it.raises() }
   }
 

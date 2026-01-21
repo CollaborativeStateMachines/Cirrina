@@ -28,7 +28,7 @@ open class TransitionClass internal constructor(parameters: Parameters) : Defaul
 
   public override fun getTarget(): StateClass = super.getTarget() as StateClass
 
-  fun <T> getActionsOfType(type: Class<T>): List<T> = actionGraph.getActionsOfType(type)
+  inline fun <reified T> getActionsOfType(): List<T> = actionGraph.getActionsOfType<T>()
 
   data class Parameters(
     val to: String?,

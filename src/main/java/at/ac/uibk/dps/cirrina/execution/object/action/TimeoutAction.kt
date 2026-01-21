@@ -1,82 +1,23 @@
-package at.ac.uibk.dps.cirrina.execution.object.action;
+package at.ac.uibk.dps.cirrina.execution.`object`.action
 
-import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import at.ac.uibk.dps.cirrina.execution.object.expression.Expression;
-import java.util.ArrayList;
-import java.util.List;
-import org.jetbrains.annotations.NotNull;
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 
 /**
- * Timeout action object.
+ * An action that schedules a [delay] before executing a specific [do].
+ *
+ * @property name the unique identifier for this timeout action.
+ * @property delay the expression determining the wait time in milliseconds.
+ * @property do the action to be triggered once the delay expires.
  */
-public final class TimeoutAction extends Action implements EventRaisingAction {
+class TimeoutAction(val name: String, val delay: Expression, val `do`: Action) :
+  Action(), EventRaisingAction {
 
   /**
-   * The name of the timeout action.
-   */
-  private final String name;
-
-  /**
-   * The delay expression. Needs to evaluate to a numeric value, representing the delay in milliseconds.
+   * Returns the list of [Event]s to be triggered by this action.
    *
-   * @see Number
+   * @return the event raised by this action.
    */
-  private final Expression delay;
-
-  /**
-   * The action to execute after the timeout.
-   */
-  private final Action action;
-
-  /**
-   * Initializes this timeout action object.
-   *
-   * @param parameters Parameters.
-   */
-  TimeoutAction(Parameters parameters) {
-    this.name = parameters.name;
-    this.delay = parameters.delay;
-    this.action = parameters.action;
-  }
-
-  /**
-   * Returns the name.
-   *
-   * @return Name.
-   */
-  public String getName() {
-    return name;
-  }
-
-  /**
-   * Returns the delay expression.
-   *
-   * @return Delay expression.
-   */
-  public Expression getDelay() {
-    return delay;
-  }
-
-  /**
-   * Returns the action.
-   *
-   * @return Action.
-   */
-  public Action getAction() {
-    return action;
-  }
-
-  @Override
-  @NotNull
-  public List<Event> raises() {
-    final var list = new ArrayList<Event>();
-
-    if (action instanceof RaiseAction) {
-      list.add(((RaiseAction) action).getEvent());
-    }
-
-    return list;
-  }
-
-  public record Parameters(String name, Expression delay, Action action) {}
+  override fun raises(): List<Event> =
+    (`do` as? RaiseAction)?.let { listOf(it.event) } ?: emptyList()
 }

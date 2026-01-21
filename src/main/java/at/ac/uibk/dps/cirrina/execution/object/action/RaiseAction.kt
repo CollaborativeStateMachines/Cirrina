@@ -1,26 +1,18 @@
-package at.ac.uibk.dps.cirrina.execution.object.action;
+package at.ac.uibk.dps.cirrina.execution.`object`.action
 
-import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import java.util.List;
-import org.jetbrains.annotations.NotNull;
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 
-public final class RaiseAction extends Action implements EventRaisingAction {
+/**
+ * An action that explicitly produces a single [event] for dispatching.
+ *
+ * @property event the event to be raised.
+ */
+class RaiseAction(val event: Event) : Action(), EventRaisingAction {
 
-  private final Event event;
-
-  RaiseAction(Parameters parameters) {
-    this.event = parameters.event();
-  }
-
-  public Event getEvent() {
-    return event;
-  }
-
-  @Override
-  @NotNull
-  public List<Event> raises() {
-    return List.of(getEvent());
-  }
-
-  public record Parameters(Event event) {}
+  /**
+   * Returns the list of [Event]s to be triggered by this action.
+   *
+   * @return the event raised by this action.
+   */
+  override fun raises(): List<Event> = listOf(event)
 }

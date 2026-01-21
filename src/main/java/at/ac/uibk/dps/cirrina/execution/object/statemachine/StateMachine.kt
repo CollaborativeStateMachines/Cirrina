@@ -142,7 +142,7 @@ class StateMachine(
         error("delay expression '${timeout.delay}' evaluated to non-numeric: $delay")
       }
 
-      val command = createCommandFactory(this, null).createActionCommand(timeout.action)
+      val command = createCommandFactory(this, null).createActionCommand(timeout.`do`)
       if (command !is ActionRaiseCommand) {
         error("a timeout action must be a raise action, found: ${command::class.simpleName}")
       }

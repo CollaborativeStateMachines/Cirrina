@@ -1,57 +1,28 @@
-package at.ac.uibk.dps.cirrina.execution.object.action;
+package at.ac.uibk.dps.cirrina.execution.`object`.action
 
-import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode;
-import at.ac.uibk.dps.cirrina.execution.object.context.ContextVariable;
-import at.ac.uibk.dps.cirrina.execution.object.event.Event;
-import java.util.List;
-import org.jetbrains.annotations.NotNull;
+import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 
 /**
- * Invoke action, invokes a service type.
+ * An action that invokes a specific service type.
+ *
+ * @property type the identifier of the service to be invoked.
+ * @property mode the [InvocationMode] for the service call.
+ * @property input the list of context variables passed as input to the service.
+ * @property raises the list of events to be raised upon successful service completion.
  */
-public final class InvokeAction extends Action implements EventRaisingAction {
+class InvokeAction(
+  val type: String,
+  val mode: InvocationMode,
+  val input: List<ContextVariable>,
+  val raises: List<Event>,
+) : Action(), EventRaisingAction {
 
-  private final String serviceType;
-
-  private final InvocationMode mode;
-
-  private final List<ContextVariable> input;
-
-  private final List<Event> done;
-
-  InvokeAction(Parameters parameters) {
-    this.serviceType = parameters.serviceType();
-    this.mode = parameters.mode();
-    this.input = parameters.input();
-    this.done = parameters.done();
-  }
-
-  public String getServiceType() {
-    return serviceType;
-  }
-
-  public InvocationMode getMode() {
-    return mode;
-  }
-
-  public List<ContextVariable> getInput() {
-    return input;
-  }
-
-  public List<Event> getDone() {
-    return done;
-  }
-
-  @Override
-  @NotNull
-  public List<Event> raises() {
-    return done;
-  }
-
-  public record Parameters(
-    String serviceType,
-    InvocationMode mode,
-    List<ContextVariable> input,
-    List<Event> done
-  ) {}
+  /**
+   * Returns the list of [Event]s to be triggered by this action.
+   *
+   * @return the list of events associated with the completion of this invocation.
+   */
+  override fun raises(): List<Event> = raises
 }
