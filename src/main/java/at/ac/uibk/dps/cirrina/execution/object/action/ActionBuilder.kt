@@ -62,8 +62,7 @@ private constructor(
     ExpressionBuilder.from(match.value).build().map { valueExpression ->
       buildCases(match.cases)
         .map { cases ->
-          val defaultAction = match.default?.let { from(it).build().getOrThrow() }
-          MatchAction(valueExpression, cases, defaultAction)
+          MatchAction(valueExpression, cases, match.default?.let { from(it).build().getOrThrow() })
         }
         .getOrThrow()
     }
