@@ -7,6 +7,7 @@ import io.etcd.jetcd.op.Cmp
 import io.etcd.jetcd.op.CmpTarget
 import io.etcd.jetcd.op.Op
 import io.etcd.jetcd.options.*
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
@@ -27,10 +28,10 @@ private class AsyncEtcdConnection(
       scope.async {
         while (isActive) {
           try {
-            logger.debug { "attempting to connect to etcd" }
+            logger.debug { "attempting to connect to etcd at $endpoints" }
             return@async Client.builder().endpoints(*endpoints.toTypedArray()).build()
-          } catch (_: Exception) {
-            logger.warn { "failed to connect to etcd, retrying..." }
+          } catch (e: Exception) {
+            logger.warn { "failed to connect to etcd, retrying in ${retryDelayMs}ms..." }
             delay(retryDelayMs)
           }
         }
@@ -44,9 +45,10 @@ private class AsyncEtcdConnection(
   @OptIn(ExperimentalCoroutinesApi::class)
   override fun close() {
     scope.cancel()
-    val deferred = clientRef.get()
-    if (deferred.isCompleted && !deferred.isCancelled) {
-      runCatching { deferred.getCompleted().close() }
+    clientRef.get().let { deferred ->
+      if (deferred.isCompleted && !deferred.isCancelled) {
+        runCatching { deferred.getCompleted().close() }
+      }
     }
   }
 }
@@ -57,19 +59,10 @@ class EtcdContext(endpoints: List<String>) : Context() {
   private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
   fun awaitReady(timeoutMs: Long): Result<Unit> = runBlocking {
-    asyncConn
-      .getClient()
-      .fold(
-        onSuccess = {
-          try {
-            withTimeout(timeoutMs) { asyncConn.getClient().getOrThrow() }
-            Result.success(Unit)
-          } catch (e: Exception) {
-            Result.failure(e)
-          }
-        },
-        onFailure = { Result.failure(it) },
-      )
+    runCatching {
+      withTimeout(timeoutMs) { asyncConn.getClient().getOrThrow() }
+      Unit
+    }
   }
 
   private suspend fun <T> withClient(operation: String, block: suspend (Client) -> T): T {
@@ -77,13 +70,15 @@ class EtcdContext(endpoints: List<String>) : Context() {
       val client = asyncConn.getClient().getOrThrow()
       block(client)
     } catch (ex: Exception) {
-      error("etcd context failure during '$operation': ${ex.message ?: "Unknown error"}")
+      error("etcd context failure during '$operation': ${ex.message ?: "unknown error"}")
     }
   }
 
   private fun Any?.toBytes(): ByteArray = ValueExchange(this).toBytes()
 
   private fun ByteArray.fromValueBytes(): Any? = ValueExchange.fromBytes(this).value
+
+  private fun String.toByteSequence() = ByteSequence.from(this.toByteArray(StandardCharsets.UTF_8))
 
   override fun has(name: String): Boolean =
     runBlocking(scope.coroutineContext) {
@@ -97,8 +92,7 @@ class EtcdContext(endpoints: List<String>) : Context() {
     runBlocking(scope.coroutineContext) {
       withClient("get") { client ->
         val response = client.kvClient.get(name.toByteSequence()).await()
-        val kv = response.kvs.firstOrNull() ?: error("variable '$name' does not exist in Etcd")
-
+        val kv = response.kvs.firstOrNull() ?: error("variable '$name' does not exist in etcd")
         kv.value.bytes.fromValueBytes()
       }
     }
@@ -117,7 +111,7 @@ class EtcdContext(endpoints: List<String>) : Context() {
             .commit()
             .await()
 
-        if (!txn.isSucceeded) error("variable '$name' already exists in Etcd")
+        if (!txn.isSucceeded) error("variable '$name' already exists in etcd")
         bytes.size
       }
     }
@@ -136,41 +130,46 @@ class EtcdContext(endpoints: List<String>) : Context() {
             .commit()
             .await()
 
-        if (!txn.isSucceeded) error("variable '$name' does not exist in Etcd")
+        if (!txn.isSucceeded) error("variable '$name' does not exist in etcd")
         bytes.size
       }
     }
 
-  override fun delete(name: String) =
+  override fun delete(name: String) {
     runBlocking(scope.coroutineContext) {
       withClient("delete") { client ->
         val response = client.kvClient.delete(name.toByteSequence()).await()
         if (response.deleted == 0L) {
-          error("variable '$name' does not exist in Etcd")
+          error("variable '$name' does not exist in etcd")
         }
       }
     }
+  }
 
-  override fun deleteAll() =
+  override fun deleteAll() {
     runBlocking(scope.coroutineContext) {
       withClient("deleteAll") { client ->
-        client.kvClient
-          .delete("*".toByteSequence(), DeleteOption.builder().isPrefix(true).build())
-          .await()
-        Unit
+        val allKeysPrefix = ByteSequence.from(byteArrayOf(0))
+        val options = DeleteOption.builder().withRange(allKeysPrefix).build()
+
+        client.kvClient.delete(allKeysPrefix, options).await()
       }
     }
+  }
 
   override fun getAll(): List<ContextVariable> =
     runBlocking(scope.coroutineContext) {
       withClient("getAll") { client ->
-        val response =
-          client.kvClient
-            .get("*".toByteSequence(), GetOption.builder().isPrefix(true).build())
-            .await()
+        val allKeysPrefix = ByteSequence.from(byteArrayOf(0))
+        val options = GetOption.builder().withRange(allKeysPrefix).build()
 
-        response.kvs.map {
-          ContextVariable.eager(it.key.toString(), it.value.bytes.fromValueBytes())
+        val response = client.kvClient.get(allKeysPrefix, options).await()
+
+        response.kvs.map { kv ->
+          ContextVariable.eager(
+            kv.key.toString(StandardCharsets.UTF_8),
+            kv.value.bytes.fromValueBytes(),
+          )
         }
       }
     }
@@ -179,6 +178,4 @@ class EtcdContext(endpoints: List<String>) : Context() {
     asyncConn.close()
     scope.cancel()
   }
-
-  private fun String.toByteSequence() = ByteSequence.from(this.toByteArray())
 }
