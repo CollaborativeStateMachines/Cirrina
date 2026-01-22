@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`.context
 import java.util.concurrent.ConcurrentHashMap
 
 /** In-memory context implementation. */
-open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
+open class InMemoryContext() : Context() {
 
   private val values = ConcurrentHashMap<String, Any?>()
 

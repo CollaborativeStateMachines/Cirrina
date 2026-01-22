@@ -10,7 +10,7 @@ import org.junit.jupiter.api.assertThrows
 class ExpressionTest {
 
   private fun withExpressionContext(block: ContextScope.() -> Unit) =
-    InMemoryContext(true).use { context -> ContextScope(context, Extent.of(context)).block() }
+    InMemoryContext().use { context -> ContextScope(context, Extent.of(context)).block() }
 
   @Test
   fun testBasicExpressions() = withExpressionContext {

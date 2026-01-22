@@ -36,7 +36,7 @@ class State(val stateObject: StateClass, private val parent: StateMachine) : Sco
     staticContext =
       (stateObject.staticContextDescription?.let { ContextBuilder.from(it) }
           ?: ContextBuilder.empty())
-        .inMemoryContext(true)
+        .inMemoryContext()
         .build()
         .getOrThrow()
   }

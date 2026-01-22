@@ -52,8 +52,8 @@ class StateMachine(
 
     localContext =
       stateMachineClass.transientContextDescription?.let {
-        ContextBuilder.from(it).build().getOrThrow()
-      } ?: ContextBuilder.empty().inMemoryContext(true).build().getOrThrow()
+        ContextBuilder.from(it).inMemoryContext().build().getOrThrow()
+      } ?: ContextBuilder.empty().inMemoryContext().build().getOrThrow()
 
     stateInstances =
       stateMachineClass.vertexSet().associate { stateClass ->
@@ -85,6 +85,7 @@ class StateMachine(
 
   private fun handleTermination() {
     if (isTerminated()) {
+      timeoutActionManager.shutdown()
       machineScope.cancel()
       runtime.phaser.arriveAndDeregister()
     }
@@ -206,19 +207,18 @@ class StateMachine(
 
     if (candidateClasses.isEmpty()) return null
 
-    return extent
-      .extend(
-        event.data.fold(InMemoryContext(true)) { context, it ->
-          context.apply { create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
-        }
-      )
-      .let { eventExtent ->
-        trySelectTransition(candidateClasses, eventExtent)?.also {
-          event.data.forEach { varData ->
-            eventExtent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
-          }
+    val tempContext =
+      event.data.fold(InMemoryContext()) { context, it ->
+        context.apply { create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
+      }
+
+    return extent.extend(tempContext).let { evaluationExtent ->
+      trySelectTransition(candidateClasses, evaluationExtent)?.also {
+        event.data.forEach { varData ->
+          extent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
         }
       }
+    }
   }
 
   fun start() {

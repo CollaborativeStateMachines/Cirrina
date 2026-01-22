@@ -11,6 +11,6 @@ class EtcdContextTest : ContextTest() {
         "skipping Etcd persistent context test: ETCD_CONTEXT_URL not set",
       )
 
-      return EtcdContext(true, listOf(etcdServerUrl)).apply { awaitReady(10_000).getOrThrow() }
+      return EtcdContext(listOf(etcdServerUrl)).apply { awaitReady(10_000).getOrThrow() }
     }
 }

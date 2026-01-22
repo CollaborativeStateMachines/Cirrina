@@ -13,9 +13,7 @@ private constructor(private val contextDescription: Map<String, String>? = null)
       ContextBuilder(contextDescription)
   }
 
-  fun inMemoryContext(isLocal: Boolean): ContextBuilder = apply {
-    context = InMemoryContext(isLocal)
-  }
+  fun inMemoryContext(): ContextBuilder = apply { context = InMemoryContext() }
 
   fun build(): Result<Context> {
     val currentContext =

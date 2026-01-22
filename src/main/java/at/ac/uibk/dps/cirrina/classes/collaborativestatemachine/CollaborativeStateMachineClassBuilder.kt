@@ -30,7 +30,7 @@ class CollaborativeStateMachineClassBuilder private constructor(private val csml
    */
   fun build(): Result<CollaborativeStateMachineClass> = runCatching {
     CollaborativeStateMachineClass(
-        ContextBuilder.from(csml.persistent).inMemoryContext(true).build().getOrThrow().getAll()
+        ContextBuilder.from(csml.persistent).inMemoryContext().build().getOrThrow().getAll()
       )
       .apply {
         csml.stateMachines.forEach { (name, desc) ->

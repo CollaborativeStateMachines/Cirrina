@@ -73,7 +73,7 @@ class Cirrina {
   private fun newPersistentContext(): Context =
     when (EnvironmentVariables.contextProvider.get()) {
       PersistentContextProvider.ETCD ->
-        EtcdContext(false, listOf(EnvironmentVariables.etcdContextUrl.get()))
+        EtcdContext(listOf(EnvironmentVariables.etcdContextUrl.get()))
     }
 
   companion object {

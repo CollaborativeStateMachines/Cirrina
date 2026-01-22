@@ -25,7 +25,7 @@ object TestUtils {
       },
   ): InMemoryContext {
     val mockPersistentContext =
-      object : InMemoryContext(true) {
+      object : InMemoryContext() {
         override fun assign(name: String, value: Any?): Int {
           return assignBlock({ n, v -> super.assign(n, v) }, name, value)
         }

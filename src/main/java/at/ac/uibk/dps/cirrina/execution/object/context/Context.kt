@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
 /** Abstract class for contexts. */
-abstract class Context(val isLocal: Boolean) : AutoCloseable {
+abstract class Context() : AutoCloseable {
 
   /**
    * Checks if a variable exists.

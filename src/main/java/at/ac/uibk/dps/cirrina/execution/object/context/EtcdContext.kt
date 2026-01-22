@@ -51,7 +51,7 @@ private class AsyncEtcdConnection(
   }
 }
 
-class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) {
+class EtcdContext(endpoints: List<String>) : Context() {
 
   private val asyncConn = AsyncEtcdConnection(endpoints)
   private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())

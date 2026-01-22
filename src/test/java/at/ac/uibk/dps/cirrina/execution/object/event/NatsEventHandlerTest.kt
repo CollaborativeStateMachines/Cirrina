@@ -23,7 +23,7 @@ internal class NatsEventHandlerTest {
     assertTimeout(Duration.ofSeconds(5)) {
       val count = 5
       val latch = CountDownLatch(count)
-      val context = InMemoryContext(true)
+      val context = InMemoryContext()
       val extent = Extent.of(context)
 
       // Collects events and counts down the latch

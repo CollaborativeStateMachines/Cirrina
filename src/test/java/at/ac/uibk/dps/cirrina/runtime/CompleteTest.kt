@@ -53,7 +53,7 @@ class CompleteTest {
       // Should not throw any exception
       assertDoesNotThrow {
         MockEventHandler().use { eventHandler ->
-          InMemoryContext(false).use { context ->
+          InMemoryContext().use { context ->
             val server = mockHttpServer { input ->
               val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
               listOf(ContextVariable("v", (v.value as Int) + 1))

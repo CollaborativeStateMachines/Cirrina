@@ -10,7 +10,7 @@ class GuardTest {
 
   @Test
   fun testGuard() {
-    InMemoryContext(true).use { context ->
+    InMemoryContext().use { context ->
       context.create("v", 5)
       val extent = Extent.of(context)
 
