@@ -3,6 +3,8 @@ package at.ac.uibk.dps.cirrina.execution.`object`.guard
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 
 class GuardTest {
 
@@ -12,11 +14,17 @@ class GuardTest {
       context.create("v", 5)
       val extent = Extent.of(context)
 
-      GuardBuilder.from("v==5").build().onSuccess { guard -> guard.evaluate(extent) }
+      assertDoesNotThrow {
+        GuardBuilder.from("v==5").build().onSuccess { guard -> guard.evaluate(extent) }
+      }
 
-      GuardBuilder.from("v==6").build().onSuccess { guard -> guard.evaluate(extent) }
+      assertDoesNotThrow {
+        GuardBuilder.from("v==6").build().onSuccess { guard -> guard.evaluate(extent) }
+      }
 
-      GuardBuilder.from("v").build().onSuccess { guard -> guard.evaluate(extent) }
+      assertThrows<IllegalArgumentException> {
+        GuardBuilder.from("v").build().onSuccess { guard -> guard.evaluate(extent) }
+      }
     }
   }
 }

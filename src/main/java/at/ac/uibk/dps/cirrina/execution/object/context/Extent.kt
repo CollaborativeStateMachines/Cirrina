@@ -4,12 +4,10 @@ class Extent private constructor(private val contexts: Array<Context>) {
 
   private val size: Int = contexts.size
 
-  val high: Context? = if (size > 0) contexts[size - 1] else null
+  val high: Context? = contexts.lastOrNull()
 
   companion object {
-    private val EMPTY_ARRAY = emptyArray<Context>()
-
-    fun empty(): Extent = Extent(EMPTY_ARRAY)
+    fun empty(): Extent = Extent(emptyArray())
 
     fun of(vararg contexts: Context): Extent = Extent(Array(contexts.size) { contexts[it] })
   }
@@ -22,35 +20,18 @@ class Extent private constructor(private val contexts: Array<Context>) {
   constructor(low: Context, high: Context) : this(arrayOf(low, high))
 
   fun setOrCreate(name: String, value: Any?): Int =
-    high?.let { ctx -> if (ctx.has(name)) ctx.assign(name, value) else ctx.create(name, value) }
-      ?: error("extent contains no contexts")
+    high?.run { if (has(name)) assign(name, value) else create(name, value) }
+      ?: error("Extent contains no contexts")
 
-  fun set(name: String, value: Any?): Int {
-    var i = size - 1
-    while (i >= 0) {
-      val ctx = contexts[i]
-      if (ctx.has(name)) {
-        return ctx.assign(name, value)
-      }
-      --i
-    }
-    error("variable '$name' not found in any context")
-  }
+  fun set(name: String, value: Any?): Int =
+    contexts.findLast { it.has(name) }?.assign(name, value)
+      ?: error("Variable '$name' not found in any context")
 
-  fun resolve(name: String): Any {
-    var i = size - 1
-    while (i >= 0) {
-      val ctx = contexts[i]
-      if (ctx.has(name)) {
-        return ctx.get(name) ?: Unit
-      }
-      --i
-    }
-    error("variable '$name' not found in any context")
-  }
+  fun resolve(name: String): Any =
+    contexts.findLast { it.has(name) }?.let { it.get(name) ?: Unit }
+      ?: error("Variable '$name' not found in any context")
 
-  fun extend(high: Context): Extent {
-    val newArray = Array(size + 1) { i -> if (i < size) contexts[i] else high }
-    return Extent(newArray)
-  }
+  fun has(name: String): Boolean = contexts.any { it.has(name) }
+
+  fun extend(high: Context): Extent = Extent(contexts + high)
 }

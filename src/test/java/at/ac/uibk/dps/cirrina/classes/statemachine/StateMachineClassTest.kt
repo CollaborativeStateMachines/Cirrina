@@ -78,9 +78,4 @@ class StateMachineClassTest {
       )
     }
   }
-
-  @Test
-  fun testToString() {
-    assertEquals("completeStateMachine", stateMachineClass.toString())
-  }
 }

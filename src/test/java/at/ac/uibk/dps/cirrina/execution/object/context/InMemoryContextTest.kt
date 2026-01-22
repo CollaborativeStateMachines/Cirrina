@@ -1,9 +1,5 @@
-package at.ac.uibk.dps.cirrina.execution.object.context;
+package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-public class InMemoryContextTest extends ContextTest {
-
-  @Override
-  protected Context createContext() {
-    return new InMemoryContext(true);
-  }
+class InMemoryContextTest : ContextTest() {
+  override fun createContext(): Context = InMemoryContext(true)
 }

@@ -4,6 +4,7 @@ import java.util.concurrent.Executors
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
 
 abstract class ContextTest {
   protected abstract fun createContext(): Context
@@ -11,37 +12,37 @@ abstract class ContextTest {
   @Test
   fun testOperations() {
     createContext().use { context ->
-      context.deleteAll()
+      assertDoesNotThrow { context.deleteAll() }
 
       // Create a variable
-      context.create("testVar", 42)
+      assertDoesNotThrow { context.create("testVar", 42) }
 
       // Retrieve it should succeed
-      context.get("testVar")
+      assertDoesNotThrow { context.get("testVar") }
 
       // Try to create it again, which should fail
-      context.create("testVar", 42)
+      assertThrows<IllegalStateException> { context.create("testVar", 42) }
 
       // Non-existent variable should fail
-      context.get("nonExistentVar")
+      assertThrows<IllegalStateException> { context.get("nonExistentVar") }
 
       // Deleting a non-existent variable should fail
-      context.delete("nonExistentVar")
+      assertThrows<IllegalStateException> { context.delete("nonExistentVar") }
 
       // Assigning a value to a non-existent variable should fail
-      context.assign("nonExistentVar", 1)
+      assertThrows<IllegalStateException> { context.assign("nonExistentVar", 1) }
 
       // Deleting the variable should succeed
-      context.delete("testVar")
+      assertDoesNotThrow { context.delete("testVar") }
 
       // Deleting it again should fail
-      context.delete("testVar")
+      assertThrows<IllegalStateException> { context.delete("testVar") }
 
       // It should not exist anymore
-      context.get("testVar")
+      assertThrows<IllegalStateException> { context.get("testVar") }
 
       // Assigning should fail
-      context.assign("testVar", 42)
+      assertThrows<IllegalStateException> { context.assign("testVar", 42) }
 
       // Get all variables
       assertDoesNotThrow {
