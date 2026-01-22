@@ -36,7 +36,7 @@ class HttpServiceImplementation(parameters: Parameters) :
    * Invokes the HTTP service with the provided input.
    *
    * @param input the list of context variables to be sent as the request payload.
-   * @return a [Result] containing the list of context variables returned by the service.
+   * @return a list of context variables returned by the service.
    */
   override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> {
     require(input.none { it.isLazy }) {
@@ -48,7 +48,7 @@ class HttpServiceImplementation(parameters: Parameters) :
         ByteArray(0)
       } else {
         ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(input.map { ContextVariableExchange(it).toProto().getOrThrow() })
+          .addAllData(input.map { ContextVariableExchange(it).toProto() })
           .build()
           .toByteArray()
       }
@@ -76,7 +76,7 @@ class HttpServiceImplementation(parameters: Parameters) :
     if (payload.isEmpty()) return emptyList()
 
     return ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map { proto ->
-      ContextVariableExchange.fromProto(proto).getOrThrow()
+      ContextVariableExchange.fromProto(proto)
     }
   }
 

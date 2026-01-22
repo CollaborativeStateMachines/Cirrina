@@ -53,14 +53,14 @@ object TestUtils {
 
       val input =
         ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
-          ContextVariableExchange.fromProto(it).getOrThrow()
+          ContextVariableExchange.fromProto(it)
         }
 
       val output = handlerBlock(input)
 
       val out =
         ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(output.map { ContextVariableExchange(it).toProto().getOrThrow() })
+          .addAllData(output.map { ContextVariableExchange(it).toProto() })
           .build()
           .toByteArray()
 

@@ -83,9 +83,9 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
     }
   }
 
-  private fun Any?.toBytes(): ByteArray = ValueExchange(this).toBytes().getOrThrow()
+  private fun Any?.toBytes(): ByteArray = ValueExchange(this).toBytes()
 
-  private fun ByteArray.fromValueBytes(): Any? = ValueExchange.fromBytes(this).getOrThrow().value
+  private fun ByteArray.fromValueBytes(): Any? = ValueExchange.fromBytes(this).value
 
   override fun has(name: String): Boolean =
     runBlocking(scope.coroutineContext) {

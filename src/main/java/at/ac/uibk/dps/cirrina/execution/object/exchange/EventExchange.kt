@@ -26,7 +26,7 @@ class EventExchange(val event: Event) {
 
       val data =
         proto.dataList.map { contextVariableProto ->
-          ContextVariableExchange.fromProto(contextVariableProto).getOrThrow()
+          ContextVariableExchange.fromProto(contextVariableProto)
         }
 
       Event(proto.name, channel, data, proto.id, proto.createdTime)
@@ -51,8 +51,7 @@ class EventExchange(val event: Event) {
         throw UnsupportedOperationException("event '${event.name}' has an unrecognized channel", e)
       }
 
-    val dataProtos =
-      event.data.map { variable -> ContextVariableExchange(variable).toProto().getOrThrow() }
+    val dataProtos = event.data.map { variable -> ContextVariableExchange(variable).toProto() }
 
     EventProtos.Event.newBuilder()
       .setCreatedTime(event.createdTime)

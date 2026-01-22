@@ -51,7 +51,7 @@ class ValueExchangeTest {
 
     assertDoesNotThrow {
       fun roundTrip(value: Any?): Any? =
-        ValueExchange.fromBytes(ValueExchange(value).toBytes().getOrThrow()).getOrThrow().value
+        ValueExchange.fromBytes(ValueExchange(value).toBytes()).value
 
       assertEquals(i, roundTrip(i))
       assertEquals(f, roundTrip(f))

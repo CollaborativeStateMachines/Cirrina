@@ -31,7 +31,7 @@ class HttpServiceImplementationTest {
         val payload = exchange.requestBody.readAllBytes()
         val incoming =
           ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
-            ContextVariableExchange.fromProto(it).getOrThrow()
+            ContextVariableExchange.fromProto(it)
           }
 
         val varOne = incoming.first { it.name == "varOne" }
@@ -41,7 +41,7 @@ class HttpServiceImplementationTest {
           ContextVariableProtos.ContextVariables.newBuilder()
             .addAllData(
               listOf(ContextVariable("result", (varOne.value as Int) + (varTwo.value as Int))).map {
-                ContextVariableExchange(it).toProto().getOrThrow()
+                ContextVariableExchange(it).toProto()
               }
             )
             .build()

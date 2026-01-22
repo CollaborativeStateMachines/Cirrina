@@ -5,16 +5,13 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 class ContextVariableExchange(val contextVariable: ContextVariable) {
 
   companion object {
-    fun fromProto(proto: ContextVariableProtos.ContextVariable): Result<ContextVariable> =
-      runCatching {
-        ContextVariable.eager(proto.name, ValueExchange.fromProto(proto.value).getOrThrow())
-      }
+    fun fromProto(proto: ContextVariableProtos.ContextVariable): ContextVariable =
+      ContextVariable.eager(proto.name, ValueExchange.fromProto(proto.value))
   }
 
-  fun toProto(): Result<ContextVariableProtos.ContextVariable> = runCatching {
+  fun toProto(): ContextVariableProtos.ContextVariable =
     ContextVariableProtos.ContextVariable.newBuilder()
       .setName(contextVariable.name)
-      .setValue(ValueExchange(contextVariable.value).toProto().getOrThrow())
+      .setValue(ValueExchange(contextVariable.value).toProto())
       .build()
-  }
 }
