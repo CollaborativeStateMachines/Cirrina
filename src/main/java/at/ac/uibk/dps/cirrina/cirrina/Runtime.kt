@@ -94,6 +94,8 @@ class Runtime(
     // Create the event handler
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->
+        // TODO: We can avoid dispatching to every state machine if we know what a state machine is
+        // subscribed to
         stateMachines.forEach { it.onReceiveEvent(envelope.event!!) }
       }
     )

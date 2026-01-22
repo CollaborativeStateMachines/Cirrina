@@ -3,15 +3,15 @@ package at.ac.uibk.dps.cirrina.execution.`object`.event
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.utils.Time
 import at.ac.uibk.dps.cirrina.utils.Uuid.insecureUuid
+import kotlin.time.Clock
 
 data class Event(
   val name: String,
   val channel: EventChannel,
   val data: List<ContextVariable> = emptyList(),
   val id: String = insecureUuid().toString(),
-  val createdTime: Double = Time.timeInMillisecondsSinceEpoch(),
+  val createdTime: Long = Clock.System.now().epochSeconds,
 ) {
   fun evaluateData(extent: Extent): Event {
     val evaluatedData = data.map { variable -> variable.evaluate(extent) }

@@ -177,7 +177,7 @@ class CompleteTest {
     // Test EventProtos.Event
     val event =
       EventProtos.Event.newBuilder()
-        .setCreatedTime(1.0)
+        .setCreatedTime(1)
         .setName("testEvent")
         .setId("someId")
         // Set channel three times to go through each case
@@ -195,7 +195,7 @@ class CompleteTest {
 
     // Should have details as defined
     assertNotNull(event)
-    assertTrue(event.createdTime > 0.0)
+    assertTrue(event.createdTime > 0)
     assertEquals(event.name, "testEvent")
     assertEquals(event.id, "someId")
     assertEquals(event.channel, EventProtos.Event.Channel.PERIPHERAL)

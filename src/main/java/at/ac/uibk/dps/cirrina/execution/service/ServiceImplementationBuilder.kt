@@ -36,15 +36,13 @@ private constructor(
     when (binding) {
       is ServiceImplementationBindings.HttpServiceImplementationBinding -> {
         HttpServiceImplementation(
-          HttpServiceImplementation.Parameters(
-            binding.name,
-            binding.isLocal,
-            binding.scheme,
-            binding.host,
-            binding.port,
-            binding.endPoint,
-            binding.method,
-          )
+          binding.scheme,
+          binding.host,
+          binding.port.toInt(),
+          binding.endPoint,
+          binding.method,
+          binding.name,
+          binding.isLocal,
         )
       }
       else -> error("unexpected service binding type: ${binding.javaClass.simpleName}")

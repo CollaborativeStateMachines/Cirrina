@@ -8,17 +8,6 @@ import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.net.URI
 import java.nio.file.Paths
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.fail
-
-fun <T> Result<T>.assertValue(expected: T) {
-  this.fold(
-    onSuccess = { actual -> assertEquals(expected, actual) },
-    onFailure = { ex ->
-      fail("expected success with value [$expected], but failed with: ${ex.message}")
-    },
-  )
-}
 
 object TestUtils {
   fun resourceUri(path: String): URI {

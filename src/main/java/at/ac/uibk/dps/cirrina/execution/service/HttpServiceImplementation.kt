@@ -4,6 +4,7 @@ import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
+import com.google.protobuf.InvalidProtocolBufferException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.http.HttpClient
@@ -12,82 +13,68 @@ import java.net.http.HttpResponse
 import java.util.concurrent.Executors
 import kotlinx.coroutines.future.await
 
-/**
- * An HTTP-based implementation of a service.
- *
- * This implementation serializes context variables into a Protobuf payload, performs an
- * asynchronous HTTP request, and parses the resulting Protobuf response back into variables.
- *
- * @property parameters the configuration parameters for the HTTP connection.
- */
-class HttpServiceImplementation(parameters: Parameters) :
-  ServiceImplementation(parameters.name, parameters.local) {
+class HttpServiceImplementation(
+  private val scheme: String,
+  private val host: String,
+  private val port: Int,
+  private val endPoint: String,
+  private val method: ServiceImplementationBindings.HttpMethod,
+  name: String,
+  local: Boolean,
+) : ServiceImplementation(name, local) {
 
-  private val httpClient: HttpClient =
-    HttpClient.newBuilder().executor(Executors.newCachedThreadPool()).build()
+  private val virtualExecutor = Executors.newVirtualThreadPerTaskExecutor()
 
-  private val scheme = parameters.scheme
-  private val host = parameters.host
-  private val port = parameters.port.toInt()
-  private val endPoint = parameters.endPoint
-  private val method = parameters.method
+  private val httpClient: HttpClient = HttpClient.newBuilder().executor(virtualExecutor).build()
 
-  /**
-   * Invokes the HTTP service with the provided input.
-   *
-   * @param input the list of context variables to be sent as the request payload.
-   * @return a list of context variables returned by the service.
-   */
-  override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> {
-    require(input.none { it.isLazy }) {
-      "all variables must be evaluated before service invocation"
-    }
+  override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> =
+    input
+      .apply {
+        require(none { it.isLazy }) {
+          "All variables need to be evaluated before service input can be converted to bytes"
+        }
+      }
+      .let { vars -> serializeInput(vars) }
+      .let { payload ->
+        HttpRequest.newBuilder()
+          .version(HttpClient.Version.HTTP_1_1)
+          .header("Content-Type", "application/x-protobuf")
+          .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
+          .uri(URI(scheme, null, host, port, endPoint, null, null))
+          .build()
+      }
+      .let { request ->
+        httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
+      }
+      .let { response -> handleResponse(response) }
 
-    val payload =
-      if (input.isEmpty()) {
-        ByteArray(0)
-      } else {
+  private fun serializeInput(input: List<ContextVariable>): ByteArray =
+    input
+      .takeIf { it.isNotEmpty() }
+      ?.let { vars ->
         ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(input.map { ContextVariableExchange(it).toProto() })
+          .addAllData(vars.map { ContextVariableExchange(it).toProto() })
           .build()
           .toByteArray()
+      } ?: byteArrayOf()
+
+  private fun handleResponse(response: HttpResponse<ByteArray>): List<ContextVariable> =
+    response
+      .takeIf { it.statusCode() == HttpURLConnection.HTTP_OK }
+      ?.body()
+      ?.takeIf { it.isNotEmpty() }
+      ?.let { payload ->
+        try {
+          ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
+            ContextVariableExchange.fromProto(it)
+          }
+        } catch (e: InvalidProtocolBufferException) {
+          error("Unexpected HTTP service invocation value type: ${e.message}")
+        }
       }
-
-    val uri = URI(scheme, null, host, port, endPoint, null, null)
-    val request =
-      HttpRequest.newBuilder()
-        .version(HttpClient.Version.HTTP_1_1)
-        .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
-        .uri(uri)
-        .build()
-
-    val response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
-
-    return handleResponse(response)
-  }
-
-  private fun handleResponse(response: HttpResponse<ByteArray>): List<ContextVariable> {
-    if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-      error("HTTP error (${response.statusCode()})")
-    }
-
-    val payload = response.body()
-
-    if (payload.isEmpty()) return emptyList()
-
-    return ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map { proto ->
-      ContextVariableExchange.fromProto(proto)
-    }
-  }
-
-  /** Configuration parameters for an [HttpServiceImplementation]. */
-  data class Parameters(
-    val name: String,
-    val local: Boolean,
-    val scheme: String,
-    val host: String,
-    val port: Long,
-    val endPoint: String,
-    val method: ServiceImplementationBindings.HttpMethod,
-  )
+      ?: if (response.statusCode() != HttpURLConnection.HTTP_OK) {
+        error("HTTP error (${response.statusCode()})")
+      } else {
+        emptyList()
+      }
 }

@@ -1,10 +1,12 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.event
 
 import at.ac.uibk.dps.cirrina.csm.Csml
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import java.time.Duration
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.params.ParameterizedTest
@@ -13,116 +15,82 @@ import org.junit.jupiter.params.provider.EnumSource
 internal class NatsEventHandlerTest {
 
   @ParameterizedTest
-  @EnumSource(Csml.EventChannel::class)
-  fun testNatsEventHandlerSendReceive(channel: Csml.EventChannel) {
-    val natsServerURL = System.getenv("NATS_EVENT_URL")
-    assumeTrue(natsServerURL != null, "Skipping NATS event handler test")
+  @EnumSource(EventChannel::class)
+  fun testNatsEventHandlerSendReceive(channel: EventChannel) {
+    val natsUrl = System.getenv("NATS_EVENT_URL")
+    assumeTrue(natsUrl != null, "Skipping NATS event handler test")
 
-    // Test should finish in 5 seconds
     assertTimeout(Duration.ofSeconds(5)) {
-      // Number of events sent
       val count = 5
-
-      // Number of events to wait for
       val latch = CountDownLatch(count)
+      val context = InMemoryContext(true)
+      val extent = Extent.of(context)
 
-      val localContext = InMemoryContext(true)
-
-      val eventListener =
+      // Collects events and counts down the latch
+      val receivedEvents = mutableListOf<Event>()
+      val handlerListener =
         object : EventListener {
-          val events = mutableListOf<Event>()
-
           override fun onReceiveEvent(event: Event) {
-            events.add(requireNotNull(event))
+            receivedEvents.add(event)
             latch.countDown()
           }
         }
 
-      // Create an event
-      val e1 =
-        run {
-            EventBuilder.from(Csml.EventDescription("e1", channel, mapOf("varName" to "5"))).build()
-          }
+      val event =
+        EventBuilder.from(Csml.EventDescription("e1", channel, mapOf("varName" to "5")))
+          .build()
           .getOrThrow()
 
-      // Connect the event handler to the NATS server
-      NatsEventHandler(natsServerURL).use { natsEventHandler ->
-        // Expect it to connect
-        assertTrue(natsEventHandler.awaitReady())
+      NatsEventHandler(natsUrl).use { handler ->
+        assertTrue(handler.awaitReady(), "NATS handler failed to connect")
+        handler.listener = handlerListener
 
-        // Create a listener
-        natsEventHandler.listener = eventListener
+        if (channel in setOf(EventChannel.GLOBAL, EventChannel.EXTERNAL)) {
+          // Scope helper to manage subscriptions and event validation
+          handler.run {
+            manageSubscription(channel, "e1", "source", subscribe = true)
 
-        // Global and external events can be sent using the event handler
-        if (channel == Csml.EventChannel.GLOBAL || channel == Csml.EventChannel.EXTERNAL) {
-          // Subscribe to the event
-          when (channel) {
-            Csml.EventChannel.GLOBAL -> natsEventHandler.subscribe("e1")
-            Csml.EventChannel.EXTERNAL -> natsEventHandler.subscribe("source", "e1")
-            else -> {}
-          }
+            repeat(count) { sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
 
-          // Send multiple events
-          repeat(count) {
-            natsEventHandler.sendEvent(
-              Event.ensureHasEvaluatedData(e1, Extent.of(localContext)),
-              "source",
-            )
-          }
+            assertTrue(latch.await(2, TimeUnit.SECONDS), "Timed out waiting for events")
+            assertEquals(count, receivedEvents.size)
 
-          // Wait for the events to arrive
-          latch.await(10, java.util.concurrent.TimeUnit.SECONDS)
-
-          // Check if the events were received correctly
-          assertEquals(5, eventListener.events.size)
-          eventListener.events.forEach { e ->
-            assertEquals("e1", e.name)
-            assertEquals(channel, e.channel)
-            assertEquals(1, e.data.size)
-
-            val data = e.data.first()
-            assertEquals("varName", data.name)
-            assertEquals(5, data.value)
-            assertFalse(data.isLazy)
-          }
-
-          // Clear the events
-          eventListener.events.clear()
-
-          // Unsubscribe from the event
-          when (channel) {
-            Csml.EventChannel.GLOBAL -> natsEventHandler.unsubscribe("e1")
-            Csml.EventChannel.EXTERNAL -> natsEventHandler.unsubscribe("source", "e1")
-            else -> {}
-          }
-
-          // Send multiple events again
-          repeat(count) {
-            natsEventHandler.sendEvent(
-              Event.ensureHasEvaluatedData(e1, Extent.of(localContext)),
-              "source",
-            )
-          }
-
-          // No events should arrive now
-          assertEquals(0, eventListener.events.size)
-        }
-        // All other event types cannot be sent
-        else {
-          assertDoesNotThrow {
-            // Send multiple events
-            repeat(count) {
-              natsEventHandler.sendEvent(
-                Event.ensureHasEvaluatedData(e1, Extent.of(localContext)),
-                "source",
-              )
+            receivedEvents.forEach { e ->
+              assertEquals("e1", e.name)
+              assertEquals(channel, e.channel)
+              e.data.first().run {
+                assertEquals("varName", name)
+                assertEquals(5, value)
+                assertFalse(isLazy)
+              }
             }
 
-            // No events should arrive
-            assertEquals(0, eventListener.events.size)
+            receivedEvents.clear()
+            manageSubscription(channel, "e1", "source", subscribe = false)
+
+            repeat(count) { sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+
+            assertEquals(0, receivedEvents.size, "Events received after unsubscribe")
           }
+        } else {
+          // Ensure non-routable channels don't trigger listeners
+          repeat(count) { handler.sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+          assertEquals(0, receivedEvents.size)
         }
       }
+    }
+  }
+
+  private fun NatsEventHandler.manageSubscription(
+    channel: EventChannel,
+    name: String,
+    source: String,
+    subscribe: Boolean,
+  ) {
+    when (channel) {
+      EventChannel.GLOBAL -> if (subscribe) subscribe(name) else unsubscribe(name)
+      EventChannel.EXTERNAL -> if (subscribe) subscribe(source, name) else unsubscribe(source, name)
+      else -> {}
     }
   }
 }

@@ -64,10 +64,8 @@ class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal) 
           try {
             withTimeout(timeoutMs) { asyncConn.getClient().getOrThrow() }
             Result.success(Unit)
-          } catch (ex: TimeoutCancellationException) {
-            Result.failure(RuntimeException("timed out awaiting etcd connection"))
-          } catch (ex: Exception) {
-            Result.failure(ex)
+          } catch (e: Exception) {
+            Result.failure(e)
           }
         },
         onFailure = { Result.failure(it) },

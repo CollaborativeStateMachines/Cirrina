@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.exchange
 
 import org.junit.jupiter.api.Assertions.assertArrayEquals
-import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
@@ -10,13 +9,8 @@ class ValueExchangeTest {
 
   @Test
   fun testToFromBytes() {
-    val i = 1
-    val f = 1.0f
-    val l = 1L
-    val d = 1.0
-    val s = "1"
-    val bo = true
-    val by =
+    val primitives = listOf(1, 1.0f, 1L, 1.0, "1", true)
+    val byteArray =
       byteArrayOf(
         8,
         1,
@@ -45,27 +39,27 @@ class ValueExchangeTest {
         8,
         32,
       )
-    val ar = arrayOf(i, f, l, d, s, bo, by)
-    val li = listOf(i, f, l, d, s, bo)
-    val ma = mapOf(i to f, l to d, s to bo)
+    val complexArray: Array<Any?> = arrayOf(1, 1.0f, 1L, 1.0, "1", true, byteArray)
+    val complexMap = mapOf(1 to 1.0f, 1L to 1.0, "1" to true)
 
-    assertDoesNotThrow {
-      fun roundTrip(value: Any?): Any? =
-        ValueExchange.fromBytes(ValueExchange(value).toBytes()).value
+    // Primitives
+    primitives.forEach { assertEquals(it, it.roundTrip()) }
 
-      assertEquals(i, roundTrip(i))
-      assertEquals(f, roundTrip(f))
-      assertEquals(l, roundTrip(l))
-      assertEquals(d, roundTrip(d))
-      assertEquals(s, roundTrip(s))
-      assertEquals(bo, roundTrip(bo))
+    // Byte array
+    assertArrayEquals(byteArray, byteArray.roundTrip() as ByteArray)
 
-      assertArrayEquals(by, roundTrip(by) as ByteArray)
-      assertArrayEquals(ar, roundTrip(ar) as Array<*>)
-      assertIterableEquals(li, roundTrip(li) as List<*>)
+    // Complex array
+    assertArrayEquals(complexArray, complexArray.roundTrip() as Array<*>)
 
-      val returnedMap = roundTrip(ma) as Map<*, *>
-      assertIterableEquals(ma.entries, returnedMap.entries)
+    // Primitives list
+    assertIterableEquals(primitives, primitives.roundTrip() as List<*>)
+
+    // Complex map
+    (complexMap.roundTrip() as Map<*, *>).let { returnedMap ->
+      assertEquals(complexMap.size, returnedMap.size)
+      complexMap.forEach { (k, v) -> assertEquals(v, returnedMap[k]) }
     }
   }
+
+  private fun Any?.roundTrip(): Any? = ValueExchange.fromBytes(ValueExchange(this).toBytes()).value
 }

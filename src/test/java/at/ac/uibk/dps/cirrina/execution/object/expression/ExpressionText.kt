@@ -9,162 +9,121 @@ import org.junit.jupiter.api.assertThrows
 
 class ExpressionTest {
 
+  private fun withExpressionContext(block: ContextScope.() -> Unit) =
+    InMemoryContext(true).use { context -> ContextScope(context, Extent.of(context)).block() }
+
   @Test
-  fun testExpression() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      val bytes = ByteArray(4).apply { ByteBuffer.wrap(this).putInt(0xBAD1D) }
-      val list = listOf(-1, 1, true, "foobar")
+  fun testBasicExpressions() = withExpressionContext {
+    val bytes = ByteArray(4).apply { ByteBuffer.wrap(this).putInt(0xBAD1D) }
+    val variousList = listOf(-1, 1, true, "foobar")
 
-      context.create("varPlusOneInt", +1)
-      context.create("varNegativeOneInt", -1)
-      context.create("varPlusOneDouble", +1.0)
-      context.create("varNegativeOneDouble", -1.0)
-      context.create("varTrueBool", true)
-      context.create("varFalseBool", false)
-      context.create("varFoobarString", "foobar")
-      context.create("varBad1dBytes", bytes)
-      context.create("varVariousList", list)
+    mapOf(
+        "varPlusOneInt" to 1,
+        "varNegativeOneInt" to -1,
+        "varPlusOneDouble" to 1.0,
+        "varNegativeOneDouble" to -1.0,
+        "varTrueBool" to true,
+        "varFalseBool" to false,
+        "varFoobarString" to "foobar",
+        "varBad1dBytes" to bytes,
+        "varVariousList" to variousList,
+      )
+      .forEach { (k, v) -> context.create(k, v) }
 
-      assertEquals(2, "varPlusOneInt+1".eval(extent))
-      assertEquals(-2, "varNegativeOneInt-1".eval(extent))
-      assertEquals(2.0, "varPlusOneDouble+1.0".eval(extent))
-      assertEquals(-2.0, "varNegativeOneDouble-1.0".eval(extent))
-      assertEquals(false, "!varTrueBool".eval(extent))
-      assertEquals(true, "!varFalseBool".eval(extent))
-      assertEquals("foobar", "varFoobarString".eval(extent))
-      assertEquals(bytes, "varBad1dBytes".eval(extent))
-      assertEquals(list, "varVariousList".eval(extent))
+    "varPlusOneInt + 1" isEqualTo 2
+    "varNegativeOneInt - 1" isEqualTo -2
+    "varPlusOneDouble + 1.0" isEqualTo 2.0
+    "varNegativeOneDouble - 1.0" isEqualTo -2.0
+    "!varTrueBool" isEqualTo false
+    "!varFalseBool" isEqualTo true
+    "varFoobarString" isEqualTo "foobar"
+    "varBad1dBytes" isEqualTo bytes
+    "varVariousList" isEqualTo variousList
+  }
+
+  @Test
+  fun testArrayArithmetic() = withExpressionContext {
+    context.create("someArray", "[1, 2, 3]".eval())
+
+    listOf("someArray + [4]", "someArray + {5}", "someArray + [6, ...]").forEach {
+      "someArray = $it".eval()
+    }
+
+    val array = extent.resolve("someArray") as Array<*>
+    assertArrayEquals(arrayOf(1, 2, 3, 4, 5, 6), array)
+    (1..6).forEach { "someArray.contains($it)" isEqualTo true }
+
+    // Removal tests
+    "someArray = someArray - [4]".eval()
+    "someArray = someArray - {5}".eval()
+    "someArray = someArray - [6, ...]".eval()
+
+    assertArrayEquals(arrayOf(1, 2, 3), extent.resolve("someArray") as Array<*>)
+  }
+
+  @Test
+  fun testMapArithmetic() = withExpressionContext {
+    context.create("someMap", "{1:2}".eval())
+
+    (3..11 step 2).forEach { k -> "someMap = someMap + {$k:${k + 1}}".eval() }
+
+    val expectedMap = mapOf(1 to 2, 3 to 4, 5 to 6, 7 to 8, 9 to 10, 11 to 12)
+    extent.resolve("someMap") isEqualTo expectedMap
+
+    // Chained removals
+    listOf(
+        "someMap - {3:4}",
+        "someMap - [5]",
+        "someMap - [7, ...]",
+        "someMap - {9}",
+        "someMap - 11",
+      )
+      .forEach { "someMap = $it".eval() }
+
+    extent.resolve("someMap") isEqualTo mapOf(1 to 2)
+  }
+
+  @Test
+  fun testUtility() = withExpressionContext {
+    val expectedSizes = setOf(1024, 1024 * 10, 1024 * 100, 1024 * 1000)
+
+    // Call utility function
+    repeat(100) {
+      val bytes =
+        "std:genRandPayload([1024, 1024 * 10, 1024 * 100, 1024 * 1000])".eval() as ByteArray
+      assertTrue(bytes.size in expectedSizes)
     }
   }
 
   @Test
-  fun testArrayArithmetic() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      context.create("someArray", "[1, 2, 3]".eval(extent))
-
-      "someArray = someArray + [4]".eval(extent)
-      "someArray = someArray + {5}".eval(extent)
-      "someArray = someArray + [6, ...]".eval(extent)
-
-      assertArrayEquals(arrayOf(1, 2, 3, 4, 5, 6), extent.resolve("someArray") as Array<*>)
-
-      (1..6).forEach { assertEquals(true, "someArray.contains($it)".eval(extent)) }
-
-      "someArray = someArray - [4]".eval(extent)
-      assertArrayEquals(arrayOf(1, 2, 3, 5, 6), extent.resolve("someArray") as Array<*>)
-
-      "someArray = someArray - {5}".eval(extent)
-      assertArrayEquals(arrayOf(1, 2, 3, 6), extent.resolve("someArray") as Array<*>)
-
-      "someArray = someArray - [6, ...]".eval(extent)
-      assertArrayEquals(arrayOf(1, 2, 3), extent.resolve("someArray") as Array<*>)
-    }
+  fun testMultiLineExpression() = withExpressionContext {
+    context.create("varOneInt", 1)
+    """
+        let varExpressionLocal = 1; 
+        varExpressionLocal += varOneInt; 
+        varExpressionLocal
+    """
+      .trimIndent() isEqualTo 2
   }
 
   @Test
-  fun testListArithmetic() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      assertDoesNotThrow {
-        context.create("someList", "[1, 2, 3, ...]".eval(extent))
-
-        "someList = someList + [4]".eval(extent)
-        "someList = someList + {5}".eval(extent)
-        "someList = someList + [6, ...]".eval(extent)
-
-        assertIterableEquals(listOf(1, 2, 3, 4, 5, 6), extent.resolve("someList") as List<*>)
-
-        "someList = someList - [4]".eval(extent)
-        "someList = someList - {5}".eval(extent)
-        "someList = someList - [6, ...]".eval(extent)
-
-        assertIterableEquals(listOf(1, 2, 3), extent.resolve("someList") as List<*>)
-      }
+  fun testExpressionNegative() = withExpressionContext {
+    context.create("varOneInt", 1)
+    listOf("1 + ", "varInvalid", "!varInvalid", "varInvalid.sub", "varInvalid + 1").forEach {
+      assertThrows<IllegalStateException> { it.eval() }
     }
   }
 
-  @Test
-  fun testSetArithmetic() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      assertDoesNotThrow {
-        context.create("someSet", "{1, 2, 3}".eval(extent))
+  class ContextScope(val context: InMemoryContext, val extent: Extent) {
 
-        "someSet = someSet + [4]".eval(extent)
-        "someSet = someSet + {5}".eval(extent)
-        "someSet = someSet + [6, ...]".eval(extent)
+    fun String.eval(): Any? = ExpressionBuilder.from(this).build().getOrThrow().execute(extent)
 
-        val expected = linkedSetOf(1, 2, 3, 4, 5, 6)
-        assertIterableEquals(expected, extent.resolve("someSet") as Set<*>)
-      }
+    infix fun String.isEqualTo(expected: Any?) {
+      assertEquals(expected, this.eval())
+    }
+
+    infix fun Any?.isEqualTo(expected: Any?) {
+      assertEquals(expected, this)
     }
   }
-
-  @Test
-  fun testMapArithmetic() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      assertDoesNotThrow {
-        context.create("someMap", "{1:2}".eval(extent))
-
-        listOf("3:4", "5:6", "7:8", "9:10", "11:12").forEach {
-          "someMap = someMap + {$it}".eval(extent)
-        }
-
-        val expectedMap = mapOf(1 to 2, 3 to 4, 5 to 6, 7 to 8, 9 to 10, 11 to 12)
-        assertEquals(expectedMap, extent.resolve("someMap"))
-
-        "someMap = someMap - {3:4}".eval(extent)
-        "someMap = someMap - [5]".eval(extent)
-        "someMap = someMap - [7, ...]".eval(extent)
-        "someMap = someMap - {9}".eval(extent)
-        "someMap = someMap - 11".eval(extent)
-
-        assertEquals(mapOf(1 to 2), extent.resolve("someMap"))
-      }
-    }
-  }
-
-  @Test
-  fun testUtility() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      val expectedOneOf = listOf(1024, 1024 * 10, 1024 * 100, 1024 * 1000)
-
-      repeat(100) {
-        val bytes = "std:genRandPayload([1024, 1024 * 10, 1024 * 100, 1024 * 1000])".eval(extent)
-        assertInstanceOf(ByteArray::class.java, bytes)
-        assertTrue(expectedOneOf.contains((bytes as ByteArray).size))
-      }
-    }
-  }
-
-  @Test
-  fun testMultiLineExpression() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      context.create("varOneInt", 1)
-      val expr = "let varExpressionLocal = 1; varExpressionLocal += varOneInt; varExpressionLocal"
-      assertEquals(2, expr.eval(extent))
-    }
-  }
-
-  @Test
-  fun testExpressionNegative() {
-    InMemoryContext(true).use { context ->
-      val extent = Extent.of(context)
-      context.create("varOneInt", 1)
-
-      assertThrows<IllegalStateException> { "1 + ".eval(extent) }
-      assertThrows<IllegalStateException> { "varInvalid".eval(extent) }
-      assertThrows<IllegalStateException> { "!varInvalid".eval(extent) }
-      assertThrows<IllegalStateException> { "varInvalid.sub".eval(extent) }
-      assertThrows<IllegalStateException> { "varInvalid + 1".eval(extent) }
-    }
-  }
-
-  private fun String.eval(extent: Extent): Any? =
-    ExpressionBuilder.from(this).build().getOrThrow().execute(extent)
 }
