@@ -21,12 +21,11 @@ open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
    * @return the value of the variable.
    * @throws Exception if the variable does not exist or if an internal error occurs.
    */
-  override fun get(name: String): Any? =
-    if (values.containsKey(name)) {
-      values[name]
-    } else {
-      error("variable '$name' does not exist")
+  override fun get(name: String): Any? {
+    return values.getOrDefault(name, NOT_FOUND).let {
+      if (it === NOT_FOUND) error("variable '$name' does not exist") else it
     }
+  }
 
   /**
    * Creates a new variable.
@@ -35,8 +34,7 @@ open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
    * @throws Exception if the variable already exists or if an internal error occurs.
    */
   override fun create(name: String, value: Any?): Int {
-    val existing = values.putIfAbsent(name, value)
-    if (existing != null) {
+    if (values.putIfAbsent(name, value) != null) {
       error("variable '$name' already exists")
     }
     return calculateSize(value)
@@ -49,13 +47,7 @@ open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
    * @throws Exception if the variable does not exist or if an internal error occurs.
    */
   override fun assign(name: String, value: Any?): Int {
-    var keyExists = false
-    values.computeIfPresent(name) { _, _ ->
-      keyExists = true
-      value
-    }
-
-    if (!keyExists) {
+    if (values.replace(name, value) == null && !values.containsKey(name)) {
       error("variable '$name' does not exist")
     }
     return calculateSize(value)
@@ -94,4 +86,8 @@ open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
   override fun close() {}
 
   private fun calculateSize(value: Any?): Int = if (value is ByteArray) value.size else 0
+
+  companion object {
+    private val NOT_FOUND = Any()
+  }
 }
