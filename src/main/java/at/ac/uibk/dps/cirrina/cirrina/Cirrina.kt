@@ -7,13 +7,13 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.io.CsmParser
-import com.google.common.flogger.FluentLogger
 import java.net.URI
 import java.util.logging.LogManager
+import mu.KotlinLogging
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle.SIMPLE_STYLE
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 /** The primary orchestrator for the Cirrina runtime environment. */
 class Cirrina {
@@ -27,14 +27,15 @@ class Cirrina {
         }
       }
     } catch (ex: Exception) {
-      logger.atSevere().withCause(ex).log("a fatal error occurred during runtime execution")
+      logger.error(ex) { "a fatal error occurred during runtime execution" }
     }
   }
 
   private fun setupEventHandler(): EventHandler =
     newEventHandler().also { handler ->
       if (handler is NatsEventHandler) {
-        logger.atFine().log("awaiting NATS connection...")
+        logger.info { "awaiting nats connection..." }
+
         handler.awaitReady(NATS_CONNECTION_TIMEOUT)
         handler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
         handler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
@@ -44,7 +45,8 @@ class Cirrina {
   private fun setupPersistentContext(): Context =
     newPersistentContext().also { context ->
       if (context is EtcdContext) {
-        logger.atFine().log("awaiting Etcd connection...")
+        logger.info { "awaiting etcd connection..." }
+
         context.awaitReady(ETCD_CONNECTION_TIMEOUT)
       }
     }
@@ -90,13 +92,13 @@ class Cirrina {
       runCatching {
           Cirrina::class.java.getResourceAsStream("/logging.properties")?.use {
             LogManager.getLogManager().readConfiguration(it)
-          } ?: logger.atWarning().log("logging properties file not found")
+          } ?: logger.warn { "logging properties file not found" }
         }
-        .onFailure { logger.atSevere().withCause(it).log("could not load logging properties") }
+        .onFailure { logger.error(it) { "could not load logging properties" } }
 
     private fun startHealthService() =
       runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
-        .onFailure { logger.atSevere().withCause(it).log("could not start health service") }
+        .onFailure { logger.error(it) { "could not start health service" } }
   }
 }
 

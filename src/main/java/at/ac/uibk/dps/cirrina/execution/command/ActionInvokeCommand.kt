@@ -5,8 +5,10 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.InvokeAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
-import com.google.common.flogger.FluentLogger
 import kotlinx.coroutines.launch
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * A command responsible for invoking an external service as defined by an [InvokeAction] within the
@@ -35,7 +37,7 @@ internal constructor(private val invokeAction: InvokeAction, executionContext: E
         executionContext.coroutineScope.launch {
           runCatching { first.invoke(second) }
             .onSuccess { raiseEvents(it) }
-            .onFailure { logger.atWarning().withCause(it).log("service invocation failed") }
+            .onFailure { logger.error(it) { "service invocation failed" } }
         }
         emptyList()
       }
@@ -56,8 +58,4 @@ internal constructor(private val invokeAction: InvokeAction, executionContext: E
           else -> executionContext.eventHandler::sendEvent
         }.invoke(event)
       }
-
-  companion object {
-    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
-  }
 }

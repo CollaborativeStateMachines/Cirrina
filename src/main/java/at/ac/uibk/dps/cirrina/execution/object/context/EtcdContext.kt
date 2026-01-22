@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ValueExchange
-import com.google.common.flogger.FluentLogger
 import io.etcd.jetcd.ByteSequence
 import io.etcd.jetcd.Client
 import io.etcd.jetcd.op.Cmp
@@ -10,9 +9,10 @@ import io.etcd.jetcd.op.Op
 import io.etcd.jetcd.options.*
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.*
-import kotlinx.coroutines.future.await // Requires kotlinx-coroutines-jdk8
+import kotlinx.coroutines.future.await
+import mu.KotlinLogging
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 private class AsyncEtcdConnection(
   private val endpoints: List<String>,
@@ -27,10 +27,10 @@ private class AsyncEtcdConnection(
       scope.async {
         while (isActive) {
           try {
-            logger.atFiner().log("attempting to connect to etcd")
+            logger.debug { "attempting to connect to etcd" }
             return@async Client.builder().endpoints(*endpoints.toTypedArray()).build()
-          } catch (ex: Exception) {
-            logger.atWarning().withCause(ex).log("failed to connect to etcd, retrying...")
+          } catch (_: Exception) {
+            logger.warn { "failed to connect to etcd, retrying..." }
             delay(retryDelayMs)
           }
         }
@@ -77,7 +77,7 @@ class EtcdContext(endpoints: List<String>) : Context() {
       val client = asyncConn.getClient().getOrThrow()
       block(client)
     } catch (ex: Exception) {
-      error("Etcd context failure during '$operation': ${ex.message ?: "Unknown error"}")
+      error("etcd context failure during '$operation': ${ex.message ?: "Unknown error"}")
     }
   }
 

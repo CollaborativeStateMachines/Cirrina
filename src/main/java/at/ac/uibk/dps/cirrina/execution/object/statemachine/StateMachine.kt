@@ -12,13 +12,15 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.state.State
 import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import com.google.common.flogger.FluentLogger
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 class StateMachine(
   private val stateMachineClass: StateMachineClass,
@@ -29,8 +31,6 @@ class StateMachine(
 
   companion object {
     const val EVENT_DATA_VARIABLE_PREFIX = "$"
-
-    private val logger: FluentLogger = FluentLogger.forEnclosingClass()
   }
 
   val id = UUID.randomUUID().toString()
@@ -69,6 +69,8 @@ class StateMachine(
     readySignal.await()
 
     if (isTerminated()) return
+
+    logger.debug { "received event: $event" }
 
     handleEvent(event)?.let { next -> handleTransition(next, event) }
 
@@ -229,8 +231,8 @@ class StateMachine(
           null,
         )
         ?.let { next -> handleTransition(next, null) }
-    } catch (ex: Exception) {
-      logger.atSevere().withCause(ex).log("fatal error in $this")
+    } catch (e: Exception) {
+      logger.error(e) { "fatal error in $this" }
     } finally {
       readySignal.countDown()
     }

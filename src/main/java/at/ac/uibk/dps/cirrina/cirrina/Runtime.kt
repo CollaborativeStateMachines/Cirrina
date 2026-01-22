@@ -10,7 +10,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
-import com.google.common.flogger.FluentLogger
 import com.lmax.disruptor.BusySpinWaitStrategy
 import com.lmax.disruptor.EventHandler as LmaxEventHandler
 import com.lmax.disruptor.dsl.Disruptor
@@ -19,8 +18,9 @@ import com.lmax.disruptor.util.DaemonThreadFactory
 import java.net.URI
 import java.util.concurrent.Phaser
 import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 /**
  * The execution engine responsible for managing the lifecycle of state machine instances.
@@ -68,16 +68,14 @@ class Runtime(
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main))
         .build()
-        .onFailure {
-          logger.atSevere().withCause(it).log("Failed to initialize collaborative blueprint")
-        }
+        .onFailure { logger.error(it) { "failed to initialize collaborative blueprint" } }
         .getOrThrow()
 
     // Create all persistent variables
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
       runCatching { persistentContext.create(variable.name, variable.value) }
         .onFailure {
-          logger.atWarning().log("Variable '${variable.name}' already exists or failed to create")
+          logger.warn { "variable '${variable.name}' already exists or failed to create" }
         }
     }
 
@@ -86,7 +84,7 @@ class Runtime(
       stateMachineNames
         .mapNotNull { name ->
           collaborativeStateMachineClass.findStateMachineClassByName(name).also {
-            if (it == null) logger.atWarning().log("State machine '$name' not found in blueprint")
+            if (it == null) logger.warn { "State machine '$name' not found in blueprint" }
           }
         }
         .flatMap { buildInstances(it, null) }

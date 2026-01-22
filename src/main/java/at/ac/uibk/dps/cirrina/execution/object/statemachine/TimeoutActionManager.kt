@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.statemachine
 
-import com.google.common.flogger.FluentLogger
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.*
+import mu.KotlinLogging
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 class TimeoutActionManager {
 
@@ -13,9 +13,9 @@ class TimeoutActionManager {
   private val timeoutJobs = ConcurrentHashMap<String, Job>()
 
   fun start(actionName: String, delayInMs: Number, task: suspend () -> Unit) {
-    check(managerScope.isActive) { "Cannot start action '$actionName' on a shut down manager" }
+    check(managerScope.isActive) { "cannot start action '$actionName' on a shut down manager" }
 
-    require(!timeoutJobs.containsKey(actionName)) { "Duplicate timeout action name '$actionName'" }
+    require(!timeoutJobs.containsKey(actionName)) { "duplicate timeout action name '$actionName'" }
 
     managerScope
       .launch {
@@ -23,9 +23,7 @@ class TimeoutActionManager {
           delay(delayInMs.toLong())
 
           runCatching { task() }
-            .onFailure { e ->
-              logger.atWarning().withCause(e).log("timeout action '$actionName' failed")
-            }
+            .onFailure { e -> logger.error(e) { "timeout action '$actionName' failed" } }
         }
       }
       .also { timeoutJobs[actionName] = it }

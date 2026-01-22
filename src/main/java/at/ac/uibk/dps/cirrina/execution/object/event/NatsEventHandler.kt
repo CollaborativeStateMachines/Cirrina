@@ -2,11 +2,11 @@ package at.ac.uibk.dps.cirrina.execution.`object`.event
 
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventExchange
-import com.google.common.flogger.FluentLogger
 import io.nats.client.*
 import java.util.concurrent.CountDownLatch
+import mu.KotlinLogging
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 /**
  * Event handler that uses NATS for communication.
@@ -54,12 +54,12 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
                         }
                       connection = conn
                     } catch (e: Exception) {
-                      logger.atSevere().withCause(e).log("Failed to setup the NATS event handler")
+                      logger.error(e) { "failed to setup the nats event handler" }
                     } finally {
                       connectedLatch.countDown()
                     }
                   }
-                  logger.atFine().log("Connected to the NATS server")
+                  logger.info { "connected to the nats server" }
                 }
 
                 ConnectionListener.Events.DISCONNECTED -> {
@@ -67,7 +67,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
                     connection = null
                     dispatcher = null
                   }
-                  logger.atFine().log("Disconnected from the NATS server")
+                  logger.info { "disconnected from the nats server" }
                 }
 
                 else -> {}
@@ -81,10 +81,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
       Nats.connectAsynchronously(options, true)
     } catch (e: InterruptedException) {
       Thread.currentThread().interrupt()
-      logger
-        .atSevere()
-        .withCause(e)
-        .log("Interrupted while initiating NATS connection, will never connect")
+      logger.error(e) { "interrupted while initiating nats connection, will never connect" }
     }
   }
 
@@ -94,13 +91,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
         val event = EventExchange.fromBytes(message.data).getOrThrow().event
         propagateEvent(event)
       }
-      .onFailure { e ->
-        when (e) {
-          is UnsupportedOperationException ->
-            logger.atFiner().log("A message could not be read as an event")
-          else -> logger.atWarning().log("Unexpected error while handling a message")
-        }
-      }
+      .onFailure { e -> logger.error(e) { "unexpected error while handling a message" } }
   }
 
   /**
@@ -118,14 +109,14 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
         Csml.EventChannel.EXTERNAL ->
           source?.let { "$it.${event.name}" }
             ?: run {
-              logger.atWarning().log("Event source is null, cannot send event '${event.name}'")
+              logger.warn { "event source is null, cannot send event '${event.name}'" }
               return
             }
 
         Csml.EventChannel.GLOBAL -> "$GLOBAL_SOURCE.${event.name}"
 
         else -> {
-          logger.atWarning().log("Unsupported channel '${event.channel}', event not sent")
+          logger.warn { "unsupported channel '${event.channel}', event not sent" }
           return
         }
       }
@@ -133,8 +124,8 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     synchronized(lock) {
       connection?.let { conn ->
         runCatching { conn.publish(subject, EventExchange(event).toBytes().getOrThrow()) }
-          .onFailure { _ -> logger.atWarning().log("Failed to publish event '$subject'") }
-      } ?: logger.atWarning().log("Not sending event, not connected to the NATS server")
+          .onFailure { _ -> logger.warn { "failed to publish event '$subject'" } }
+      } ?: logger.warn { "not sending event, not connected to the nats server" }
     }
   }
 
@@ -149,9 +140,9 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
       subscriptions.add(subject)
       runCatching {
           dispatcher?.subscribe(subject)
-            ?: logger.atFiner().log("Dispatcher unavailable; queued subscription: $subject")
+            ?: logger.info { "dispatcher unavailable; queued subscription: $subject" }
         }
-        .onFailure { _ -> logger.atWarning().log("Could not subscribe to $subject") }
+        .onFailure { _ -> logger.warn { "could not subscribe to $subject" } }
     }
   }
 
@@ -165,7 +156,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { _ -> logger.atWarning().log("Could not unsubscribe from $subject") }
+        .onFailure { _ -> logger.warn { "could not unsubscribe from $subject" } }
     }
   }
 
@@ -181,9 +172,9 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
       subscriptions.add(subject)
       runCatching {
           dispatcher?.subscribe(subject)
-            ?: logger.atFiner().log("Dispatcher unavailable; queued subscription: $subject")
+            ?: logger.info { "dispatcher unavailable; queued subscription: $subject" }
         }
-        .onFailure { _ -> logger.atWarning().log("Could not subscribe to $subject") }
+        .onFailure { _ -> logger.warn { "could not subscribe to $subject" } }
     }
   }
 
@@ -198,7 +189,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { _ -> logger.atWarning().log("Could not unsubscribe from $subject") }
+        .onFailure { _ -> logger.warn { "could not unsubscribe from $subject" } }
     }
   }
 
@@ -213,7 +204,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
           dispatcher?.let { connection?.closeDispatcher(it) }
           connection?.close()
         }
-        .onFailure { _ -> logger.atWarning().log("Failed to close the NATS") }
+        .onFailure { _ -> logger.warn { "failed to close the nats" } }
     }
   }
 
