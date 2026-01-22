@@ -30,7 +30,7 @@ internal constructor(
    */
   val initialState: StateClass by lazy {
     vertexSet().firstOrNull { it.initial }
-      ?: error("State machine '$name' must have an initial state.")
+      ?: error("state machine '$name' must have an initial state")
   }
 
   private val stateNameMap: Map<String, StateClass> by lazy { vertexSet().associateBy { it.name } }

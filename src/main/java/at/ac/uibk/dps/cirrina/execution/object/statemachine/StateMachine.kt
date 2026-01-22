@@ -14,13 +14,11 @@ import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import java.util.*
 import java.util.concurrent.CountDownLatch
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
+private const val VAR_PREFIX = "$"
 
 class StateMachine(
   private val stateMachineClass: StateMachineClass,
@@ -29,218 +27,254 @@ class StateMachine(
   private val parentStateMachine: StateMachine? = null,
 ) : EventListener, Scope {
 
-  companion object {
-    const val EVENT_DATA_VARIABLE_PREFIX = "$"
-  }
+  /** The unique identifier of this state machine. */
+  val id: String = UUID.randomUUID().toString()
 
-  val id = UUID.randomUUID().toString()
-
+  // Signal indicating that the state machine is ready to start
   private val readySignal = CountDownLatch(1)
 
-  private val machineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+  // Coroutine scope for timeout actions and scoped coroutines
+  private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-  private val timeoutActionManager = TimeoutActionManager()
-  private val stateMachineEventHandler = StateMachineEventHandler(this, runtime.eventHandler)
-  private val stateInstances: Map<String, State>
-  private val localContext: Context
+  // Timeout manager
+  private val timeoutManager = TimeoutActionManager(coroutineScope)
 
+  // Event handler
+  private val eventHandler = StateMachineEventHandler(this, runtime.eventHandler)
+
+  // State instances
+  private val stateInstances =
+    stateMachineClass.vertexSet().associate { it.name to State(it, this) }
+
+  // Current state
   private var activeState: State? = null
-  private var nestedStateMachineIds: List<String> = emptyList()
+
+  // List of nested state machine ids
+  private var nestedIds = emptyList<String>()
+
+  /**
+   * The current extent of the state machine, created by extending the parent's extent with the
+   * state machine's transient context.
+   */
+  override val extent: Extent by lazy {
+    parentStateMachine?.extent?.extend(buildTransientContext())
+      ?: runtime.extent.extend(buildTransientContext())
+  }
 
   init {
     runtime.phaser.register()
+  }
 
-    localContext =
-      stateMachineClass.transientContextDescription?.let {
-        ContextBuilder.from(it).inMemoryContext().build().getOrThrow()
-      } ?: ContextBuilder.empty().inMemoryContext().build().getOrThrow()
-
-    stateInstances =
-      stateMachineClass.vertexSet().associate { stateClass ->
-        stateClass.name to State(stateClass, this)
+  /** Starts the state machine. */
+  fun start() =
+    runCatching {
+        stateInstances[stateMachineClass.initialState.name] ?: error("initial state not found")
       }
-  }
+      .onSuccess { initial ->
+        logger.info { "$this starting" }
 
-  override val extent: Extent by lazy {
-    parentStateMachine?.extent?.extend(localContext) ?: runtime.extent.extend(localContext)
-  }
+        // Enter the initial state and take the first transition if present
+        doEnter(initial, null)?.let { step(it, null) }
+      }
+      .onFailure { logger.error(it) { "$this fatal error" } }
+      .also {
+        // Indicate that the state machine is ready
+        readySignal.countDown()
+      }
 
+  /** Handles the received [event]. */
   override fun onReceiveEvent(event: Event) {
     readySignal.await()
+    takeIf { !isTerminated() }
+      ?.run {
+        logger.debug { event }
 
-    if (isTerminated()) return
+        // Handle the event and progress if a transition is present
+        handleEvent(event)?.let { step(it, event) }
 
-    logger.debug { "received event: $event" }
-
-    handleEvent(event)?.let { next -> handleTransition(next, event) }
-
-    if (event.channel == EventChannel.INTERNAL) {
-      nestedStateMachineIds.forEach { nestedId ->
-        runtime.findInstance(nestedId)?.onReceiveEvent(event)
-          ?: error("nested state machine $nestedId not found")
+        // Propagate the event to nested state machines
+        propagate(event)
       }
+  }
+
+  /** Sets the nested state machine ids. */
+  fun setNestedStateMachineIds(ids: List<String>) {
+    this.nestedIds = ids
+  }
+
+  private tailrec fun step(transition: Transition, event: Event?) {
+    // Internal transition
+    if (transition.isInternal) {
+      logger.debug { "$this internal transition: $transition" }
+      doTransition(transition, event)
+      return
+    }
+
+    // Acquire the target state
+    val target = stateInstances[transition.targetStateName] ?: error("target not found")
+    logger.debug { "$this transitioning: $activeState -> $target" }
+
+    // Execute exit and transition actions
+    doExit(activeState!!, event)
+    doTransition(transition, event)
+
+    // Execute entry actions and progress if a subsequent transition is present
+    val next = doEnter(target, event)
+    if (next != null) step(next, event)
+  }
+
+  private fun handleEvent(event: Event): Transition? =
+    activeState?.let { current ->
+      // Find candidate transitions
+      val candidates =
+        stateMachineClass.getOnTransitionsFromStateByEventName(current.stateClass, event.name)
+      if (candidates.isEmpty()) return null
+
+      // Build a temporary extent for transition evaluation
+      val evalExtent =
+        extent.extend(
+          event.data.fold(InMemoryContext()) { ctx, it ->
+            ctx.apply { create(VAR_PREFIX + it.name, it.value) }
+          }
+        )
+
+      // If transition evaluation succeeds, set the context variables and take the transition
+      trySelect(candidates, evalExtent)?.also {
+        event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }
+      }
+    }
+
+  private fun doEnter(state: State, event: Event?): Transition? =
+    state
+      .also {
+        logger.info { "$this entering: $it" }
+
+        // Switch state
+        activeState = it
+
+        // Execute entry and while actions
+        createFactory(it, event).let { f ->
+          execute(it.getEntryActionCommands(f))
+          execute(it.getWhileActionCommands(createFactory(it, event, true)))
+        }
+
+        // Start timeout actions
+        it.getTimeoutActionObjects().forEach(::startTimeout)
+
+        // Check termination
+        checkTermination()
+      }
+      .takeIf { !isTerminated() }
+      ?.let { trySelect(stateMachineClass.getAlwaysTransitionsFromState(it.stateClass), extent) }
+
+  private fun doExit(state: State, event: Event?) =
+    state.run {
+      logger.debug { "$this exiting: $state" }
+
+      // Stop all timeout actions
+      timeoutManager.stopAll()
+
+      // Execute exit actions
+      execute(getExitActionCommands(createFactory(this, event)))
+    }
+
+  private fun doTransition(transition: Transition, event: Event?) {
+    // Don't execute actions for default transitions
+    if (!transition.isOr) execute(transition.getActionCommands(createFactory(this, event)))
+  }
+
+  private fun trySelect(transitions: List<TransitionClass>, evalExtent: Extent): Transition? =
+    transitions
+      // Take those whose condition evaluates to true, or default transitions
+      .mapNotNull { tc ->
+        val result = tc.evaluate(evalExtent)
+        when {
+          result -> Transition(tc, isOr = false)
+          tc.or != null -> Transition(tc, isOr = true)
+          else -> null
+        }
+      }
+      // Return the only transition
+      .let { selected ->
+        when (selected.size) {
+          0 -> null
+          1 -> selected.first().also { logger.trace { "$this selected: $it" } }
+          else -> error("non-determinism detected in $this")
+        }
+      }
+
+  private tailrec fun execute(commands: List<ActionCommand>) {
+    if (commands.isEmpty()) return
+
+    // Execute all commands, possibly producing new commands
+    val nextBatch =
+      commands.flatMap { cmd ->
+        cmd.execute().also {
+          (cmd as? ActionTimeoutResetCommand)?.let { stopTimeout(it.timeoutResetAction.action) }
+        }
+      }
+    execute(nextBatch)
+  }
+
+  private fun startTimeout(timeout: TimeoutAction) {
+    // Evaluate the delay expression
+    val delay = timeout.delay.execute(extent) as? Number ?: error("non-numeric delay")
+
+    logger.debug { "$this starting: $timeout" }
+
+    // Start the timeout coroutine
+    timeoutManager.start(timeout.name, delay) {
+      val cmd = createFactory(this, null).createActionCommand(timeout.`do`)
+      execute(listOf(cmd as? ActionRaiseCommand ?: error("must be raise")))
     }
   }
 
-  private fun isTerminated(): Boolean =
-    parentStateMachine?.isTerminated() ?: false || activeState!!.stateObject.terminal
+  private fun stopTimeout(name: String) =
+    logger.debug { "$this stopping timeout: $name" }.also { timeoutManager.stop(name) }
 
-  private fun handleTermination() {
+  private fun isTerminated(): Boolean =
+    parentStateMachine?.isTerminated() ?: false || activeState?.stateClass?.terminal == true
+
+  private fun checkTermination() {
     if (isTerminated()) {
-      timeoutActionManager.shutdown()
-      machineScope.cancel()
+      logger.info { "$this terminated" }
+
+      // Stop timeouts
+      timeoutManager.shutdown()
+
+      // Stop coroutines
+      coroutineScope.cancel()
+
+      // Indicate termination
       runtime.phaser.arriveAndDeregister()
     }
   }
 
-  private fun createCommandFactory(
-    scope: Scope,
-    raisingEvent: Event?,
-    isWhile: Boolean = false,
-  ): CommandFactory =
+  private fun propagate(event: Event) {
+    if (event.channel == EventChannel.INTERNAL) {
+      nestedIds.forEach {
+        runtime.findInstance(it)?.onReceiveEvent(event) ?: error("nested $it missing")
+      }
+    }
+  }
+
+  private fun buildTransientContext() =
+    stateMachineClass.transientContextDescription?.let {
+      ContextBuilder.from(it).inMemoryContext().build().getOrThrow()
+    } ?: ContextBuilder.empty().inMemoryContext().build().getOrThrow()
+
+  private fun createFactory(scope: Scope, event: Event?, isWhile: Boolean = false) =
     CommandFactory(
       ExecutionContext(
         scope,
         serviceImplementationSelector,
-        stateMachineEventHandler,
+        eventHandler,
         this,
-        machineScope,
-        raisingEvent,
+        coroutineScope,
+        event,
         isWhile,
       )
     )
 
-  private fun trySelectTransition(
-    transitionObjects: List<TransitionClass>,
-    extent: Extent,
-  ): Transition? {
-    val selected =
-      transitionObjects.mapNotNull { transitionObject ->
-        val hasOr = transitionObject.or != null
-        val result = transitionObject.evaluate(extent)
-        if (hasOr || result) Transition(transitionObject, hasOr && !result) else null
-      }
-
-    return when (selected.size) {
-      0 -> null
-      1 -> selected.first()
-      else -> error("non-determinism detected: multiple transitions match")
-    }
-  }
-
-  private fun executeCommands(commands: List<ActionCommand>) {
-    commands.forEach { command ->
-      val nextCommands = command.execute()
-      if (command is ActionTimeoutResetCommand) {
-        stopTimeoutAction(command.timeoutResetAction.action)
-      }
-      executeCommands(nextCommands)
-    }
-  }
-
-  private fun startTimeoutActions(timeoutActions: List<TimeoutAction>) {
-    timeoutActions.forEach { timeout ->
-      val delay = timeout.delay.execute(extent)
-      if (delay !is Number) {
-        error("delay expression '${timeout.delay}' evaluated to non-numeric: $delay")
-      }
-
-      val command = createCommandFactory(this, null).createActionCommand(timeout.`do`)
-      if (command !is ActionRaiseCommand) {
-        error("a timeout action must be a raise action, found: ${command::class.simpleName}")
-      }
-
-      timeoutActionManager.start(timeout.name, delay) { executeCommands(listOf(command)) }
-    }
-  }
-
-  private fun stopTimeoutAction(name: String) = timeoutActionManager.stop(name)
-
-  private fun stopAllTimeoutActions() = timeoutActionManager.stopAll()
-
-  private fun doExit(state: State, event: Event?) {
-    stopAllTimeoutActions()
-    val commands = state.getExitActionCommands(createCommandFactory(state, event))
-    executeCommands(commands)
-  }
-
-  private fun doTransition(transition: Transition, event: Event?) {
-    if (transition.isOr) return
-    val commands = transition.getActionCommands(createCommandFactory(this, event))
-    executeCommands(commands)
-  }
-
-  private fun doEnter(state: State, event: Event?): Transition? {
-    executeCommands(state.getEntryActionCommands(createCommandFactory(state, event)))
-    executeCommands(state.getWhileActionCommands(createCommandFactory(state, event, true)))
-
-    startTimeoutActions(state.getTimeoutActionObjects())
-
-    check(stateInstances.containsValue(state)) {
-      "state '${state.stateObject.name}' does not exist"
-    }
-    activeState = state
-
-    handleTermination()
-    if (isTerminated()) return null
-
-    val alwaysTransitions = stateMachineClass.getAlwaysTransitionsFromState(state.stateObject)
-    return trySelectTransition(alwaysTransitions, extent)
-  }
-
-  private fun handleTransition(transition: Transition, event: Event?) {
-    if (transition.isInternal) {
-      doTransition(transition, event)
-    } else {
-      val targetName = transition.targetStateName ?: error("target state name missing")
-      val targetState = stateInstances[targetName] ?: error("target state '$targetName' not found")
-
-      doExit(activeState!!, event)
-      doTransition(transition, event)
-
-      val next = doEnter(targetState, event)
-      next?.let { handleTransition(it, event) }
-    }
-  }
-
-  private fun handleEvent(event: Event): Transition? {
-    val candidateClasses =
-      stateMachineClass.getOnTransitionsFromStateByEventName(activeState!!.stateObject, event.name)
-
-    if (candidateClasses.isEmpty()) return null
-
-    val tempContext =
-      event.data.fold(InMemoryContext()) { context, it ->
-        context.apply { create(EVENT_DATA_VARIABLE_PREFIX + it.name, it.value) }
-      }
-
-    return extent.extend(tempContext).let { evaluationExtent ->
-      trySelectTransition(candidateClasses, evaluationExtent)?.also {
-        event.data.forEach { varData ->
-          extent.setOrCreate(EVENT_DATA_VARIABLE_PREFIX + varData.name, varData.value)
-        }
-      }
-    }
-  }
-
-  fun start() {
-    try {
-      // Handle the initial state immediately
-      doEnter(
-          stateInstances[stateMachineClass.initialState.name] ?: error("initial state not found"),
-          null,
-        )
-        ?.let { next -> handleTransition(next, null) }
-    } catch (e: Exception) {
-      logger.error(e) { "fatal error in $this" }
-    } finally {
-      readySignal.countDown()
-    }
-  }
-
-  override fun toString(): String = "StateMachine(id=$id, name=${stateMachineClass.name})"
-
-  fun setNestedStateMachineIds(ids: List<String>) {
-    this.nestedStateMachineIds = ids
-  }
+  override fun toString() = "StateMachine(id=$id, name=${stateMachineClass.name})"
 }

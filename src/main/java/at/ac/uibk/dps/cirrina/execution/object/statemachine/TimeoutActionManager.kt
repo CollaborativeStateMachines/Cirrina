@@ -6,18 +6,16 @@ import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-class TimeoutActionManager {
-
-  private val managerScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+class TimeoutActionManager(private val coroutineScope: CoroutineScope) {
 
   private val timeoutJobs = ConcurrentHashMap<String, Job>()
 
   fun start(actionName: String, delayInMs: Number, task: suspend () -> Unit) {
-    check(managerScope.isActive) { "cannot start action '$actionName' on a shut down manager" }
+    check(coroutineScope.isActive) { "cannot start action '$actionName' on a shut down manager" }
 
     require(!timeoutJobs.containsKey(actionName)) { "duplicate timeout action name '$actionName'" }
 
-    managerScope
+    coroutineScope
       .launch {
         while (isActive) {
           delay(delayInMs.toLong())
@@ -41,6 +39,6 @@ class TimeoutActionManager {
 
   fun shutdown() {
     stopAll()
-    managerScope.cancel()
+    coroutineScope.cancel()
   }
 }
