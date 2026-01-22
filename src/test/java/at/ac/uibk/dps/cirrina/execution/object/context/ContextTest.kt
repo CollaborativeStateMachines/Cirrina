@@ -1,127 +1,97 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import java.io.IOException
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
 abstract class ContextTest {
+
   protected abstract fun createContext(): Context
 
   @Test
-  @Throws(Exception::class)
-  fun testOperations() {
+  fun testOperations() =
     createContext().use { context ->
-      assertDoesNotThrow { context.deleteAll() }
+      context.deleteAll()
 
-      // Create a variable
-      assertDoesNotThrow { context.create("testVar", 42) }
+      // Create and retrieve
+      context.create("testVar", 42)
+      assertEquals(42, context.get("testVar"))
 
-      // Assign it a new value
-      run {
-        val v = assertDoesNotThrow { context.get("testVar") }
-        assertEquals(42, v)
-      }
+      // Duplicate creation should fail
+      assertThrows<IllegalStateException> { context.create("testVar", 42) }
 
-      // Try to create it again, which should fail
-      assertThrows<IOException> { context.create("testVar", 42) }
+      // Accessing/Modifying non-existent variables should fail
+      assertThrows<IllegalStateException> { context.get("missing") }
+      assertThrows<IllegalStateException> { context.delete("missing") }
+      assertThrows<IllegalStateException> { context.assign("missing", 1) }
 
-      // Non-existent variable should fail
-      assertThrows<IOException> { context.get("nonExistentVar") }
+      // Deletion lifecycle
+      context.delete("testVar")
+      assertThrows<IllegalStateException> { context.delete("testVar") }
+      assertThrows<IllegalStateException> { context.get("testVar") }
+      assertThrows<IllegalStateException> { context.assign("testVar", 42) }
 
-      // Deleting a non-existent variable should fail
-      assertThrows<IOException> { context.delete("nonExistentVar") }
+      // Bulk operations
+      context.create("var1", 1)
+      context.create("var2", "value2")
 
-      // Assigning a value to a non-existent variable should fail
-      assertThrows<IOException> { context.assign("nonExistentVar", 1) }
-
-      // Delete the variable
-      assertDoesNotThrow { context.delete("testVar") }
-
-      // Deleting it again should fail
-      assertThrows<IOException> { context.delete("testVar") }
-
-      // It should not exist anymore
-      assertThrows<IOException> { context.get("testVar") }
-
-      // Assigning should fail
-      assertThrows<IOException> { context.assign("testVar", 42) }
-
-      // Get all variables
-      assertDoesNotThrow {
-        context.create("var1", 1)
-        context.create("var2", "value2")
-      }
-
-      val allVariables = assertDoesNotThrow { context.getAll() }
-      assertEquals(2, allVariables.size)
+      assertEquals(2, context.getAll().size)
     }
-  }
 
   @Test
-  @Throws(Exception::class)
-  fun testMultiThreadedCreateGet() {
+  fun testMultiThreadedCreateGet() =
     createContext().use { context ->
-      assertDoesNotThrow { context.deleteAll() }
+      context.deleteAll()
 
       val threadCount = 10
       val iterationsPerThread = 100
 
-      Executors.newFixedThreadPool(threadCount).use { executorService ->
-        for (i in 0..<threadCount) {
-          executorService.submit {
-            assertDoesNotThrow {
-              for (j in 0..<iterationsPerThread) {
-                val variableName = Thread.currentThread().threadId().toString() + "_" + j
-
-                context.create(variableName, j)
-                context.get(variableName)
-              }
+      Executors.newFixedThreadPool(threadCount).use { executor ->
+        repeat(threadCount) {
+          executor.submit {
+            repeat(iterationsPerThread) { j ->
+              val varName = "thread_${Thread.currentThread().threadId()}_$j"
+              context.create(varName, j)
+              assertEquals(j, context.get(varName))
             }
           }
         }
+        executor.shutdown()
+        executor.awaitTermination(5, TimeUnit.SECONDS)
       }
-      val allVariables = assertDoesNotThrow { context.getAll() }
+
       assertEquals(
         threadCount * iterationsPerThread,
-        allVariables.size,
-        "Incorrect number of variables in the context",
+        context.getAll().size,
+        "incorrect number of variables in the context",
       )
     }
-  }
 
   @Test
-  @Throws(Exception::class)
-  fun testMultiThreadedSetValueGetValue() {
+  fun testMultiThreadedSetValueGetValue() =
     createContext().use { context ->
-      assertDoesNotThrow { context.deleteAll() }
+      context.deleteAll()
 
       val threadCount = 10
       val iterationsPerThread = 100
+      val varName = "testVar"
 
-      val variableName = "testVar"
+      context.create(varName, 0)
 
-      assertDoesNotThrow { context.create(variableName, 0) }
-
-      Executors.newFixedThreadPool(threadCount).use { executorService ->
-        for (i in 0..<threadCount) {
-          executorService.submit {
-            assertDoesNotThrow {
-              for (j in 0..<iterationsPerThread) {
-                context.assign(variableName, j)
-              }
-            }
-          }
+      Executors.newFixedThreadPool(threadCount).use { executor ->
+        repeat(threadCount) {
+          executor.submit { repeat(iterationsPerThread) { j -> context.assign(varName, j) } }
         }
+        executor.shutdown()
+        executor.awaitTermination(5, TimeUnit.SECONDS)
       }
-      val v = assertDoesNotThrow { context.get(variableName) as Int }
+
       assertEquals(
         iterationsPerThread - 1,
-        v,
-        "Incorrect final value after multi-threaded setValue",
+        context.get(varName) as Int,
+        "incorrect final value after multi-threaded assign",
       )
     }
-  }
 }

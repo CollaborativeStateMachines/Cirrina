@@ -16,7 +16,7 @@ message Event {
     PERIPHERAL = 3;
   }
 
-  double createdTime = 1;
+  int64 createdTime = 1;
   string id = 2;
   string name = 3;
   Channel channel = 4;

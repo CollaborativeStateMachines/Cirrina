@@ -1,5 +1,9 @@
-pluginManagement { plugins { kotlin("jvm") version "2.1.20" } }
+pluginManagement {
+  repositories {
+    mavenCentral()
+    gradlePluginPortal()
+  }
+  plugins { kotlin("jvm") version "2.3.0" }
+}
 
 rootProject.name = "cirrina"
-
-include("core", "runtime")

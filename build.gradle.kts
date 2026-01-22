@@ -2,10 +2,9 @@ import com.google.protobuf.gradle.id
 
 plugins {
   application
-  jacoco
 
   id("com.google.protobuf") version "0.9.4"
-  id("org.pkl-lang") version "0.29.0"
+  id("org.pkl-lang") version "0.30.2"
   id("com.ncorti.ktfmt.gradle") version "0.24.0"
 
   kotlin("jvm")
@@ -19,9 +18,7 @@ application { mainClass = "at.ac.uibk.dps.cirrina.cirrina.CirrinaKt" }
 
 ktfmt { googleStyle() }
 
-java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
-
-jacoco { toolVersion = "0.8.11" }
+java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
 
 pkl {
   javaCodeGenerators {
@@ -56,14 +53,15 @@ dependencies {
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.1")
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.1")
 
-  implementation("com.google.flogger:flogger:0.9")
-  implementation("com.google.flogger:flogger-system-backend:0.9")
-
   implementation("com.google.guava:guava:33.0.0-jre")
 
   implementation("com.google.protobuf:protobuf-java:4.32.0")
 
+  implementation("com.lmax:disruptor:4.0.0")
+
   implementation("io.etcd:jetcd-core:0.8.5")
+
+  implementation("io.github.microutils:kotlin-logging:3.0.5")
 
   implementation("io.nats:jnats:2.17.3")
 
@@ -94,6 +92,8 @@ dependencies {
   implementation("org.pkl-lang:pkl-config-java:0.29.0")
   implementation("org.pkl-lang:pkl-codegen-java:0.29.0")
 
+  implementation("org.slf4j:slf4j-jdk14:2.0.12")
+
   testImplementation(platform("org.junit:junit-bom:5.9.1"))
   testImplementation("org.junit.jupiter:junit-jupiter")
   testImplementation("org.junit-pioneer:junit-pioneer:2.2.0")
@@ -111,21 +111,30 @@ repositories {
   maven(url = "https://repository.cloudera.com/artifactory/cloudera-repos/")
 }
 
+val jvmArgs =
+  listOf("-XX:+UseZGC", "-XX:+AlwaysPreTouch", "-Xms4G", "-Xmx4G", "-XX:MaxDirectMemorySize=1G")
+
 tasks.compileKotlin { dependsOn(tasks.ktfmtFormat) }
 
 tasks.distZip { archiveFileName.set("${project.name}.zip") }
 
 tasks.test {
   useJUnitPlatform()
-  finalizedBy(tasks.jacocoTestReport)
+  jvmArgs(jvmArgs)
+
+  systemProperty(
+    "java.util.logging.config.file",
+    "${project.projectDir}/src/test/resources/logging.properties",
+  )
+  testLogging { showStandardStreams = true }
 }
 
-tasks.jacocoTestReport {
-  dependsOn(tasks.test)
-  reports {
-    xml.required = true
-    html.required = false
-    csv.required = false
+tasks.withType<JavaExec> { jvmArgs(jvmArgs) }
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+  compilerOptions {
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
+    freeCompilerArgs.addAll("-Xlambdas=indy", "-Xemit-jvm-type-annotations")
   }
 }
 

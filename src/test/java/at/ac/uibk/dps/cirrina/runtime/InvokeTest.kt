@@ -8,7 +8,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
@@ -77,22 +76,21 @@ class InvokeTest {
             ServiceImplementationBindings.HttpMethod.GET,
           )
 
-        val services = ServiceImplementationBuilder.from(listOf(service)).build()
+        val services = ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
         Runtime(
             DefaultDescriptions.invoke,
             listOf("invokeStateMachine"),
-            loggingOpenTelemetry(),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
           .run()
 
         // This test counts up to 10, so the final value should be 10
-        assertEquals(10, mockPersistentContext["v"])
+        assertEquals(10, mockPersistentContext.get("v"))
 
         server.stop(1)
       }

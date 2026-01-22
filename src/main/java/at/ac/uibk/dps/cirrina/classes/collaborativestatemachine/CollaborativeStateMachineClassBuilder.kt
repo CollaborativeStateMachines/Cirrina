@@ -8,76 +8,61 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 
 /**
- * [CollaborativeStateMachineClass] builder. Builds a [CollaborativeStateMachineClass] based on a
- * [Csml].
- *
- * TODO: Add unit test for built graph.
+ * A builder for constructing [CollaborativeStateMachineClass] instances from [Csml] definitions.
  */
 class CollaborativeStateMachineClassBuilder private constructor(private val csml: Csml) {
 
   companion object {
     /**
-     * Construct a collaborative state machine builder from a description.
+     * Creates a new [CollaborativeStateMachineClassBuilder] from the provided [Csml].
      *
-     * @param csml collaborative state machine description.
+     * @param csml the collaborative state machine description.
      * @return a new builder instance.
      */
-    @JvmStatic
     fun from(csml: Csml): CollaborativeStateMachineClassBuilder =
       CollaborativeStateMachineClassBuilder(csml)
   }
 
   /**
-   * Builds and returns a [CollaborativeStateMachineClass].
+   * Builds a [CollaborativeStateMachineClass].
    *
-   * @return the fully constructed collaborative state machine class.
+   * @return a [Result] containing the fully constructed collaborative machine or a failure.
    */
   fun build(): Result<CollaborativeStateMachineClass> = runCatching {
-    val context = ContextBuilder.from(csml.persistent).inMemoryContext(true).build()
+    CollaborativeStateMachineClass(
+        ContextBuilder.from(csml.persistent).inMemoryContext().build().getOrThrow().getAll()
+      )
+      .apply {
+        csml.stateMachines.forEach { (name, desc) ->
+          addVertex(StateMachineClassBuilder.from(desc).withName(name).build().getOrThrow())
+        }
+      }
+      .also { graph -> buildEdges(graph) }
+  }
 
-    CollaborativeStateMachineClass(context?.all ?: emptyList()).apply {
-      buildVertices(this)
-      buildEdges(this)
+  private fun buildEdges(graph: CollaborativeStateMachineClass) =
+    graph.vertexSet().let { allStateMachines ->
+      allStateMachines.forEach { source ->
+        source.outputEvents.forEach { event ->
+          findTargets(source, event, allStateMachines).forEach { target ->
+            graph.addEdge(source, target, event)
+          }
+        }
+      }
     }
-  }
 
-  private fun buildVertices(collaborativeStateMachineClass: CollaborativeStateMachineClass) {
-    csml.stateMachines.entries
-      .map { (name, description) ->
-        StateMachineClassBuilder.from(description).withName(name).build()
-      }
-      .forEach { collaborativeStateMachineClass.addVertex(it.getOrThrow()) }
-  }
-
-  private fun buildEdges(collaborativeStateMachineClass: CollaborativeStateMachineClass) {
-    val vertices = collaborativeStateMachineClass.vertexSet()
-
-    vertices
-      .flatMap { source -> source.outputEvents.map { event -> source to event } }
-      .associateWith { (source, event) ->
-        findTargetForRaisedEventStateMachines(source, event, vertices)
-      }
-      .forEach { (sourceEventPair, targets) ->
-        val (source, event) = sourceEventPair
-        targets.forEach { target -> collaborativeStateMachineClass.addEdge(source, target, event) }
-      }
-  }
-
-  private fun findTargetForRaisedEventStateMachines(
+  private fun findTargets(
     source: StateMachineClass,
     raisedEvent: Event,
-    allVertices: Set<StateMachineClass>,
-  ): List<StateMachineClass> {
-    return allVertices.filter { target ->
-      val handlesEvent = target.inputEvents.contains(raisedEvent.name)
-      val isChannelValid =
+    allStateMachines: Set<StateMachineClass>,
+  ): List<StateMachineClass> =
+    allStateMachines.filter { target ->
+      target.inputEvents.contains(raisedEvent.name) &&
         when (raisedEvent.channel) {
           EventChannel.INTERNAL -> source == target
           EventChannel.GLOBAL,
           EventChannel.EXTERNAL -> true
           else -> false
         }
-      handlesEvent && isChannelValid
     }
-  }
 }

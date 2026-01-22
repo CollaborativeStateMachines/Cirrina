@@ -1,16 +1,16 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import org.junit.jupiter.api.Assumptions.assumeFalse
-import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.Assumptions.assumeTrue
 
 class EtcdContextTest : ContextTest() {
-  override fun createContext(): Context {
-    val etcdServerURL = System.getenv("ETCD_CONTEXT_URL")
 
-    assumeFalse(etcdServerURL == null, "Skipping Etcd persistent context test")
+  override fun createContext(): Context =
+    System.getenv("ETCD_CONTEXT_URL").let { etcdServerUrl ->
+      assumeTrue(
+        etcdServerUrl != null,
+        "skipping Etcd persistent context test: ETCD_CONTEXT_URL not set",
+      )
 
-    return assertDoesNotThrow {
-      EtcdContext(true, listOf(etcdServerURL)).apply { awaitInitialConnection() }
+      return EtcdContext(listOf(etcdServerUrl)).apply { awaitReady(10_000).getOrThrow() }
     }
-  }
 }

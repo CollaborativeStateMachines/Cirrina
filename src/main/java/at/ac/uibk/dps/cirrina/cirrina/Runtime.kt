@@ -4,113 +4,137 @@ import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeSta
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
-import at.ac.uibk.dps.cirrina.utils.Id
-import com.google.common.flogger.FluentLogger
-import io.opentelemetry.api.OpenTelemetry
+import com.lmax.disruptor.BusySpinWaitStrategy
+import com.lmax.disruptor.EventHandler as LmaxEventHandler
+import com.lmax.disruptor.dsl.Disruptor
+import com.lmax.disruptor.dsl.ProducerType
+import com.lmax.disruptor.util.DaemonThreadFactory
 import java.net.URI
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import java.util.concurrent.Phaser
 import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 /**
- * Runtime for executing state machines defined in a Cirrina CSML project.
+ * The execution engine responsible for managing the lifecycle of state machine instances.
  *
- * @param main main (main.pkl) URI.
- * @param stateMachineNames list of state machine names to execute.
- * @property openTelemetry the OpenTelemetry instance for tracing state machine execution.
- * @property serviceImplementationSelector the service implementation selector.
- * @property eventHandler the event handler that will dispatch events to state machines.
- * @property persistentContext the persistent context where state machine variables are stored.
+ * @property eventHandler the communication layer for external event ingestion.
+ * @property persistentContext the shared storage for long-lived state variables.
+ * @property serviceImplementationSelector logic for choosing between multiple service providers.
  */
 class Runtime(
   main: URI,
   stateMachineNames: List<String>,
-  private val openTelemetry: OpenTelemetry,
-  private var serviceImplementationSelector: ServiceImplementationSelector,
   val eventHandler: EventHandler,
-  val persistentContext: Context,
-) {
-  /** Instantiated state machines. */
+  private val persistentContext: Context,
+  private val serviceImplementationSelector: ServiceImplementationSelector,
+) : EventListener {
+
+  companion object {
+    const val RING_BUFFER_SIZE = 1024
+  }
+
+  /** The flat list of all active state machine instances (including nested ones). */
   val stateMachines: List<StateMachine>
 
-  /** Top-level extent. */
-  val extent = Extent(persistentContext)
+  /** The shared extent used by all managed state machines. */
+  val extent: Extent = Extent.of(persistentContext)
+
+  /** Synchronization barrier used to track the completion of all state machine lifecycles. */
+  val phaser: Phaser = Phaser(1)
+
+  private class EventEnvelope {
+    var event: Event? = null
+  }
+
+  private val disruptor =
+    Disruptor(
+      { EventEnvelope() },
+      RING_BUFFER_SIZE,
+      DaemonThreadFactory.INSTANCE,
+      ProducerType.MULTI,
+      BusySpinWaitStrategy(),
+    )
 
   init {
+    // Resolve the collaborative state machine class
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main))
         .build()
-        .onFailure { error ->
-          logger
-            .atSevere()
-            .withCause(error)
-            .log("failed to initialize collaborative state machine class")
-        }
+        .onFailure { logger.error(it) { "failed to initialize collaborative blueprint" } }
         .getOrThrow()
 
-    logger.atFine().log("creating persistent context variables")
+    // Create all persistent variables
     collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
-      runCatching {
-          logger.atFiner().log("creating persistent context variable '${variable.name()}'")
-          persistentContext.create(variable.name(), variable.value())
-        }
-        .onFailure { _ ->
-          logger.atWarning().log("did not create persistent context variable '${variable.name()}'")
+      runCatching { persistentContext.create(variable.name, variable.value) }
+        .onFailure {
+          logger.warn { "variable '${variable.name}' already exists or failed to create" }
         }
     }
 
+    // Build the state machine instances
     stateMachines =
       stateMachineNames
         .mapNotNull { name ->
-          collaborativeStateMachineClass.findStateMachineClassByName(name)
-            ?: run {
-              logger.atWarning().log("d state machine with name '$name' could not be instantiated")
-              null
-            }
+          collaborativeStateMachineClass.findStateMachineClassByName(name).also {
+            if (it == null) logger.warn { "State machine '$name' not found in blueprint" }
+          }
         }
         .flatMap { buildInstances(it, null) }
+
+    // Create the event handler
+    disruptor.handleEventsWith(
+      LmaxEventHandler { envelope, _, _ ->
+        // TODO: We can avoid dispatching to every state machine if we know what a state machine is
+        // subscribed to
+        stateMachines.forEach { it.onReceiveEvent(envelope.event!!) }
+      }
+    )
+    disruptor.start()
+
+    // Register the event handler
+    eventHandler.listener = this
   }
 
-  /**
-   * Find a state machine instance by its ID.
-   *
-   * @param stateMachineId the ID of the state machine instance.
-   * @return the state machine instance, or null if not found.
-   */
-  fun findInstance(stateMachineId: Id): StateMachine? =
-    stateMachines.firstOrNull { it.stateMachineInstanceId == stateMachineId }
+  /** Finds a specific state machine instance by its unique UUID string. */
+  fun findInstance(stateMachineId: String): StateMachine? =
+    stateMachines.firstOrNull { it.id == stateMachineId }
 
-  /** Run all state machines (blocking). */
+  /** Blocks the current thread until all registered state machines have terminated. */
   fun run() = runBlocking {
-    stateMachines.map { instance -> async(Dispatchers.Default) { instance.run() } }.awaitAll()
+    stateMachines.forEach { it.start() }
+
+    // Release the initial party and wait for all machines to deregister
+    phaser.arriveAndDeregister()
+    while (phaser.registeredParties > 0) {
+      phaser.awaitAdvance(phaser.phase)
+    }
   }
 
-  // Recursively builds all state machine instances and returns them in a flat list.
   private fun buildInstances(
     stateMachineClass: StateMachineClass,
     parentInstance: StateMachine?,
-  ): List<StateMachine> {
-    val instance =
-      StateMachine(
-          this,
-          stateMachineClass,
-          serviceImplementationSelector,
-          openTelemetry,
-          parentInstance,
-        )
-        .also { eventHandler.addListener(it) }
+  ): List<StateMachine> =
+    StateMachine(stateMachineClass, this, serviceImplementationSelector, parentInstance).let {
+      instance ->
+      stateMachineClass.nestedStateMachineClasses
+        .flatMap { nestedClass -> buildInstances(nestedClass, instance) }
+        .let { nestedInstances ->
+          instance
+            .apply { setNestedStateMachineIds(nestedInstances.map { it.id }) }
+            .let { listOf(it) + nestedInstances }
+        }
+    }
 
-    val nestedInstances =
-      stateMachineClass.nestedStateMachineClasses.flatMap { buildInstances(it, instance) }
-
-    instance.setNestedStateMachineIds(nestedInstances.map { it.stateMachineInstanceId })
-    return listOf(instance) + nestedInstances
+  /** Routes incoming external events into the ring buffer for asynchronous processing. */
+  override fun onReceiveEvent(event: Event) {
+    disruptor.publishEvent { envelope, _ -> envelope.event = event }
   }
 }

@@ -6,7 +6,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import org.junit.jupiter.api.Test
@@ -41,17 +40,16 @@ class NoopTest {
         val mockPersistentContext = mockPersistentContext()
 
         // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val services = ServiceImplementationBuilder.from(listOf()).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using a single state machine.
         Runtime(
             DefaultDescriptions.noop,
             listOf("noopStateMachine"),
-            loggingOpenTelemetry(),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
           .run()
       }

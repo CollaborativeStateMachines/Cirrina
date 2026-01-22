@@ -6,65 +6,55 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
 import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 
-/** [StateClass] builder. Builds a [StateClass] based on a [StateDescription]. */
-class StateClassBuilder private constructor(private val stateDescription: StateDescription) {
+/**
+ * A builder for constructing [StateClass] blueprints from [StateDescription]s.
+ *
+ * @property stateDescription the source containing the state's structural definition.
+ * @property name an optional identifier for the state, required to be provided.
+ */
+class StateClassBuilder
+private constructor(
+  private val stateDescription: StateDescription,
+  private val name: String? = null,
+) {
 
   companion object {
-    /**
-     * Construct a state class builder from a state description.
-     *
-     * @param stateDescription state description.
-     * @return state class builder.
-     */
+    /** Creates a new [StateClassBuilder] from the provided [stateDescription]. */
     fun from(stateDescription: StateDescription): StateClassBuilder =
       StateClassBuilder(stateDescription)
   }
 
-  private var name: String? = null
+  /** Associates a [name] with the state and returns a new builder instance. */
+  fun withName(name: String): StateClassBuilder = StateClassBuilder(stateDescription, name)
 
   /**
-   * Sets the name of the state.
+   * Builds a [StateClass].
    *
-   * @param name state name.
-   * @return this builder instance.
-   */
-  fun withName(name: String): StateClassBuilder {
-    this.name = name
-    return this
-  }
-
-  /**
-   * Builds and returns a [StateClass].
-   *
-   * @return the fully constructed state class.
+   * @return a [Result] containing the built [StateClass] or a failure if action resolution or
+   *   validation fails.
    */
   fun build(): Result<StateClass> = runCatching {
-    // resolves an action description into an action object
-    fun resolveAction(desc: ActionDescription, actionName: String? = null): Action {
-      val builder = ActionBuilder.from(desc)
-      actionName?.takeUnless { it.isBlank() }?.let { builder.withName(it) }
-      return builder.build()
-    }
-
-    val entryActions = stateDescription.entry.map { resolveAction(it) }
-    val exitActions = stateDescription.exit.map { resolveAction(it) }
-    val whileActions = stateDescription.`while`.map { resolveAction(it) }
-    val afterActions = stateDescription.after.map { (name, desc) -> resolveAction(desc, name) }
-
-    // Validates that all after actions are specifically timeout actions
-    require(afterActions.all { it is TimeoutAction }) { "after action is not a timeout action." }
-
     StateClass(
-      StateClass.Parameters(
-        name ?: "",
-        stateDescription.isInitial,
-        stateDescription.isTerminal,
-        entryActions,
-        exitActions,
-        whileActions,
-        afterActions,
-        stateDescription.static,
-      )
+      name.orEmpty(),
+      stateDescription.isInitial,
+      stateDescription.isTerminal,
+      stateDescription.static,
+      resolveActions(stateDescription.entry),
+      resolveActions(stateDescription.exit),
+      resolveActions(stateDescription.`while`),
+      resolveAfterActions(stateDescription.after),
     )
   }
+
+  private fun resolveActions(descriptions: List<ActionDescription>): List<Action> =
+    descriptions.map { ActionBuilder.from(it).build().getOrThrow() }
+
+  private fun resolveAfterActions(descriptions: Map<String, ActionDescription>): List<Action> =
+    descriptions
+      .map { (name, desc) -> ActionBuilder.from(desc).withName(name).build().getOrThrow() }
+      .also { actions ->
+        require(actions.all { it is TimeoutAction }) {
+          "all 'after' actions must be timeout actions"
+        }
+      }
 }

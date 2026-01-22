@@ -12,7 +12,7 @@ sm = new csml.StateMachine {
         new csml.Raise { event = new csml.Global { topic = "e2" } }
       }
       on { ["e3"] = new csml.Transition { to = "a" } }
-      always { new csml.Transition { to = "c"; iif = "v >= 100" } }
+      always { new csml.Transition { to = "c"; iif = "v >= 100000" } }
     }
     ["c"] = new csml.Terminal {}
   }

@@ -6,7 +6,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -52,22 +51,21 @@ class TimeoutTest {
           )
 
         // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val services = ServiceImplementationBuilder.from(listOf()).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using one state machine (stateMachine1)
         Runtime(
             DefaultDescriptions.timeout,
             listOf("timeoutStateMachine"),
-            loggingOpenTelemetry(),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
           .run()
 
         // This test counts up to 10, so the final value should be 10
-        assertEquals(10, mockPersistentContext["v"])
+        assertEquals(10, mockPersistentContext.get("v"))
       }
     }
   }

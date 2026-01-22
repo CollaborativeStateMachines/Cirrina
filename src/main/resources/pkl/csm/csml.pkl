@@ -19,13 +19,13 @@ class StateMachineDescription {
 open class StateDescription {
   initial: Boolean = false
   terminal: Boolean = false
+  static: Context?
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
   while: Listing<ActionDescription>
   after: Mapping<String, TimeoutDescription>
   on: Mapping<String, TransitionDescription>
   always: Listing<TransitionDescription>
-  static: Context?
 }
 
 class InitialDescription extends StateDescription {

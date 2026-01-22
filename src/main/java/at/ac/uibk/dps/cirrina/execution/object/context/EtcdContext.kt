@@ -1,230 +1,181 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ValueExchange
-import com.google.common.flogger.FluentLogger
-import com.google.protobuf.ByteString
 import io.etcd.jetcd.ByteSequence
 import io.etcd.jetcd.Client
 import io.etcd.jetcd.op.Cmp
 import io.etcd.jetcd.op.CmpTarget
 import io.etcd.jetcd.op.Op
-import io.etcd.jetcd.options.DeleteOption
-import io.etcd.jetcd.options.GetOption
-import io.etcd.jetcd.options.OptionsUtil
-import io.etcd.jetcd.options.PutOption
-import java.io.Closeable
-import java.io.IOException
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
+import io.etcd.jetcd.options.*
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.*
+import kotlinx.coroutines.future.await
+import mu.KotlinLogging
 
-private val logger: FluentLogger = FluentLogger.forEnclosingClass()
+private val logger = KotlinLogging.logger {}
 
 private class AsyncEtcdConnection(
-  private val endpoints: List<String>, // Etcd endpoints
-  private val retryDelayMs: Long = 1000, // Delay between retries in ms
-) : Closeable {
-  // Executor for retry loop.
-  private val executor = Executors.newSingleThreadExecutor()
+  private val endpoints: List<String>,
+  private val retryDelayMs: Long = 1000,
+) : AutoCloseable {
 
-  // Controls retry loop.
-  private val running = AtomicBoolean(true)
-
-  // Future holding the Etcd client.
-  private val clientFuture = CompletableFuture<Client>()
+  private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+  private val clientRef = AtomicReference<Deferred<Client>>()
 
   init {
-    executor.submit {
-      while (running.get() && !clientFuture.isDone) {
-        try {
-          logger.atFiner().log("Attempting to connect to Etcd")
-          clientFuture.complete(Client.builder().endpoints(*endpoints.toTypedArray()).build())
-          break
-        } catch (_: Exception) {
-          logger.atWarning().log("Failed to connect to Etcd")
-          Thread.sleep(retryDelayMs)
+    clientRef.set(
+      scope.async {
+        while (isActive) {
+          try {
+            logger.debug { "attempting to connect to etcd at $endpoints" }
+            return@async Client.builder().endpoints(*endpoints.toTypedArray()).build()
+          } catch (e: Exception) {
+            logger.warn { "failed to connect to etcd, retrying in ${retryDelayMs}ms..." }
+            delay(retryDelayMs)
+          }
+        }
+        throw CancellationException("connection manager closed")
+      }
+    )
+  }
+
+  suspend fun getClient(): Result<Client> = runCatching { clientRef.get().await() }
+
+  @OptIn(ExperimentalCoroutinesApi::class)
+  override fun close() {
+    scope.cancel()
+    clientRef.get().let { deferred ->
+      if (deferred.isCompleted && !deferred.isCancelled) {
+        runCatching { deferred.getCompleted().close() }
+      }
+    }
+  }
+}
+
+class EtcdContext(endpoints: List<String>) : Context() {
+
+  private val asyncConn = AsyncEtcdConnection(endpoints)
+  private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+  fun awaitReady(timeoutMs: Long): Result<Unit> = runBlocking {
+    runCatching {
+      withTimeout(timeoutMs) { asyncConn.getClient().getOrThrow() }
+      Unit
+    }
+  }
+
+  private suspend fun <T> withClient(operation: String, block: suspend (Client) -> T): T {
+    return try {
+      val client = asyncConn.getClient().getOrThrow()
+      block(client)
+    } catch (ex: Exception) {
+      error("etcd context failure during '$operation': ${ex.message ?: "unknown error"}")
+    }
+  }
+
+  private fun Any?.toBytes(): ByteArray = ValueExchange(this).toBytes()
+
+  private fun ByteArray.fromValueBytes(): Any? = ValueExchange.fromBytes(this).value
+
+  private fun String.toByteSequence() = ByteSequence.from(this.toByteArray(StandardCharsets.UTF_8))
+
+  override fun has(name: String): Boolean =
+    runBlocking(scope.coroutineContext) {
+      withClient("has") { client ->
+        val response = client.kvClient.get(name.toByteSequence()).await()
+        response.count > 0L
+      }
+    }
+
+  override fun get(name: String): Any? =
+    runBlocking(scope.coroutineContext) {
+      withClient("get") { client ->
+        val response = client.kvClient.get(name.toByteSequence()).await()
+        val kv = response.kvs.firstOrNull() ?: error("variable '$name' does not exist in etcd")
+        kv.value.bytes.fromValueBytes()
+      }
+    }
+
+  override fun create(name: String, value: Any?): Int =
+    runBlocking(scope.coroutineContext) {
+      withClient("create") { client ->
+        val bytes = value.toBytes()
+        val key = name.toByteSequence()
+
+        val txn =
+          client.kvClient
+            .txn()
+            .If(Cmp(key, Cmp.Op.EQUAL, CmpTarget.createRevision(0)))
+            .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
+            .commit()
+            .await()
+
+        if (!txn.isSucceeded) error("variable '$name' already exists in etcd")
+        bytes.size
+      }
+    }
+
+  override fun assign(name: String, value: Any?): Int =
+    runBlocking(scope.coroutineContext) {
+      withClient("assign") { client ->
+        val bytes = value.toBytes()
+        val key = name.toByteSequence()
+
+        val txn =
+          client.kvClient
+            .txn()
+            .If(Cmp(key, Cmp.Op.GREATER, CmpTarget.createRevision(0)))
+            .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
+            .commit()
+            .await()
+
+        if (!txn.isSucceeded) error("variable '$name' does not exist in etcd")
+        bytes.size
+      }
+    }
+
+  override fun delete(name: String) {
+    runBlocking(scope.coroutineContext) {
+      withClient("delete") { client ->
+        val response = client.kvClient.delete(name.toByteSequence()).await()
+        if (response.deleted == 0L) {
+          error("variable '$name' does not exist in etcd")
         }
       }
     }
   }
 
-  // Returns the CompletableFuture that completes when the client is connected.
-  fun getClientFuture(): CompletableFuture<Client> = clientFuture
-
-  /** Closes the connection manager and the underlying Etcd client. */
-  override fun close() {
-    running.set(false)
-    executor.shutdownNow()
-    clientFuture.thenAccept { it.close() }
-  }
-}
-
-class EtcdContext(isLocal: Boolean, endpoints: List<String>) : Context(isLocal), AutoCloseable {
-  // Async Etcd connection manager.
-  private val asyncConn = AsyncEtcdConnection(endpoints)
-
-  // Converts value to ByteArray.
-  private fun toBytes(value: Any?) = ValueExchange(value).toBytes()
-
-  // Converts ByteArray back to value.
-  private fun fromBytes(bytes: ByteArray) = ValueExchange.fromBytes(bytes).value
-
-  // Returns the connected Etcd client or throws IOException if not connected.
-  private fun client(): Client =
-    asyncConn.getClientFuture().getNow(null) ?: throw IOException("Etcd client not connected")
-
-  /**
-   * Retrieves a variable by name.
-   *
-   * @param name name of the variable
-   * @return value of the variable
-   * @throws IOException if the variable does not exist or retrieval fails
-   */
-  override fun get(name: String): Any =
-    runCatching {
-        fromBytes(
-          client()
-            .kvClient
-            .get(ByteSequence.from(name.toByteArray()))
-            .get()
-            .kvs
-            .firstOrNull()
-            ?.value
-            ?.bytes ?: throw IOException("A variable with the name '$name' does not exist")
-        )
-      }
-      .getOrElse { e -> throw IOException("Failed to retrieve variable '$name'", e) }
-
-  /**
-   * Creates a new context variable.
-   *
-   * The byte size is only returned for binary (byte array) data and is 0 otherwise.
-   *
-   * @param name name of the context variable
-   * @param value value of the context variable
-   * @return byte size of stored data
-   * @throws IOException if a variable with the same name already exists
-   */
-  override fun create(name: String, value: Any?): Int =
-    runCatching {
-        val bytes = toBytes(value)
-        val key = ByteSequence.from(name.toByteArray())
-        client()
-          .kvClient
-          .txn()
-          .If(Cmp(key, Cmp.Op.EQUAL, CmpTarget.createRevision(0)))
-          .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
-          .Else(Op.get(key, GetOption.DEFAULT))
-          .commit()
-          .get()
-          .takeIf { it.isSucceeded }
-          ?.let { bytes.size }
-          ?: throw IOException("A variable with the name '$name' already exists")
-      }
-      .getOrElse { e -> throw IOException("Failed to create variable '$name'", e) }
-
-  /**
-   * Assigns a new value to a variable.
-   *
-   * @param name name of the variable
-   * @param value new value
-   * @return byte size of the stored data
-   * @throws IOException if the assignment fails
-   */
-  override fun assign(name: String, value: Any?): Int =
-    runCatching {
-        val bytes = toBytes(value)
-        val key = ByteSequence.from(name.toByteArray())
-        client()
-          .kvClient
-          .txn()
-          .If(Cmp(key, Cmp.Op.GREATER, CmpTarget.createRevision(0)))
-          .Then(Op.put(key, ByteSequence.from(bytes), PutOption.DEFAULT))
-          .Else(Op.get(key, GetOption.DEFAULT))
-          .commit()
-          .get()
-          .takeIf { it.isSucceeded }
-          ?.let { bytes.size }
-          ?: throw IOException("A variable with the name '$name' does not exist")
-      }
-      .getOrElse { e -> throw IOException("Failed to assign variable '$name'", e) }
-
-  /**
-   * Deletes a variable.
-   *
-   * @param name name of the variable
-   * @throws IOException if the variable does not exist or deletion fails
-   */
-  override fun delete(name: String) {
-    runCatching {
-        client().kvClient.delete(ByteSequence.from(name.toByteArray())).get().takeIf {
-          it.deleted > 0
-        } ?: throw IOException("A variable with the name '$name' does not exist")
-      }
-      .getOrElse { e -> throw IOException("Failed to delete variable '$name'", e) }
-  }
-
-  /**
-   * Deletes all context variables.
-   *
-   * @throws IOException if the variable could not be deleted
-   */
   override fun deleteAll() {
-    runCatching {
-        client()
-          .kvClient
-          .delete(
-            ByteSequence.from(ByteString.copyFromUtf8("*")),
-            DeleteOption.builder()
-              .isPrefix(true)
-              .withRange(OptionsUtil.prefixEndOf(ByteSequence.from(byteArrayOf())))
-              .build(),
-          )
-          .get()
+    runBlocking(scope.coroutineContext) {
+      withClient("deleteAll") { client ->
+        val allKeysPrefix = ByteSequence.from(byteArrayOf(0))
+        val options = DeleteOption.builder().withRange(allKeysPrefix).build()
+
+        client.kvClient.delete(allKeysPrefix, options).await()
       }
-      .getOrElse { e -> throw IOException("Failed to delete all variables", e) }
+    }
   }
 
-  /**
-   * Retrieves all variables.
-   *
-   * @return list of all context variables
-   * @throws IOException if retrieval fails
-   */
   override fun getAll(): List<ContextVariable> =
-    runCatching {
-        client()
-          .kvClient
-          .get(
-            ByteSequence.from(ByteString.copyFromUtf8("*")),
-            GetOption.builder()
-              .isPrefix(true)
-              .withRange(OptionsUtil.prefixEndOf(ByteSequence.from(byteArrayOf())))
-              .build(),
-          )
-          .get()
-          .kvs
-          .map { ContextVariable(it.key.toString(), fromBytes(it.value.bytes)) }
-      }
-      .getOrElse { e -> throw IOException("Failed to retrieve all variables", e) }
+    runBlocking(scope.coroutineContext) {
+      withClient("getAll") { client ->
+        val allKeysPrefix = ByteSequence.from(byteArrayOf(0))
+        val options = GetOption.builder().withRange(allKeysPrefix).build()
 
-  /** Closes the context and underlying Etcd connection. */
+        val response = client.kvClient.get(allKeysPrefix, options).await()
+
+        response.kvs.map { kv ->
+          ContextVariable.eager(
+            kv.key.toString(StandardCharsets.UTF_8),
+            kv.value.bytes.fromValueBytes(),
+          )
+        }
+      }
+    }
+
   override fun close() {
     asyncConn.close()
+    scope.cancel()
   }
-
-  /**
-   * Blocks until the initial connection is established or the timeout expires.
-   *
-   * @param timeoutMs timeout in milliseconds
-   * @return true if the connection was successfully established, false if timed out
-   */
-  fun awaitInitialConnection(timeoutMs: Long = 5000): Boolean =
-    try {
-      asyncConn.getClientFuture().get(timeoutMs, TimeUnit.MILLISECONDS)
-      true
-    } catch (_: Exception) {
-      false
-    }
 }

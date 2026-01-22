@@ -6,9 +6,9 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.TestUtils.loggingOpenTelemetry
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
+import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -52,24 +52,25 @@ class PingPongTest {
           )
 
         // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build()
+        val services = ServiceImplementationBuilder.from(listOf()).build().getOrThrow()
         val serviceImplementationSelector = RandomServiceImplementationSelector(services)
 
         // Create and run the runtime using two state machines (stateMachine1 and stateMachine2).
         // The order is 2-1, as state machine 1 sends and event to state machine 2, if state machine
         // 2 is not yet created, it will not receive the event as the event mocking is very simple
-        Runtime(
+        val runtime =
+          Runtime(
             DefaultDescriptions.pingPong,
             listOf("pingStateMachine", "pongStateMachine"),
-            loggingOpenTelemetry(),
-            serviceImplementationSelector,
             mockEventHandler,
             mockPersistentContext,
+            serviceImplementationSelector,
           )
-          .run()
 
-        // This test counts up to 100, so the final value should be 100
-        assertEquals(100, mockPersistentContext["v"])
+        println(measureTime { runtime.run() })
+
+        // This test counts up to 100000, so the final value should be 100000
+        assertEquals(100000, mockPersistentContext.get("v"))
       }
     }
   }

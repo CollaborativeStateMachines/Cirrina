@@ -44,43 +44,38 @@ class StateMachineClassTest {
 
   @Test
   fun testGetStateByName() {
-    assertDoesNotThrow { stateMachineClass.findStateClassByName("state1") }
-    assertDoesNotThrow { stateMachineClass.findStateClassByName("state2") }
-    assertNull(stateMachineClass.findStateClassByName("nonExisting"))
+    assertDoesNotThrow { stateMachineClass.getStateClassByName("state1") }
+    assertDoesNotThrow { stateMachineClass.getStateClassByName("state2") }
+    assertNull(stateMachineClass.getStateClassByName("nonExisting"))
   }
 
   @Test
   fun testGetActionByName() {
-    assertDoesNotThrow { stateMachineClass.findStateClassByName("action1") }
-    assertNull(stateMachineClass.findStateClassByName("nonExisting"))
+    assertDoesNotThrow { stateMachineClass.getStateClassByName("action1") }
+    assertNull(stateMachineClass.getStateClassByName("nonExisting"))
   }
 
   @Test
   fun testFindStateByName() {
     assertDoesNotThrow {
-      assertEquals("a", stateMachineClass.findStateClassByName("a")?.name)
-      assertNull(stateMachineClass.findStateClassByName("nonExisting"))
+      assertEquals("a", stateMachineClass.getStateClassByName("a")?.name)
+      assertNull(stateMachineClass.getStateClassByName("nonExisting"))
     }
   }
 
   @Test
   fun testFindTransitionByEventName() {
     assertDoesNotThrow {
-      val stateA = stateMachineClass.findStateClassByName("a")!!
-      val transitions = stateMachineClass.findOnTransitionsFromStateByEventName(stateA, "e1")
+      val stateA = stateMachineClass.getStateClassByName("a")!!
+      val transitions = stateMachineClass.getOnTransitionsFromStateByEventName(stateA, "e1")
 
       assertEquals(1, transitions.size)
       assertEquals("b", transitions.first().to)
 
       assertEquals(
         0,
-        stateMachineClass.findOnTransitionsFromStateByEventName(stateA, "nonExisting").size,
+        stateMachineClass.getOnTransitionsFromStateByEventName(stateA, "nonExisting").size,
       )
     }
-  }
-
-  @Test
-  fun testToString() {
-    assertEquals("completeStateMachine", stateMachineClass.toString())
   }
 }

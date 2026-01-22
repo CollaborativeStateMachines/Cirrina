@@ -1,90 +1,93 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * An in-memory context backed by a concurrent hash map.
- *
- * @param isLocal true if this context is local, otherwise false
- */
-open class InMemoryContext(isLocal: Boolean) : Context(isLocal) {
+/** In-memory context implementation. */
+open class InMemoryContext() : Context() {
 
-  private val values: MutableMap<String, Any?> = ConcurrentHashMap()
+  private val values = ConcurrentHashMap<String, Any?>()
 
   /**
-   * Retrieve a context variable.
+   * Checks if a variable exists.
    *
-   * @param name name of the context variable
-   * @return the retrieved context variable
-   * @throws IOException if the variable does not exist
+   * @return true if the variable exists, false otherwise.
+   * @throws Exception if an internal error occurs.
    */
-  override fun get(name: String): Any? =
-    values[name] ?: throw IOException("Variable '$name' does not exist")
+  override fun has(name: String): Boolean = values.containsKey(name)
 
   /**
-   * Creates a new context variable.
+   * Retrieves a variable value.
    *
-   * The byte size is only returned for binary (byte array) data and is 0 otherwise.
-   *
-   * @param name name of the context variable
-   * @param value value of the context variable
-   * @return byte size of stored data
-   * @throws IOException if a variable with the same name already exists
+   * @return the value of the variable.
+   * @throws Exception if the variable does not exist or if an internal error occurs.
    */
-  override fun create(name: String, value: Any?): Int =
-    runCatching {
-        values
-          .compute(name) { _, old ->
-            if (old != null) throw IOException("Variable '$name' already exists")
-            value
-          }
-          ?.let { if (it is ByteArray) it.size else 0 } ?: if (value is ByteArray) value.size else 0
-      }
-      .getOrElse { e -> throw IOException("Failed to create variable '$name'", e) }
+  override fun get(name: String): Any? {
+    return values.getOrDefault(name, NOT_FOUND).let {
+      if (it === NOT_FOUND) error("variable '$name' does not exist") else it
+    }
+  }
 
   /**
-   * Assigns a new value to an existing context variable.
+   * Creates a new variable.
    *
-   * The byte size is only returned for binary (byte array) data, and is 0 otherwise.
-   *
-   * @param name name of the context variable
-   * @param value new value of the context variable
-   * @return byte size of stored data
-   * @throws IOException if the variable does not exist
+   * @return the size of the value.
+   * @throws Exception if the variable already exists or if an internal error occurs.
    */
-  override fun assign(name: String, value: Any?): Int =
-    runCatching {
-        if (!values.containsKey(name)) throw IOException("Variable '$name' does not exist")
-        values[name] = value
-        if (value is ByteArray) value.size else 0
-      }
-      .getOrElse { e -> throw IOException("Failed to assign variable '$name'", e) }
+  override fun create(name: String, value: Any?): Int {
+    if (values.putIfAbsent(name, value) != null) {
+      error("variable '$name' already exists")
+    }
+    return calculateSize(value)
+  }
 
   /**
-   * Deletes a context variable.
+   * Assigns a value to an existing variable.
    *
-   * @param name name of the context variable
-   * @throws IOException if the variable does not exist
+   * @return the size of the value.
+   * @throws Exception if the variable does not exist or if an internal error occurs.
    */
-  override fun delete(name: String) =
-    runCatching {
-        if (values.remove(name) == null) throw IOException("Variable '$name' does not exist")
-      }
-      .getOrElse { e -> throw IOException("Failed to delete variable '$name'", e) }
+  override fun assign(name: String, value: Any?): Int {
+    if (values.replace(name, value) == null && !values.containsKey(name)) {
+      error("variable '$name' does not exist")
+    }
+    return calculateSize(value)
+  }
 
-  /** Deletes all context variables. */
+  /**
+   * Deletes a variable.
+   *
+   * @throws Exception if the variable does not exist or if an internal error occurs.
+   */
+  override fun delete(name: String) {
+    if (values.remove(name) == null) {
+      error("variable '$name' does not exist")
+    }
+  }
+
+  /**
+   * Deletes all variables.
+   *
+   * @throws Exception if the variable does not exist or if an internal error occurs.
+   */
   override fun deleteAll() {
     values.clear()
   }
 
   /**
-   * Retrieves all variables.
+   * Returns all variables.
    *
-   * @return list of all context variables
+   * @return a list of all variables.
+   * @throws Exception if an internal error occurs.
    */
   override fun getAll(): List<ContextVariable> =
-    values.map { (key, value) -> ContextVariable(key, value) }
+    values.map { (key, value) -> ContextVariable.eager(key, value) }
 
+  /** Closes the context. */
   override fun close() {}
+
+  private fun calculateSize(value: Any?): Int = if (value is ByteArray) value.size else 0
+
+  companion object {
+    private val NOT_FOUND = Any()
+  }
 }
