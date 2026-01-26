@@ -16,6 +16,7 @@ import java.util.*
 import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.*
 import mu.KotlinLogging
+import org.apache.commons.lang3.builder.ToStringBuilder
 
 private val logger = KotlinLogging.logger {}
 private const val VAR_PREFIX = "$"
@@ -147,7 +148,7 @@ class StateMachine(
   private fun doEnter(state: State, event: Event?): Transition? =
     state
       .also {
-        logger.info { "$this entering: $it" }
+        logger.debug { "$this entering: $it" }
 
         // Switch state
         activeState = it
@@ -198,7 +199,7 @@ class StateMachine(
       .let { selected ->
         when (selected.size) {
           0 -> null
-          1 -> selected.first().also { logger.trace { "$this selected: $it" } }
+          1 -> selected.first().also { logger.debug { "$this selected: $it" } }
           else -> error("non-determinism detected in $this")
         }
       }
@@ -276,5 +277,6 @@ class StateMachine(
       )
     )
 
-  override fun toString() = "StateMachine(id=$id, name=${stateMachineClass.name})"
+  override fun toString() =
+    ToStringBuilder(this).append("id", id).append("name", stateMachineClass.name).toString()
 }

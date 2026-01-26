@@ -5,6 +5,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.utils.Uuid.insecureUuid
 import kotlin.time.Clock
+import org.apache.commons.lang3.builder.ToStringBuilder
 
 data class Event(
   val name: String,
@@ -23,7 +24,7 @@ data class Event(
   }
 
   override fun toString(): String =
-    "Event(id='$id', name='$name', channel=$channel, createdTime=$createdTime)"
+    ToStringBuilder(this).append("id", id).append("channel", channel).toString()
 
   companion object {
     fun ensureHasEvaluatedData(event: Event, extent: Extent): Event = event.evaluateData(extent)

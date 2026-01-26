@@ -1,5 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
+import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
+import at.ac.uibk.dps.cirrina.cirrina.di.CsmStateMachineNames
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
@@ -15,6 +17,7 @@ import com.lmax.disruptor.EventHandler as LmaxEventHandler
 import com.lmax.disruptor.dsl.Disruptor
 import com.lmax.disruptor.dsl.ProducerType
 import com.lmax.disruptor.util.DaemonThreadFactory
+import jakarta.inject.Inject
 import java.net.URI
 import java.util.concurrent.Phaser
 import kotlinx.coroutines.runBlocking
@@ -29,9 +32,11 @@ private val logger = KotlinLogging.logger {}
  * @property persistentContext the shared storage for long-lived state variables.
  * @property serviceImplementationSelector logic for choosing between multiple service providers.
  */
-class Runtime(
-  main: URI,
-  stateMachineNames: List<String>,
+class Runtime
+@Inject
+constructor(
+  @CsmMain main: URI,
+  @CsmStateMachineNames stateMachineNames: List<String>,
   val eventHandler: EventHandler,
   private val persistentContext: Context,
   private val serviceImplementationSelector: ServiceImplementationSelector,
@@ -68,7 +73,7 @@ class Runtime(
     val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main))
         .build()
-        .onFailure { logger.error(it) { "failed to initialize collaborative blueprint" } }
+        .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
     // Create all persistent variables
@@ -84,7 +89,7 @@ class Runtime(
       stateMachineNames
         .mapNotNull { name ->
           collaborativeStateMachineClass.findStateMachineClassByName(name).also {
-            if (it == null) logger.warn { "State machine '$name' not found in blueprint" }
+            if (it == null) logger.warn { "state machine '$name' not found in class" }
           }
         }
         .flatMap { buildInstances(it, null) }
@@ -116,6 +121,7 @@ class Runtime(
     while (phaser.registeredParties > 0) {
       phaser.awaitAdvance(phaser.phase)
     }
+    logger.info { "all state machines terminated" }
   }
 
   private fun buildInstances(

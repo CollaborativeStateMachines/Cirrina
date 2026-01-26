@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 
 /**
- * A builder for constructing [StateClass] blueprints from [StateDescription]s.
+ * A builder for constructing [StateClass]s from [StateDescription]s.
  *
  * @property stateDescription the source containing the state's structural definition.
  * @property name an optional identifier for the state, required to be provided.

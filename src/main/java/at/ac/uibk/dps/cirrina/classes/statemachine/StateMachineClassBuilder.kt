@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
 
 /**
- * A builder for constructing [StateMachineClass] blueprints.
+ * A builder for constructing [StateMachineClass]s.
  *
  * This builder leverages deep chaining to resolve nested state machines, state vertices, and
  * transition edges in a single execution pipeline.

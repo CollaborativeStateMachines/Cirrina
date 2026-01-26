@@ -4,6 +4,7 @@ import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
+import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jgrapht.traverse.TopologicalOrderIterator
 
 /**
@@ -45,5 +46,9 @@ class Transition(private val transitionClass: TransitionClass, val isOr: Boolean
     sortedActions.map { commandFactory.createActionCommand(it) }
 
   override fun toString(): String =
-    "Transition(internal=$isInternal, targetStateName=$targetStateName, isOr=$isOr)"
+    ToStringBuilder(this)
+      .append("internal", isInternal)
+      .append("target", targetStateName)
+      .append("or", isOr)
+      .toString()
 }
