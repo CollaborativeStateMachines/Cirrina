@@ -28,18 +28,22 @@ private val logger = KotlinLogging.logger {}
 /**
  * The execution engine responsible for managing the lifecycle of state machine instances.
  *
+ * @property csmMainUri the URI of the main collaborative state machine definition.
+ * @property csmStateMachineNames the names of the state machines to be instantiated.
  * @property eventHandler the communication layer for external event ingestion.
  * @property persistentContext the shared storage for long-lived state variables.
  * @property serviceImplementationSelector logic for choosing between multiple service providers.
+ * @property stateMachineFactory factory for creating state machine instances.
  */
 class Runtime
 @Inject
 constructor(
-  @CsmMain main: URI,
-  @CsmStateMachineNames stateMachineNames: List<String>,
-  val eventHandler: EventHandler,
+  @CsmMain csmMainUri: URI,
+  @CsmStateMachineNames csmStateMachineNames: List<String>,
+  private val eventHandler: EventHandler,
   private val persistentContext: Context,
   private val serviceImplementationSelector: ServiceImplementationSelector,
+  private val stateMachineFactory: StateMachine.Factory,
 ) : EventListener {
 
   companion object {
@@ -71,7 +75,7 @@ constructor(
   init {
     // Resolve the collaborative state machine class
     val collaborativeStateMachineClass =
-      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main))
+      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(csmMainUri))
         .build()
         .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
@@ -86,7 +90,7 @@ constructor(
 
     // Build the state machine instances
     stateMachines =
-      stateMachineNames
+      csmStateMachineNames
         .mapNotNull { name ->
           collaborativeStateMachineClass.findStateMachineClassByName(name).also {
             if (it == null) logger.warn { "state machine '$name' not found in class" }
@@ -128,14 +132,12 @@ constructor(
     stateMachineClass: StateMachineClass,
     parentInstance: StateMachine?,
   ): List<StateMachine> =
-    StateMachine(stateMachineClass, this, serviceImplementationSelector, parentInstance).let {
-      instance ->
+    stateMachineFactory.create(stateMachineClass, parentInstance, this).let { instance ->
       stateMachineClass.nestedStateMachineClasses
         .flatMap { nestedClass -> buildInstances(nestedClass, instance) }
         .let { nestedInstances ->
-          instance
-            .apply { setNestedStateMachineIds(nestedInstances.map { it.id }) }
-            .let { listOf(it) + nestedInstances }
+          instance.apply { setNestedStateMachineIds(nestedInstances.map { it.id }) }
+          listOf(instance) + nestedInstances
         }
     }
 

@@ -55,7 +55,7 @@ internal constructor(private val invokeAction: InvokeAction, executionContext: E
       .forEach { event ->
         when (event.channel) {
           EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
-          else -> executionContext.eventHandler::sendEvent
+          else -> executionContext.stateMachineEventHandler::sendEvent
         }.invoke(event)
       }
 }

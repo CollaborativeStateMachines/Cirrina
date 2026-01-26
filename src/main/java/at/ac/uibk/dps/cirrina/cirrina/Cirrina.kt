@@ -23,10 +23,10 @@ class Cirrina {
 
   companion object {
     /** Timeout for the NATS connection. */
-    const val NATS_CONNECTION_TIMEOUT = 60000L
+    const val NATS_CONNECTION_TIMEOUT = 1000L
 
     /** Timeout for the ETCD connection. */
-    const val ETCD_CONNECTION_TIMEOUT = 60000L
+    const val ETCD_CONNECTION_TIMEOUT = 1000L
 
     init {
       configureStringBuilder()

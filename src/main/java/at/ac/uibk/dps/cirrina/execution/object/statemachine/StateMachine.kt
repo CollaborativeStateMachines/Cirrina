@@ -8,10 +8,15 @@ import at.ac.uibk.dps.cirrina.execution.command.*
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.*
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.state.State
 import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.*
@@ -19,14 +24,28 @@ import mu.KotlinLogging
 import org.apache.commons.lang3.builder.ToStringBuilder
 
 private val logger = KotlinLogging.logger {}
+
 private const val VAR_PREFIX = "$"
 
-class StateMachine(
-  private val stateMachineClass: StateMachineClass,
-  private val runtime: Runtime,
+class StateMachine
+@AssistedInject
+constructor(
+  @Assisted private val stateMachineClass: StateMachineClass,
+  @Assisted private val parentStateMachine: StateMachine? = null,
+  @Assisted private val runtime: Runtime,
+  private val externalEventHandler: EventHandler,
   private val serviceImplementationSelector: ServiceImplementationSelector,
-  private val parentStateMachine: StateMachine? = null,
+  private val meterRegistry: MeterRegistry,
 ) : EventListener, Scope {
+
+  @AssistedFactory
+  interface Factory {
+    fun create(
+      stateMachineClass: StateMachineClass,
+      parent: StateMachine?,
+      runtime: Runtime,
+    ): StateMachine
+  }
 
   /** The unique identifier of this state machine. */
   val id: String = UUID.randomUUID().toString()
@@ -41,7 +60,7 @@ class StateMachine(
   private val timeoutManager = TimeoutActionManager(coroutineScope)
 
   // Event handler
-  private val eventHandler = StateMachineEventHandler(this, runtime.eventHandler)
+  private val eventHandler = StateMachineEventHandler(externalEventHandler)
 
   // State instances
   private val stateInstances =
@@ -279,4 +298,10 @@ class StateMachine(
 
   override fun toString() =
     ToStringBuilder(this).append("id", id).append("name", stateMachineClass.name).toString()
+
+  inner class StateMachineEventHandler(private val eventHandler: EventHandler) {
+    fun sendEvent(event: Event) {
+      eventHandler.sendEvent(event, id)
+    }
+  }
 }

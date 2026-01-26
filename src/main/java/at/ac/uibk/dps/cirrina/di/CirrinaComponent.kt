@@ -5,7 +5,7 @@ import at.ac.uibk.dps.cirrina.cirrina.di.CirrinaModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import dagger.Component
-import javax.inject.Singleton
+import jakarta.inject.Singleton
 
 @Singleton
 @Component(modules = [CirrinaModule::class])

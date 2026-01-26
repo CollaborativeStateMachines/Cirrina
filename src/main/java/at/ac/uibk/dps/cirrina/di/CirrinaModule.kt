@@ -14,9 +14,14 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import dagger.Module
 import dagger.Provides
+import io.micrometer.core.instrument.Clock
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry
+import io.micrometer.influx.InfluxConfig
+import io.micrometer.influx.InfluxMeterRegistry
 import jakarta.inject.Qualifier
+import jakarta.inject.Singleton
 import java.net.URI
-import javax.inject.Singleton
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -28,11 +33,11 @@ private val logger = KotlinLogging.logger {}
 @Module
 class CirrinaModule {
 
-  @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.appPath.get())
+  @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
 
   @Provides
   @CsmStateMachineNames
-  fun provideCsmStateMachineNames(): List<String> = EnvironmentVariables.instantiate.get()
+  fun provideCsmStateMachineNames(): List<String> = EnvironmentVariables.csmStateMachines.get()
 
   @Provides
   @Singleton
@@ -53,14 +58,6 @@ class CirrinaModule {
 
   @Provides
   @Singleton
-  fun provideServiceImplementationSelector(): ServiceImplementationSelector =
-    URI(EnvironmentVariables.serviceBindingsPath.get())
-      .let(CsmParser::parseServiceImplementationBindings)
-      .let { ServiceImplementationBuilder.from(it.bindings).build().getOrThrow() }
-      .let(::RandomServiceImplementationSelector)
-
-  @Provides
-  @Singleton
   fun providePersistentContext(): Context =
     when (EnvironmentVariables.contextProvider.get()) {
       PersistentContextProvider.ETCD ->
@@ -71,4 +68,39 @@ class CirrinaModule {
           awaitReady(Cirrina.ETCD_CONNECTION_TIMEOUT)
         }
     }
+
+  @Provides
+  @Singleton
+  fun provideMeterRegistry(): MeterRegistry {
+    val compositeRegistry = CompositeMeterRegistry()
+
+    compositeRegistry.add(createInfluxRegistry(EnvironmentVariables.influxMetricUrl.get()))
+
+    return compositeRegistry
+  }
+
+  @Provides
+  @Singleton
+  fun provideServiceImplementationSelector(): ServiceImplementationSelector =
+    URI(EnvironmentVariables.csmServiceBindingsUri.get())
+      .let(CsmParser::parseServiceImplementationBindings)
+      .let { ServiceImplementationBuilder.from(it.bindings).build().getOrThrow() }
+      .let(::RandomServiceImplementationSelector)
+
+  private fun createInfluxRegistry(url: String): InfluxMeterRegistry {
+    val config =
+      object : InfluxConfig {
+        override fun uri(): String = url
+
+        override fun org(): String = EnvironmentVariables.influxMetricOrg.get()
+
+        override fun bucket(): String = EnvironmentVariables.influxMetricBucket.get()
+
+        override fun token(): String = EnvironmentVariables.influxMetricToken.get()
+
+        override fun get(k: String): String? = null
+      }
+
+    return InfluxMeterRegistry(config, Clock.SYSTEM)
+  }
 }

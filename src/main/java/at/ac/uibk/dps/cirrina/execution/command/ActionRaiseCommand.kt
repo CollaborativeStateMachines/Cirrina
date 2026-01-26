@@ -29,7 +29,7 @@ internal constructor(private val raiseAction: RaiseAction, executionContext: Exe
       .also { event ->
         when (event.channel) {
           EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
-          else -> executionContext.eventHandler::sendEvent
+          else -> executionContext.stateMachineEventHandler::sendEvent
         }.invoke(event)
       }
       .run { emptyList() }

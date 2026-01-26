@@ -56,7 +56,9 @@ dependencies {
 
   implementation("com.google.dagger:dagger:2.59")
   kapt("com.google.dagger:dagger-compiler:2.59")
+
   implementation("com.google.guava:guava:33.0.0-jre")
+
   implementation("com.google.protobuf:protobuf-java:4.32.0")
 
   implementation("com.lmax:disruptor:4.0.0")
@@ -64,6 +66,9 @@ dependencies {
   implementation("io.etcd:jetcd-core:0.8.5")
 
   implementation("io.github.microutils:kotlin-logging:3.0.5")
+
+  implementation("io.micrometer:micrometer-core:1.17.0-M1")
+  implementation("io.micrometer:micrometer-registry-influx:1.17.0-M1")
 
   implementation("io.nats:jnats:2.17.3")
 

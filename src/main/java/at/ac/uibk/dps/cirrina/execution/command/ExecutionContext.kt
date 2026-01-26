@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.command
 
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
-import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachineEventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import kotlinx.coroutines.CoroutineScope
 
@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
  *
  * @property scope the current execution scope providing access to data and extents.
  * @property serviceImplementationSelector the selector used to find service implementations.
- * @property eventHandler the handler used for sending events to the state machine.
+ * @property stateMachineEventHandler the handler used for sending events within the state machine.
  * @property eventListener the listener used for receiving internal events.
  * @property coroutineScope the scope managing the lifecycle of asynchronous tasks.
  * @property raisingEvent the event currently being raised, if any.
@@ -23,7 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 data class ExecutionContext(
   val scope: Scope,
   val serviceImplementationSelector: ServiceImplementationSelector,
-  val eventHandler: StateMachineEventHandler,
+  val stateMachineEventHandler: StateMachine.StateMachineEventHandler,
   val eventListener: EventListener,
   val coroutineScope: CoroutineScope,
   val raisingEvent: Event? = null,
