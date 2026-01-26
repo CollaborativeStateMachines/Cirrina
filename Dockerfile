@@ -1,4 +1,4 @@
-FROM gradle:8.7.0-jdk21-alpine AS build
+FROM gradle:9.3.0-jdk25-alpine AS build
 
 ARG GRADLE_OPTS
 
