@@ -33,12 +33,6 @@ private val logger = KotlinLogging.logger {}
 @Module
 class CirrinaModule {
 
-  @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
-
-  @Provides
-  @CsmStateMachineNames
-  fun provideCsmStateMachineNames(): List<String> = EnvironmentVariables.csmStateMachines.get()
-
   @Provides
   @Singleton
   fun provideEventHandler(): EventHandler =
@@ -78,6 +72,12 @@ class CirrinaModule {
 
     return compositeRegistry
   }
+
+  @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
+
+  @Provides
+  @CsmStateMachineNames
+  fun provideCsmStateMachineNames(): List<String> = EnvironmentVariables.csmStateMachines.get()
 
   @Provides
   @Singleton

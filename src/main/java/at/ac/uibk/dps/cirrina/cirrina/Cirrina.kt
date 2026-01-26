@@ -13,10 +13,14 @@ class Cirrina {
   fun run() {
     val component = DaggerCirrinaComponent.create()
 
+    // Run the runtime
     runCatching {
         component.eventHandler().use { _ ->
           component.persistentContext().use { _ -> component.runtime().run() }
         }
+
+        // Flush the metrics
+        component.meterRegistry().close()
       }
       .onFailure { ex -> logger.error(ex) { "a fatal error occurred during runtime execution" } }
   }

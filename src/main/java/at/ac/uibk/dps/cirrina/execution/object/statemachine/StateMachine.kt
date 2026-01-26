@@ -30,20 +30,20 @@ private const val VAR_PREFIX = "$"
 class StateMachine
 @AssistedInject
 constructor(
+  @Assisted private val runtime: Runtime,
   @Assisted private val stateMachineClass: StateMachineClass,
   @Assisted private val parentStateMachine: StateMachine? = null,
-  @Assisted private val runtime: Runtime,
-  private val externalEventHandler: EventHandler,
-  private val serviceImplementationSelector: ServiceImplementationSelector,
   private val meterRegistry: MeterRegistry,
+  private val serviceImplementationSelector: ServiceImplementationSelector,
+  externalEventHandler: EventHandler,
 ) : EventListener, Scope {
 
   @AssistedFactory
   interface Factory {
     fun create(
+      runtime: Runtime,
       stateMachineClass: StateMachineClass,
       parent: StateMachine?,
-      runtime: Runtime,
     ): StateMachine
   }
 
@@ -293,7 +293,8 @@ constructor(
         coroutineScope,
         event,
         isWhile,
-      )
+      ),
+      meterRegistry,
     )
 
   override fun toString() =

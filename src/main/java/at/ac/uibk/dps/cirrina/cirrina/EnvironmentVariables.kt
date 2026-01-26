@@ -37,9 +37,9 @@ object EnvironmentVariables {
   /** InfluxDB metric variables. */
   val influxMetricUrl = EnvironmentVariable("INFLUX_METRIC_URL", "http://localhost:8086")
 
-  val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "csm")
-  val influxMetricBucket = EnvironmentVariable("INFLUX_METRIC_BUCKET", "csm")
-  val influxMetricToken = EnvironmentVariable("INFLUX_METRIC_TOKEN", "csm")
+  val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "org")
+  val influxMetricBucket = EnvironmentVariable("INFLUX_METRIC_BUCKET", "bucket")
+  val influxMetricToken = EnvironmentVariable("INFLUX_METRIC_TOKEN", "bzO10KmR8x")
 
   /** The path to the CSML application. */
   val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")

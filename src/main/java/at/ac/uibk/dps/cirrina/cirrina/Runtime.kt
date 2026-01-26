@@ -17,9 +17,13 @@ import com.lmax.disruptor.EventHandler as LmaxEventHandler
 import com.lmax.disruptor.dsl.Disruptor
 import com.lmax.disruptor.dsl.ProducerType
 import com.lmax.disruptor.util.DaemonThreadFactory
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
 import java.net.URI
 import java.util.concurrent.Phaser
+import kotlin.time.measureTime
+import kotlin.time.toJavaDuration
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 
@@ -38,12 +42,13 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
-  @CsmMain csmMainUri: URI,
-  @CsmStateMachineNames csmStateMachineNames: List<String>,
   private val eventHandler: EventHandler,
   private val persistentContext: Context,
+  private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   private val stateMachineFactory: StateMachine.Factory,
+  @CsmMain csmMainUri: URI,
+  @CsmStateMachineNames csmStateMachineNames: List<String>,
 ) : EventListener {
 
   companion object {
@@ -71,6 +76,8 @@ constructor(
       ProducerType.MULTI,
       BusySpinWaitStrategy(),
     )
+
+  var completionTimer: Timer = meterRegistry.timer("runtime.completionTime")
 
   init {
     // Resolve the collaborative state machine class
@@ -118,21 +125,29 @@ constructor(
 
   /** Blocks the current thread until all registered state machines have terminated. */
   fun run() = runBlocking {
-    stateMachines.forEach { it.start() }
+    measureTime {
+        stateMachines.forEach { it.start() }
 
-    // Release the initial party and wait for all machines to deregister
-    phaser.arriveAndDeregister()
-    while (phaser.registeredParties > 0) {
-      phaser.awaitAdvance(phaser.phase)
-    }
-    logger.info { "all state machines terminated" }
+        // Release the initial party...
+        phaser.arriveAndDeregister()
+
+        // and wait for all machines to deregister
+        while (phaser.registeredParties > 0) {
+          phaser.awaitAdvance(phaser.phase)
+        }
+      }
+      .also { duration ->
+        completionTimer.record(duration.toJavaDuration())
+
+        logger.info { "all state machines terminated in $duration" }
+      }
   }
 
   private fun buildInstances(
     stateMachineClass: StateMachineClass,
     parentInstance: StateMachine?,
   ): List<StateMachine> =
-    stateMachineFactory.create(stateMachineClass, parentInstance, this).let { instance ->
+    stateMachineFactory.create(this, stateMachineClass, parentInstance).let { instance ->
       stateMachineClass.nestedStateMachineClasses
         .flatMap { nestedClass -> buildInstances(nestedClass, instance) }
         .let { nestedInstances ->
