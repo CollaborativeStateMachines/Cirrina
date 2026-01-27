@@ -54,7 +54,7 @@ class InvokeTest {
           )
 
         val server = mockHttpServer { input ->
-          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+          val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
           listOf(ContextVariable("v", (v.value as Int) + 1))
         }
 

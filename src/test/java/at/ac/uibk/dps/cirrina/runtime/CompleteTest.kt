@@ -43,7 +43,7 @@ class CompleteTest {
         val eventHandler = SimpleEventHandler()
         val context = mockPersistentContext()
         val server = mockHttpServer { input ->
-          val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
+          val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
           listOf(ContextVariable("v", (v.value as Int) + 1))
         }
 
@@ -98,7 +98,7 @@ class CompleteTest {
     val sizeSet = HashSet<Int>()
 
     repeat(100) {
-      val payload = Stdlib.genRandPayload(sizes)
+      val payload = Stdlib.randomPayload(sizes)
       assertNotNull(payload)
       assertTrue(sizes.any { it == payload.size })
       sizeSet.add(payload.size)
@@ -106,6 +106,8 @@ class CompleteTest {
 
     assertTrue(sizeSet.size > 1)
     assertTrue(sizeSet.toIntArray()[0] in sizes)
+
+    assertTrue(Stdlib.takeRandom(sizeSet) in sizeSet)
   }
 
   @Test

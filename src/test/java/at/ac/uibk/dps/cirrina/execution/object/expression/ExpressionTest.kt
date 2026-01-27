@@ -90,8 +90,13 @@ class ExpressionTest {
     // Call utility function
     repeat(100) {
       val bytes =
-        "std:genRandPayload([1024, 1024 * 10, 1024 * 100, 1024 * 1000])".eval() as ByteArray
+        "std:randomPayload([1024, 1024 * 10, 1024 * 100, 1024 * 1000])".eval() as ByteArray
       assertTrue(bytes.size in expectedSizes)
+    }
+
+    repeat(100) {
+      val v = "std:takeRandom([1, 2, 3, ...])".eval()
+      assertTrue(v in listOf(1, 2, 3))
     }
   }
 
