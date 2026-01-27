@@ -1,9 +1,16 @@
 amends "modulepath:/pkl/csm/csml.pkl"
+
 import "pingStateMachine.pkl"
 import "pongStateMachine.pkl"
 
 version = "4.0.0"
-stateMachines {
-  ["pingStateMachine"] = pingStateMachine.sm
-  ["pongStateMachine"] = pongStateMachine.sm
+collaborativeStateMachine {
+  stateMachines {
+    ["pingStateMachine"] = pingStateMachine.sm
+    ["pongStateMachine"] = pongStateMachine.sm
+  }
+}
+instantiate {
+  ["ping"] = "pingStateMachine"
+  ["pong"] = "pongStateMachine"
 }

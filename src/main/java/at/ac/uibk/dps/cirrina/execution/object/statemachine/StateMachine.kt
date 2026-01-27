@@ -17,8 +17,8 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.*
 import java.util.concurrent.CountDownLatch
+import kotlin.properties.Delegates
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import org.apache.commons.lang3.builder.ToStringBuilder
@@ -30,25 +30,32 @@ private const val VAR_PREFIX = "$"
 class StateMachine
 @AssistedInject
 constructor(
+  @Assisted val name: String,
   @Assisted private val runtime: Runtime,
   @Assisted private val stateMachineClass: StateMachineClass,
   @Assisted private val parentStateMachine: StateMachine? = null,
   private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
-  externalEventHandler: EventHandler,
+  eventHandler: EventHandler,
 ) : EventListener, Scope {
 
   @AssistedFactory
   interface Factory {
     fun create(
+      name: String,
       runtime: Runtime,
       stateMachineClass: StateMachineClass,
       parent: StateMachine?,
     ): StateMachine
   }
 
-  /** The unique identifier of this state machine. */
-  val id: String = UUID.randomUUID().toString()
+  // List of nested state machine instance names
+  var nestedStateMachineInstanceNames: List<String> by
+    Delegates.vetoable(emptyList()) { _, old, _ ->
+      if (old.isNotEmpty())
+        error("nestedStateMachineInstanceNames is already set and cannot be changed.")
+      true
+    }
 
   // Signal indicating that the state machine is ready to start
   private val readySignal = CountDownLatch(1)
@@ -56,11 +63,11 @@ constructor(
   // Coroutine scope for timeout actions and scoped coroutines
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-  // Timeout manager
-  private val timeoutManager = TimeoutActionManager(coroutineScope)
+  // Timeout action manager
+  private val timeoutActionManager = TimeoutActionManager(coroutineScope)
 
   // Event handler
-  private val eventHandler = StateMachineEventHandler(externalEventHandler)
+  private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
 
   // State instances
   private val stateInstances =
@@ -68,9 +75,6 @@ constructor(
 
   // Current state
   private var activeState: State? = null
-
-  // List of nested state machine ids
-  private var nestedIds = emptyList<String>()
 
   /**
    * The current extent of the state machine, created by extending the parent's extent with the
@@ -115,11 +119,6 @@ constructor(
         // Propagate the event to nested state machines
         propagate(event)
       }
-  }
-
-  /** Sets the nested state machine ids. */
-  fun setNestedStateMachineIds(ids: List<String>) {
-    this.nestedIds = ids
   }
 
   private tailrec fun step(transition: Transition, event: Event?) {
@@ -192,7 +191,7 @@ constructor(
       logger.debug { "$this exiting: $state" }
 
       // Stop all timeout actions
-      timeoutManager.stopAll()
+      timeoutActionManager.stopAll()
 
       // Execute exit actions
       execute(getExitActionCommands(createFactory(this, event)))
@@ -243,14 +242,14 @@ constructor(
     logger.debug { "$this starting: $timeout" }
 
     // Start the timeout coroutine
-    timeoutManager.start(timeout.name, delay) {
+    timeoutActionManager.start(timeout.name, delay) {
       val cmd = createFactory(this, null).createActionCommand(timeout.`do`)
       execute(listOf(cmd as? ActionRaiseCommand ?: error("must be raise")))
     }
   }
 
   private fun stopTimeout(name: String) =
-    logger.debug { "$this stopping timeout: $name" }.also { timeoutManager.stop(name) }
+    logger.debug { "$this stopping timeout: $name" }.also { timeoutActionManager.stop(name) }
 
   private fun isTerminated(): Boolean =
     parentStateMachine?.isTerminated() ?: false || activeState?.stateClass?.terminal == true
@@ -260,7 +259,7 @@ constructor(
       logger.info { "$this terminated" }
 
       // Stop timeouts
-      timeoutManager.shutdown()
+      timeoutActionManager.shutdown()
 
       // Stop coroutines
       coroutineScope.cancel()
@@ -272,8 +271,9 @@ constructor(
 
   private fun propagate(event: Event) {
     if (event.channel == EventChannel.INTERNAL) {
-      nestedIds.forEach {
-        runtime.findInstance(it)?.onReceiveEvent(event) ?: error("nested $it missing")
+      nestedStateMachineInstanceNames.forEach {
+        runtime.findStateMachineInstance(it)?.onReceiveEvent(event)
+          ?: error("nested state machine instance $it missing")
       }
     }
   }
@@ -288,7 +288,7 @@ constructor(
       ExecutionContext(
         scope,
         serviceImplementationSelector,
-        eventHandler,
+        stateMachineEventHandler,
         this,
         coroutineScope,
         event,
@@ -297,12 +297,11 @@ constructor(
       meterRegistry,
     )
 
-  override fun toString() =
-    ToStringBuilder(this).append("id", id).append("name", stateMachineClass.name).toString()
+  override fun toString() = ToStringBuilder(this).append("name", name).toString()
 
   inner class StateMachineEventHandler(private val eventHandler: EventHandler) {
     fun sendEvent(event: Event) {
-      eventHandler.sendEvent(event, id)
+      eventHandler.sendEvent(event, name)
     }
   }
 }

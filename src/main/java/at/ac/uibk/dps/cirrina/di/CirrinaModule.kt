@@ -34,8 +34,6 @@ private val logger = KotlinLogging.logger {}
 
 @Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class CsmMain
 
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class CsmStateMachineNames
-
 @Module
 class CirrinaModule {
 
@@ -86,10 +84,6 @@ class CirrinaModule {
   }
 
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
-
-  @Provides
-  @CsmStateMachineNames
-  fun provideCsmStateMachineNames(): List<String> = EnvironmentVariables.csmStateMachines.get()
 
   @Provides
   @Singleton

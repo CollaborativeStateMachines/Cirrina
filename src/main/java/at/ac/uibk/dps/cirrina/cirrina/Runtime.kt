@@ -1,8 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
-import at.ac.uibk.dps.cirrina.cirrina.di.CsmStateMachineNames
-import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
+import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CsmlClassBuilder
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
@@ -22,6 +21,7 @@ import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
 import java.net.URI
 import java.util.concurrent.Phaser
+import kotlin.collections.component1
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.runBlocking
@@ -32,23 +32,22 @@ private val logger = KotlinLogging.logger {}
 /**
  * The execution engine responsible for managing the lifecycle of state machine instances.
  *
- * @property csmMainUri the URI of the main collaborative state machine definition.
- * @property csmStateMachineNames the names of the state machines to be instantiated.
  * @property eventHandler the communication layer for external event ingestion.
  * @property persistentContext the shared storage for long-lived state variables.
  * @property serviceImplementationSelector logic for choosing between multiple service providers.
  * @property stateMachineFactory factory for creating state machine instances.
+ * @property meterRegistry the registry used for collecting metrics.
+ * @property csmMainUri the URI of the main collaborative state machine definition.
  */
 class Runtime
 @Inject
 constructor(
   private val eventHandler: EventHandler,
   private val persistentContext: Context,
-  private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   private val stateMachineFactory: StateMachine.Factory,
+  meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
-  @CsmStateMachineNames csmStateMachineNames: List<String>,
 ) : EventListener {
 
   companion object {
@@ -56,7 +55,7 @@ constructor(
   }
 
   /** The flat list of all active state machine instances (including nested ones). */
-  val stateMachines: List<StateMachine>
+  val stateMachineInstances: Map<String, StateMachine>
 
   /** The shared extent used by all managed state machines. */
   val extent: Extent = Extent.of(persistentContext)
@@ -81,14 +80,14 @@ constructor(
 
   init {
     // Resolve the collaborative state machine class
-    val collaborativeStateMachineClass =
-      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(csmMainUri))
+    val csmlClass =
+      CsmlClassBuilder.from(CsmParser.parseCsml(csmMainUri))
         .build()
         .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
     // Create all persistent variables
-    collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
+    csmlClass.collaborativeStateMachineClass.persistentContextVariables.forEach { variable ->
       runCatching { persistentContext.create(variable.name, variable.value) }
         .onFailure {
           logger.warn { "variable '${variable.name}' already exists or failed to create" }
@@ -96,21 +95,29 @@ constructor(
     }
 
     // Build the state machine instances
-    stateMachines =
-      csmStateMachineNames
-        .mapNotNull { name ->
-          collaborativeStateMachineClass.findStateMachineClassByName(name).also {
-            if (it == null) logger.warn { "state machine '$name' not found in class" }
-          }
+    stateMachineInstances =
+      csmlClass.instantiate
+        .flatMap { (instanceName, stateMachineClass) ->
+          buildInstances(
+              csmlClass.collaborativeStateMachineClass.findStateMachineClassByName(
+                stateMachineClass
+              ) ?: error("state machine class '$stateMachineClass' not found"),
+              instanceName,
+              null,
+            )
+            .map { it.name to it }
         }
-        .flatMap { buildInstances(it, null) }
+        .toMap()
+
+    // TODO: Manage event subscriptions
 
     // Create the event handler
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->
         // TODO: We can avoid dispatching to every state machine if we know what a state machine is
         // subscribed to
-        stateMachines.forEach { it.onReceiveEvent(envelope.event!!) }
+        // TODO: Manage event subscriptions
+        stateMachineInstances.values.forEach { it.onReceiveEvent(envelope.event!!) }
       }
     )
     disruptor.start()
@@ -119,14 +126,14 @@ constructor(
     eventHandler.listener = this
   }
 
-  /** Finds a specific state machine instance by its unique UUID string. */
-  fun findInstance(stateMachineId: String): StateMachine? =
-    stateMachines.firstOrNull { it.id == stateMachineId }
+  /** Finds a specific state machine instance by its object name. */
+  fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
+    stateMachineInstances[stateMachineObjectName]
 
   /** Blocks the current thread until all registered state machines have terminated. */
   fun run() = runBlocking {
     measureTime {
-        stateMachines.forEach { it.start() }
+        stateMachineInstances.values.forEach { it.start() }
 
         // Release the initial party...
         phaser.arriveAndDeregister()
@@ -145,14 +152,18 @@ constructor(
 
   private fun buildInstances(
     stateMachineClass: StateMachineClass,
+    instanceName: String,
     parentInstance: StateMachine?,
   ): List<StateMachine> =
-    stateMachineFactory.create(this, stateMachineClass, parentInstance).let { instance ->
+    stateMachineFactory.create(instanceName, this, stateMachineClass, parentInstance).let {
+      parentInstance ->
       stateMachineClass.nestedStateMachineClasses
-        .flatMap { nestedClass -> buildInstances(nestedClass, instance) }
+        .flatMap { nestedStateMachineClass ->
+          buildInstances(nestedStateMachineClass, "", parentInstance)
+        }
         .let { nestedInstances ->
-          instance.apply { setNestedStateMachineIds(nestedInstances.map { it.id }) }
-          listOf(instance) + nestedInstances
+          parentInstance.apply { nestedStateMachineInstanceNames = nestedInstances.map { it.name } }
+          listOf(parentInstance) + nestedInstances
         }
     }
 

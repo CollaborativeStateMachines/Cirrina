@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.di
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
-import at.ac.uibk.dps.cirrina.cirrina.di.CsmStateMachineNames
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
@@ -26,8 +25,6 @@ class TestModule(
   @Provides fun provideSelector() = selector
 
   @Provides @CsmMain fun provideUri() = mainUri
-
-  @Provides @CsmStateMachineNames fun provideNames() = names
 
   @Provides fun provideMeterRegistry(): MeterRegistry = SimpleMeterRegistry()
 }

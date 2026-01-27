@@ -1,20 +1,54 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
 module at.ac.uibk.dps.cirrina.csm.Csml
 
+/// This CSML language version.
 typealias Version = "4.0.0"
-typealias Expression = String
-typealias Context = Mapping<String, Expression>
 
+/// The name of an instance of a state machine or "*" to refer to all instances.
+typealias InstanceName = String(matches(Regex(#"^([a-zA-Z_]\w*|\*)$"#)))
+
+/// The CSML version.
 version: Version
-stateMachines: Mapping<String, StateMachineDescription>
-transient: Context?
-persistent: Context?
+
+/// The collaborative state machine declaration.
+collaborativeStateMachine: CollaborativeStateMachineDescription
+
+/// State machine instances from the collaborative state machine declaration to instantiate.
+instantiate: Mapping<InstanceName, StateMachineName>
+
+/// Subscriptions to events raised by state machine instances. The key is the name of the instance
+/// subscribed to the events raised by the instances in the value listing.
+subscription: Mapping<InstanceName, Listing<InstanceName>>
+
+/// The name of a state machine.
+typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
+/// An expression, see <https://commons.apache.org/proper/commons-jexl/reference/syntax.html> for
+/// the JEXL expression syntax.
+typealias Expression = String
+
+/// The name of a variable.
+typealias VariableName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
+/// A context declaration consisting of variable names and value expressions.
+typealias Context = Mapping<VariableName, Expression>
+
+class CollaborativeStateMachineDescription {
+  persistent: Context?
+  stateMachines: Mapping<StateMachineName, StateMachineDescription>
+}
+
+typealias StateName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 class StateMachineDescription {
-  states: Mapping<String, StateDescription>
-  stateMachines: Mapping<String, StateMachineDescription>
+  states: Mapping<StateName, StateDescription>
+  stateMachines: Mapping<StateMachineName, StateMachineDescription>
   transient: Context?
 }
+
+typealias EventName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
+typealias TimeoutName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 open class StateDescription {
   initial: Boolean = false
@@ -23,8 +57,8 @@ open class StateDescription {
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
   while: Listing<ActionDescription>
-  after: Mapping<String, TimeoutDescription>
-  on: Mapping<String, TransitionDescription>
+  after: Mapping<TimeoutName, TimeoutDescription>
+  on: Mapping<EventName, TransitionDescription>
   always: Listing<TransitionDescription>
 }
 
@@ -42,7 +76,7 @@ class SingletonDescription extends StateDescription {
 }
 
 class TransitionDescription {
-  to: String?
+  to: StateName?
   iif: Expression?
   do: Listing<ActionDescription>
   or: String?
@@ -50,10 +84,12 @@ class TransitionDescription {
 
 abstract class ActionDescription {}
 
+typealias InvocationType = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
 typealias InvocationMode = "local"|"remote"
 
 class InvokeDescription extends ActionDescription {
-  type: String
+  type: InvocationType
   mode: InvocationMode = "remote"
   input: Context
   raises: Listing<EventDescription>
@@ -73,7 +109,7 @@ class TimeoutDescription extends ActionDescription {
 }
 
 class ResetDescription extends ActionDescription {
-  name: String
+  name: TimeoutName
 }
 
 class CaseDescription {
@@ -87,10 +123,12 @@ class MatchDescription extends ActionDescription {
   default: ActionDescription?
 }
 
+typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
 
 open class EventDescription {
-  topic: String
+  topic: EventTopic
   channel: EventChannel
   data: Context
 }
@@ -108,6 +146,8 @@ class GlobalDescription extends EventDescription {
 }
 
 // Alias definitions
+typealias CollaborativeStateMachine = CollaborativeStateMachineDescription
+
 typealias StateMachine = StateMachineDescription
 
 typealias State = StateDescription
