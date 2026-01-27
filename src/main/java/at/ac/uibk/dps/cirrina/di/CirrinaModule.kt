@@ -16,12 +16,18 @@ import dagger.Module
 import dagger.Provides
 import io.micrometer.core.instrument.Clock
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
 import io.micrometer.influx.InfluxConfig
 import io.micrometer.influx.InfluxMeterRegistry
 import jakarta.inject.Qualifier
 import jakarta.inject.Singleton
 import java.net.URI
+import java.time.Duration
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -70,6 +76,12 @@ class CirrinaModule {
 
     compositeRegistry.add(createInfluxRegistry(EnvironmentVariables.influxMetricUrl.get()))
 
+    ClassLoaderMetrics().bindTo(compositeRegistry)
+    JvmMemoryMetrics().bindTo(compositeRegistry)
+    JvmGcMetrics().bindTo(compositeRegistry)
+    JvmThreadMetrics().bindTo(compositeRegistry)
+    ProcessorMetrics().bindTo(compositeRegistry)
+
     return compositeRegistry
   }
 
@@ -90,6 +102,9 @@ class CirrinaModule {
   private fun createInfluxRegistry(url: String): InfluxMeterRegistry {
     val config =
       object : InfluxConfig {
+        override fun step(): Duration =
+          Duration.ofMillis(EnvironmentVariables.influxMetricStep.get())
+
         override fun uri(): String = url
 
         override fun org(): String = EnvironmentVariables.influxMetricOrg.get()

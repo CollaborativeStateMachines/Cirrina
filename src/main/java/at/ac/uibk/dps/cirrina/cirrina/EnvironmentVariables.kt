@@ -40,6 +40,7 @@ object EnvironmentVariables {
   val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "org")
   val influxMetricBucket = EnvironmentVariable("INFLUX_METRIC_BUCKET", "bucket")
   val influxMetricToken = EnvironmentVariable("INFLUX_METRIC_TOKEN", "bzO10KmR8x")
+  val influxMetricStep = EnvironmentVariable("INFLUX_METRIC_STEP", 5000L)
 
   /** The path to the CSML application. */
   val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
