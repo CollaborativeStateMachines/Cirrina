@@ -49,7 +49,7 @@ internal constructor(
 
   private fun selectServiceImplementation(): ServiceImplementation =
     executionContext.serviceImplementationSelector.select(invokeAction.type, invokeAction.mode)
-      ?: error("no service implementation found for type '$invokeAction.serviceType'")
+      ?: error("no service implementation found for type '${invokeAction.type}'")
 
   private fun prepareInput(extent: Extent): List<ContextVariable> =
     invokeAction.input.map { it.evaluate(extent) }

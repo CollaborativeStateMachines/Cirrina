@@ -1,0 +1,33 @@
+package at.ac.uibk.dps.cirrina.di
+
+import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
+import at.ac.uibk.dps.cirrina.cirrina.di.CsmStateMachineNames
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import dagger.Module
+import dagger.Provides
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import java.net.URI
+
+@Module
+class TestModule(
+  private val eventHandler: EventHandler,
+  private val context: Context,
+  private val selector: ServiceImplementationSelector,
+  private val mainUri: URI,
+  private val names: List<String>,
+) {
+  @Provides fun provideEventHandler() = eventHandler
+
+  @Provides fun provideContext() = context
+
+  @Provides fun provideSelector() = selector
+
+  @Provides @CsmMain fun provideUri() = mainUri
+
+  @Provides @CsmStateMachineNames fun provideNames() = names
+
+  @Provides fun provideMeterRegistry(): MeterRegistry = SimpleMeterRegistry()
+}
