@@ -1,7 +1,8 @@
 package at.ac.uibk.dps.cirrina.runtime
 
-import at.ac.uibk.dps.cirrina.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
+import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
+import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
@@ -17,60 +18,58 @@ import org.junit.jupiter.api.assertTimeout
 
 class PingPongTest {
 
+  private class SimpleEventHandler : EventHandler() {
+    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+
+    override fun close() {}
+
+    override fun subscribe(subject: String) {}
+
+    override fun unsubscribe(subject: String) {}
+
+    override fun subscribe(source: String, subject: String) {}
+
+    override fun unsubscribe(source: String, subject: String) {}
+  }
+
   @Test
   fun testPingPongExecute() {
-    // Must finish within five seconds
     assertTimeout(Duration.ofSeconds(5)) {
-      // Should not throw any exception
       assertDoesNotThrow {
-        // Mock the event handler
-        val mockEventHandler =
-          object : EventHandler() {
-            override fun close() {}
-
-            override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
-
-            override fun subscribe(topic: String) {}
-
-            override fun unsubscribe(topic: String) {}
-
-            override fun subscribe(source: String, subject: String) {}
-
-            override fun unsubscribe(source: String, subject: String) {}
-          }
-
-        // Mock the persistent context
-        val mockPersistentContext =
+        val eventHandler = SimpleEventHandler()
+        val context =
           mockPersistentContext(
             createBlock = { create("v", 0) },
             assignBlock = { superAssign, name, value ->
               assertEquals("v", name)
               assertTrue(value is Int)
-
               superAssign(name, value)
             },
           )
 
-        // Create a map from service types to service implementations
-        val services = ServiceImplementationBuilder.from(listOf()).build().getOrThrow()
-        val serviceImplementationSelector = RandomServiceImplementationSelector(services)
-
-        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2).
-        // The order is 2-1, as state machine 1 sends and event to state machine 2, if state machine
-        // 2 is not yet created, it will not receive the event as the event mocking is very simple
-        val runtime =
-          Runtime(
-            DefaultDescriptions.pingPong,
-            listOf("pingStateMachine", "pongStateMachine"),
-            mockEventHandler,
-            mockPersistentContext,
-            serviceImplementationSelector,
+        val selector =
+          RandomServiceImplementationSelector(
+            ServiceImplementationBuilder.from(emptyList()).build().getOrThrow()
           )
 
-        println(measureTime { runtime.run() })
+        val runtime =
+          DaggerTestComponent.builder()
+            .testModule(
+              TestModule(
+                eventHandler,
+                context,
+                selector,
+                DefaultDescriptions.pingPong,
+                listOf("pingStateMachine", "pongStateMachine"),
+              )
+            )
+            .build()
+            .runtime()
 
-        // This test counts up to 100000, so the final value should be 100000
-        assertEquals(100000, mockPersistentContext.get("v"))
+        val duration = measureTime { runtime.run() }
+        println("pingPong execution: $duration")
+
+        assertEquals(100_000, context.get("v"))
       }
     }
   }

@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.command
 
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
+import io.micrometer.core.instrument.MeterRegistry
 
 /**
  * A command responsible for delegating execution to a nested action within a timeout context as
@@ -11,10 +12,14 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
  *
  * @property timeoutAction the specific action definition containing the inner action.
  * @property executionContext the context in which the evaluation occurs.
+ * @property meterRegistry the registry used for collecting metrics.
  */
 class ActionTimeoutCommand
-internal constructor(private val timeoutAction: TimeoutAction, executionContext: ExecutionContext) :
-  ActionCommand(executionContext) {
+internal constructor(
+  private val timeoutAction: TimeoutAction,
+  executionContext: ExecutionContext,
+  meterRegistry: MeterRegistry,
+) : ActionCommand(executionContext, meterRegistry) {
   /**
    * Executes the timeout logic by delegating to the inner action.
    *
@@ -22,5 +27,5 @@ internal constructor(private val timeoutAction: TimeoutAction, executionContext:
    * @throws Exception if the command execution fails due to an internal error.
    */
   override fun execute(): List<ActionCommand> =
-    listOf(CommandFactory(executionContext).createActionCommand(timeoutAction.`do`))
+    listOf(CommandFactory(executionContext, meterRegistry).createActionCommand(timeoutAction.`do`))
 }

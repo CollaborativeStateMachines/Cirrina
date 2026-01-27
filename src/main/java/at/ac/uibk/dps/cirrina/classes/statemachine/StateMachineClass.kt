@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import org.jgrapht.graph.DirectedPseudograph
 
 /**
- * An immutable blueprint representing the structure and behavior of a state machine.
+ * An immutable class representing the structure and behavior of a state machine.
  *
  * This class extends [DirectedPseudograph] to define states as vertices and transitions as edges.
  * It provides lookups for transitions based on events and state context.

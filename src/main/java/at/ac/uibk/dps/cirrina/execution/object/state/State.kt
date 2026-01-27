@@ -9,6 +9,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
+import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jgrapht.Graph
 import org.jgrapht.traverse.TopologicalOrderIterator
 
@@ -78,5 +79,5 @@ class State(val stateClass: StateClass, private val parentStateMachine: StateMac
       .build()
       .getOrThrow()
 
-  override fun toString() = "State(name=${stateClass.name})"
+  override fun toString() = ToStringBuilder(this).append("name", stateClass.name).toString()
 }

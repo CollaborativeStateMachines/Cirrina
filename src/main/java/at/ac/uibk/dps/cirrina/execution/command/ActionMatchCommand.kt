@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.command
 
 import at.ac.uibk.dps.cirrina.execution.`object`.action.MatchAction
+import io.micrometer.core.instrument.MeterRegistry
 
 /**
  * A command that evaluates a match expression and executes the corresponding action(s) within the
@@ -11,10 +12,14 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.MatchAction
  *
  * @property matchAction the definition containing the value to match and the cases.
  * @property executionContext the context providing scope and command creation capabilities.
+ * @property meterRegistry the registry used for collecting metrics.
  */
 class ActionMatchCommand
-internal constructor(private val matchAction: MatchAction, executionContext: ExecutionContext) :
-  ActionCommand(executionContext) {
+internal constructor(
+  private val matchAction: MatchAction,
+  executionContext: ExecutionContext,
+  meterRegistry: MeterRegistry,
+) : ActionCommand(executionContext, meterRegistry) {
 
   /**
    * Executes the match logic.
@@ -30,5 +35,5 @@ internal constructor(private val matchAction: MatchAction, executionContext: Exe
       }
       .map { it.value }
       .ifEmpty { listOfNotNull(matchAction.default) }
-      .map { action -> CommandFactory(executionContext).createActionCommand(action) }
+      .map { action -> CommandFactory(executionContext, meterRegistry).createActionCommand(action) }
 }

@@ -1,8 +1,9 @@
 package at.ac.uibk.dps.cirrina.runtime
 
-import at.ac.uibk.dps.cirrina.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
+import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
+import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
@@ -11,6 +12,7 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
+import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -19,80 +21,82 @@ import org.junit.jupiter.api.assertTimeout
 
 class InvokeTest {
 
+  private class SimpleEventHandler : EventHandler() {
+    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+
+    override fun close() {}
+
+    override fun subscribe(subject: String) {}
+
+    override fun unsubscribe(subject: String) {}
+
+    override fun subscribe(source: String, subject: String) {}
+
+    override fun unsubscribe(source: String, subject: String) {}
+  }
+
   @Test
   fun testInvokeExecute() {
-    // Must finish within ten seconds
     assertTimeout(Duration.ofSeconds(10)) {
-      // Should not throw any exception
       assertDoesNotThrow {
-        // Mock the event handler
-        val mockEventHandler =
-          object : EventHandler() {
-            override fun close() {}
-
-            override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
-
-            override fun subscribe(topic: String) {}
-
-            override fun unsubscribe(topic: String) {}
-
-            override fun subscribe(source: String, subject: String) {}
-
-            override fun unsubscribe(source: String, subject: String) {}
-          }
-
-        // Mock the persistent context
-        val mockPersistentContext =
+        val eventHandler = SimpleEventHandler()
+        val context =
           mockPersistentContext(
             createBlock = {
               create("v", 0)
               create("e", 0)
             },
             assignBlock = { superAssign, name, value ->
-              assertTrue(name.equals("v") || name.equals("e"))
+              assertTrue(name == "v" || name == "e")
               assertTrue(value is Int)
-
               superAssign(name, value)
             },
           )
 
-        // Mock the HTTP server
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("Variable 'v' not found")
-
           listOf(ContextVariable("v", (v.value as Int) + 1))
         }
 
-        // Create a map from service types to service implementations
-        val service =
-          ServiceImplementationBindings.HttpServiceImplementationBinding(
-            "increment",
-            true,
-            ServiceImplementationBindings.Type.HTTP,
-            "http",
-            "localhost",
-            8000,
-            "/increment",
-            ServiceImplementationBindings.HttpMethod.GET,
-          )
+        try {
+          val service =
+            ServiceImplementationBindings.HttpServiceImplementationBinding(
+              "increment",
+              true,
+              ServiceImplementationBindings.Type.HTTP,
+              "http",
+              "localhost",
+              8000,
+              "/increment",
+              ServiceImplementationBindings.HttpMethod.GET,
+            )
 
-        val services = ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
-        val serviceImplementationSelector = RandomServiceImplementationSelector(services)
+          val selector =
+            RandomServiceImplementationSelector(
+              ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
+            )
 
-        // Create and run the runtime using two state machines (stateMachine1 and stateMachine2)
-        Runtime(
-            DefaultDescriptions.invoke,
-            listOf("invokeStateMachine"),
-            mockEventHandler,
-            mockPersistentContext,
-            serviceImplementationSelector,
-          )
-          .run()
+          val runtime =
+            DaggerTestComponent.builder()
+              .testModule(
+                TestModule(
+                  eventHandler,
+                  context,
+                  selector,
+                  DefaultDescriptions.invoke,
+                  listOf("invokeStateMachine"),
+                )
+              )
+              .build()
+              .runtime()
 
-        // This test counts up to 10, so the final value should be 10
-        assertEquals(10, mockPersistentContext.get("v"))
+          val duration = measureTime { runtime.run() }
+          println("invoke execution: $duration")
 
-        server.stop(1)
+          assertEquals(10, context.get("v"))
+        } finally {
+          server.stop(1)
+        }
       }
     }
   }

@@ -1,92 +1,43 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
-import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
-import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.io.CsmParser
-import java.net.URI
+import at.ac.uibk.dps.cirrina.di.DaggerCirrinaComponent
 import java.util.logging.LogManager
 import mu.KotlinLogging
 import org.apache.commons.lang3.builder.ToStringBuilder
-import org.apache.commons.lang3.builder.ToStringStyle.SIMPLE_STYLE
+import org.apache.commons.lang3.builder.ToStringStyle.SHORT_PREFIX_STYLE
 
 private val logger = KotlinLogging.logger {}
 
-/** The primary orchestrator for the Cirrina runtime environment. */
 class Cirrina {
 
-  /** Bootstraps and executes the runtime. */
   fun run() {
-    try {
-      setupEventHandler().use { eventHandler ->
-        setupPersistentContext().use { persistentContext ->
-          buildRuntime(eventHandler, persistentContext).run()
+    val component = DaggerCirrinaComponent.create()
+
+    // Run the runtime
+    runCatching {
+        component.eventHandler().use { _ ->
+          component.persistentContext().use { _ -> component.runtime().run() }
         }
+
+        // Flush the metrics
+        component.meterRegistry().close()
       }
-    } catch (ex: Exception) {
-      logger.error(ex) { "a fatal error occurred during runtime execution" }
-    }
+      .onFailure { ex -> logger.error(ex) { "a fatal error occurred during runtime execution" } }
   }
 
-  private fun setupEventHandler(): EventHandler =
-    newEventHandler().also { handler ->
-      if (handler is NatsEventHandler) {
-        logger.info { "awaiting nats connection..." }
-
-        handler.awaitReady(NATS_CONNECTION_TIMEOUT)
-        handler.subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
-        handler.subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
-      }
-    }
-
-  private fun setupPersistentContext(): Context =
-    newPersistentContext().also { context ->
-      if (context is EtcdContext) {
-        logger.info { "awaiting etcd connection..." }
-
-        context.awaitReady(ETCD_CONNECTION_TIMEOUT)
-      }
-    }
-
-  private fun buildRuntime(eventHandler: EventHandler, persistentContext: Context): Runtime =
-    CsmParser.parseServiceImplementationBindings(
-        URI(EnvironmentVariables.serviceBindingsPath.get())
-      )
-      .let { bindings ->
-        Runtime(
-          URI(EnvironmentVariables.appPath.get()),
-          EnvironmentVariables.instantiate.get(),
-          eventHandler,
-          persistentContext,
-          RandomServiceImplementationSelector(
-            ServiceImplementationBuilder.from(bindings.bindings).build().getOrThrow()
-          ),
-        )
-      }
-
-  private fun newEventHandler(): EventHandler =
-    when (EnvironmentVariables.eventProvider.get()) {
-      EventProvider.NATS -> NatsEventHandler(EnvironmentVariables.natsEventUrl.get())
-    }
-
-  private fun newPersistentContext(): Context =
-    when (EnvironmentVariables.contextProvider.get()) {
-      PersistentContextProvider.ETCD ->
-        EtcdContext(listOf(EnvironmentVariables.etcdContextUrl.get()))
-    }
-
   companion object {
-    const val NATS_CONNECTION_TIMEOUT = 60000L
-    const val ETCD_CONNECTION_TIMEOUT = 60000L
+    /** Timeout for the NATS connection. */
+    const val NATS_CONNECTION_TIMEOUT = 1000L
+
+    /** Timeout for the ETCD connection. */
+    const val ETCD_CONNECTION_TIMEOUT = 1000L
 
     init {
-      ToStringBuilder.setDefaultStyle(SIMPLE_STYLE)
+      configureStringBuilder()
       configureLogging()
-      startHealthService()
     }
+
+    private fun configureStringBuilder() = ToStringBuilder.setDefaultStyle(SHORT_PREFIX_STYLE)
 
     private fun configureLogging() =
       runCatching {
@@ -95,12 +46,7 @@ class Cirrina {
           } ?: logger.warn { "logging properties file not found" }
         }
         .onFailure { logger.error(it) { "could not load logging properties" } }
-
-    private fun startHealthService() =
-      runCatching { HealthService(EnvironmentVariables.healthPort.get()) }
-        .onFailure { logger.error(it) { "could not start health service" } }
   }
 }
 
-/** Global application entry point. */
 fun main() = Cirrina().run()

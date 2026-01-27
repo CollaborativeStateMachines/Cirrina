@@ -8,24 +8,44 @@ import at.ac.uibk.dps.cirrina.execution.command.*
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.*
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.state.State
 import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import io.micrometer.core.instrument.MeterRegistry
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.*
 import mu.KotlinLogging
+import org.apache.commons.lang3.builder.ToStringBuilder
 
 private val logger = KotlinLogging.logger {}
+
 private const val VAR_PREFIX = "$"
 
-class StateMachine(
-  private val stateMachineClass: StateMachineClass,
-  private val runtime: Runtime,
+class StateMachine
+@AssistedInject
+constructor(
+  @Assisted private val runtime: Runtime,
+  @Assisted private val stateMachineClass: StateMachineClass,
+  @Assisted private val parentStateMachine: StateMachine? = null,
+  private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
-  private val parentStateMachine: StateMachine? = null,
+  externalEventHandler: EventHandler,
 ) : EventListener, Scope {
+
+  @AssistedFactory
+  interface Factory {
+    fun create(
+      runtime: Runtime,
+      stateMachineClass: StateMachineClass,
+      parent: StateMachine?,
+    ): StateMachine
+  }
 
   /** The unique identifier of this state machine. */
   val id: String = UUID.randomUUID().toString()
@@ -40,7 +60,7 @@ class StateMachine(
   private val timeoutManager = TimeoutActionManager(coroutineScope)
 
   // Event handler
-  private val eventHandler = StateMachineEventHandler(this, runtime.eventHandler)
+  private val eventHandler = StateMachineEventHandler(externalEventHandler)
 
   // State instances
   private val stateInstances =
@@ -147,7 +167,7 @@ class StateMachine(
   private fun doEnter(state: State, event: Event?): Transition? =
     state
       .also {
-        logger.info { "$this entering: $it" }
+        logger.debug { "$this entering: $it" }
 
         // Switch state
         activeState = it
@@ -198,7 +218,7 @@ class StateMachine(
       .let { selected ->
         when (selected.size) {
           0 -> null
-          1 -> selected.first().also { logger.trace { "$this selected: $it" } }
+          1 -> selected.first().also { logger.debug { "$this selected: $it" } }
           else -> error("non-determinism detected in $this")
         }
       }
@@ -273,8 +293,16 @@ class StateMachine(
         coroutineScope,
         event,
         isWhile,
-      )
+      ),
+      meterRegistry,
     )
 
-  override fun toString() = "StateMachine(id=$id, name=${stateMachineClass.name})"
+  override fun toString() =
+    ToStringBuilder(this).append("id", id).append("name", stateMachineClass.name).toString()
+
+  inner class StateMachineEventHandler(private val eventHandler: EventHandler) {
+    fun sendEvent(event: Event) {
+      eventHandler.sendEvent(event, id)
+    }
+  }
 }

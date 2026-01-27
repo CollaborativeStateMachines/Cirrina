@@ -1,5 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
+import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
+import at.ac.uibk.dps.cirrina.cirrina.di.CsmStateMachineNames
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
@@ -15,8 +17,13 @@ import com.lmax.disruptor.EventHandler as LmaxEventHandler
 import com.lmax.disruptor.dsl.Disruptor
 import com.lmax.disruptor.dsl.ProducerType
 import com.lmax.disruptor.util.DaemonThreadFactory
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
+import jakarta.inject.Inject
 import java.net.URI
 import java.util.concurrent.Phaser
+import kotlin.time.measureTime
+import kotlin.time.toJavaDuration
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 
@@ -25,16 +32,23 @@ private val logger = KotlinLogging.logger {}
 /**
  * The execution engine responsible for managing the lifecycle of state machine instances.
  *
+ * @property csmMainUri the URI of the main collaborative state machine definition.
+ * @property csmStateMachineNames the names of the state machines to be instantiated.
  * @property eventHandler the communication layer for external event ingestion.
  * @property persistentContext the shared storage for long-lived state variables.
  * @property serviceImplementationSelector logic for choosing between multiple service providers.
+ * @property stateMachineFactory factory for creating state machine instances.
  */
-class Runtime(
-  main: URI,
-  stateMachineNames: List<String>,
-  val eventHandler: EventHandler,
+class Runtime
+@Inject
+constructor(
+  private val eventHandler: EventHandler,
   private val persistentContext: Context,
+  private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
+  private val stateMachineFactory: StateMachine.Factory,
+  @CsmMain csmMainUri: URI,
+  @CsmStateMachineNames csmStateMachineNames: List<String>,
 ) : EventListener {
 
   companion object {
@@ -63,12 +77,14 @@ class Runtime(
       BusySpinWaitStrategy(),
     )
 
+  var completionTimer: Timer = meterRegistry.timer("runtime.completionTime")
+
   init {
     // Resolve the collaborative state machine class
     val collaborativeStateMachineClass =
-      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(main))
+      CollaborativeStateMachineClassBuilder.from(CsmParser.parseCsml(csmMainUri))
         .build()
-        .onFailure { logger.error(it) { "failed to initialize collaborative blueprint" } }
+        .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
     // Create all persistent variables
@@ -81,10 +97,10 @@ class Runtime(
 
     // Build the state machine instances
     stateMachines =
-      stateMachineNames
+      csmStateMachineNames
         .mapNotNull { name ->
           collaborativeStateMachineClass.findStateMachineClassByName(name).also {
-            if (it == null) logger.warn { "State machine '$name' not found in blueprint" }
+            if (it == null) logger.warn { "state machine '$name' not found in class" }
           }
         }
         .flatMap { buildInstances(it, null) }
@@ -109,27 +125,34 @@ class Runtime(
 
   /** Blocks the current thread until all registered state machines have terminated. */
   fun run() = runBlocking {
-    stateMachines.forEach { it.start() }
+    measureTime {
+        stateMachines.forEach { it.start() }
 
-    // Release the initial party and wait for all machines to deregister
-    phaser.arriveAndDeregister()
-    while (phaser.registeredParties > 0) {
-      phaser.awaitAdvance(phaser.phase)
-    }
+        // Release the initial party...
+        phaser.arriveAndDeregister()
+
+        // and wait for all machines to deregister
+        while (phaser.registeredParties > 0) {
+          phaser.awaitAdvance(phaser.phase)
+        }
+      }
+      .also { duration ->
+        completionTimer.record(duration.toJavaDuration())
+
+        logger.info { "all state machines terminated in $duration" }
+      }
   }
 
   private fun buildInstances(
     stateMachineClass: StateMachineClass,
     parentInstance: StateMachine?,
   ): List<StateMachine> =
-    StateMachine(stateMachineClass, this, serviceImplementationSelector, parentInstance).let {
-      instance ->
+    stateMachineFactory.create(this, stateMachineClass, parentInstance).let { instance ->
       stateMachineClass.nestedStateMachineClasses
         .flatMap { nestedClass -> buildInstances(nestedClass, instance) }
         .let { nestedInstances ->
-          instance
-            .apply { setNestedStateMachineIds(nestedInstances.map { it.id }) }
-            .let { listOf(it) + nestedInstances }
+          instance.apply { setNestedStateMachineIds(nestedInstances.map { it.id }) }
+          listOf(instance) + nestedInstances
         }
     }
 

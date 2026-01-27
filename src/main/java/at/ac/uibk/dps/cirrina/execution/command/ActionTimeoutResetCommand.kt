@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.command
 
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutResetAction
+import io.micrometer.core.instrument.MeterRegistry
 
 /**
  * A command responsible for resetting an active timeout context as defined by a
@@ -11,12 +12,14 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutResetAction
  *
  * @property timeoutResetAction the specific action definition for the timeout reset.
  * @property executionContext the context in which the evaluation occurs.
+ * @property meterRegistry the registry used for collecting metrics.
  */
 class ActionTimeoutResetCommand
 internal constructor(
   val timeoutResetAction: TimeoutResetAction,
   executionContext: ExecutionContext,
-) : ActionCommand(executionContext) {
+  meterRegistry: MeterRegistry,
+) : ActionCommand(executionContext, meterRegistry) {
 
   /**
    * Executes the timeout reset logic.

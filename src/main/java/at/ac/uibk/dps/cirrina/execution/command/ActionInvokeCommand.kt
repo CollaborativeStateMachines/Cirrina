@@ -5,6 +5,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.InvokeAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
+import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 
@@ -19,10 +20,14 @@ private val logger = KotlinLogging.logger {}
  *
  * @property invokeAction the definition of the service call and associated events.
  * @property executionContext the context in which the invocation occurs.
+ * @property meterRegistry the registry used for collecting metrics.
  */
 class ActionInvokeCommand
-internal constructor(private val invokeAction: InvokeAction, executionContext: ExecutionContext) :
-  ActionCommand(executionContext) {
+internal constructor(
+  private val invokeAction: InvokeAction,
+  executionContext: ExecutionContext,
+  meterRegistry: MeterRegistry,
+) : ActionCommand(executionContext, meterRegistry) {
 
   /**
    * Executes the service invocation logic.
@@ -44,7 +49,7 @@ internal constructor(private val invokeAction: InvokeAction, executionContext: E
 
   private fun selectServiceImplementation(): ServiceImplementation =
     executionContext.serviceImplementationSelector.select(invokeAction.type, invokeAction.mode)
-      ?: error("no service implementation found for type '$invokeAction.serviceType'")
+      ?: error("no service implementation found for type '${invokeAction.type}'")
 
   private fun prepareInput(extent: Extent): List<ContextVariable> =
     invokeAction.input.map { it.evaluate(extent) }
@@ -55,7 +60,7 @@ internal constructor(private val invokeAction: InvokeAction, executionContext: E
       .forEach { event ->
         when (event.channel) {
           EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
-          else -> executionContext.eventHandler::sendEvent
+          else -> executionContext.stateMachineEventHandler::sendEvent
         }.invoke(event)
       }
 }

@@ -4,10 +4,11 @@ plugins {
   application
 
   id("com.google.protobuf") version "0.9.4"
-  id("org.pkl-lang") version "0.30.2"
   id("com.ncorti.ktfmt.gradle") version "0.24.0"
+  id("org.pkl-lang") version "0.30.2"
 
-  kotlin("jvm")
+  kotlin("kapt") version "2.3.0"
+  kotlin("jvm") version "2.3.0"
 }
 
 group = "ac.at.uibk.dps.cirrina"
@@ -53,6 +54,9 @@ dependencies {
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.1")
   implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.1")
 
+  implementation("com.google.dagger:dagger:2.59")
+  kapt("com.google.dagger:dagger-compiler:2.59")
+
   implementation("com.google.guava:guava:33.0.0-jre")
 
   implementation("com.google.protobuf:protobuf-java:4.32.0")
@@ -62,6 +66,9 @@ dependencies {
   implementation("io.etcd:jetcd-core:0.8.5")
 
   implementation("io.github.microutils:kotlin-logging:3.0.5")
+
+  implementation("io.micrometer:micrometer-core:1.17.0-M1")
+  implementation("io.micrometer:micrometer-registry-influx:1.17.0-M1")
 
   implementation("io.nats:jnats:2.17.3")
 
