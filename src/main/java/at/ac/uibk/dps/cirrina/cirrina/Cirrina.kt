@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
 import at.ac.uibk.dps.cirrina.di.DaggerCirrinaComponent
+import at.ac.uibk.dps.cirrina.utils.getBuildVersion
 import java.util.logging.LogManager
 import mu.KotlinLogging
 import org.apache.commons.lang3.builder.ToStringBuilder
@@ -11,6 +12,8 @@ private val logger = KotlinLogging.logger {}
 class Cirrina {
 
   fun run() {
+    logger.info { "cirrina version ${getBuildVersion()}" }
+
     val component = DaggerCirrinaComponent.create()
 
     // Run the runtime

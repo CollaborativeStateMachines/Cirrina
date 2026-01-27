@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`.event
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.utils.Uuid.insecureUuid
+import at.ac.uibk.dps.cirrina.utils.getInsecureUuid
 import kotlin.time.Clock
 import org.apache.commons.lang3.builder.ToStringBuilder
 
@@ -11,7 +11,7 @@ data class Event(
   val name: String,
   val channel: EventChannel,
   val data: List<ContextVariable> = emptyList(),
-  val id: String = insecureUuid().toString(),
+  val id: String = getInsecureUuid().toString(),
   val createdTime: Long = Clock.System.now().epochSeconds,
 ) {
   fun evaluateData(extent: Extent): Event {
