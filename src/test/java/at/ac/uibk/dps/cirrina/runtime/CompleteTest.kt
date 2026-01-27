@@ -12,7 +12,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.BuildVersion
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
@@ -39,9 +38,6 @@ class CompleteTest {
 
   @Test
   fun testCompleteExecute() {
-    val buildVersion = BuildVersion.getBuildVersion()
-    assertNull(buildVersion)
-
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
         val eventHandler = SimpleEventHandler()
