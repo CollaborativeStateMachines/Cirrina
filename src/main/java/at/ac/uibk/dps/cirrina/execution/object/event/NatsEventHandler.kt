@@ -106,14 +106,20 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   override fun sendEvent(event: Event, source: String?) {
     val subject =
       when (event.channel) {
-        Csml.EventChannel.EXTERNAL ->
-          source?.let { "$it.${event.name}" }
-            ?: run {
-              logger.warn { "event source is null, cannot send event '${event.name}'" }
-              return
-            }
+        Csml.EventChannel.EXTERNAL -> {
+          if (source == null) {
+            logger.warn { "event source is null, cannot send event '${event.name}'" }
+            return
+          }
+          "$source.${event.name}"
+        }
 
-        Csml.EventChannel.GLOBAL -> "$GLOBAL_SOURCE.${event.name}"
+        Csml.EventChannel.GLOBAL -> {
+          if (source != null) {
+            logger.warn { "source '$source' ignored for global events" }
+          }
+          "$GLOBAL_SOURCE.${event.name}"
+        }
 
         else -> {
           logger.warn { "unsupported channel '${event.channel}', event not sent" }
@@ -130,12 +136,12 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   }
 
   /**
-   * Subscribes to all sources for a given event name.
+   * Subscribes to all events for a given event source.
    *
-   * @param subject the event name to subscribe to
+   * @param source the event source to subscribe to
    */
-  override fun subscribe(subject: String) {
-    val subject = "*.$subject"
+  override fun subscribe(source: String) {
+    val subject = "$source.*"
     synchronized(lock) {
       subscriptions.add(subject)
       runCatching {
@@ -147,45 +153,12 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   }
 
   /**
-   * Unsubscribes from all sources for a given event name.
+   * Unsubscribes from all events for a given event source.
    *
-   * @param subject the event name to unsubscribe from
+   * @param source the event source to unsubscribe from
    */
-  override fun unsubscribe(subject: String) {
-    val subject = "*.$subject"
-    synchronized(lock) {
-      subscriptions.remove(subject)
-      runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { _ -> logger.warn { "could not unsubscribe from $subject" } }
-    }
-  }
-
-  /**
-   * Subscribes to a specific source and event.
-   *
-   * @param source the source of the event
-   * @param subject the name of the event
-   */
-  override fun subscribe(source: String, subject: String) {
-    val subject = "$source.$subject"
-    synchronized(lock) {
-      subscriptions.add(subject)
-      runCatching {
-          dispatcher?.subscribe(subject)
-            ?: logger.info { "dispatcher unavailable; queued subscription: $subject" }
-        }
-        .onFailure { _ -> logger.warn { "could not subscribe to $subject" } }
-    }
-  }
-
-  /**
-   * Unsubscribes from a specific source and event.
-   *
-   * @param source the source of the event
-   * @param subject the name of the event
-   */
-  override fun unsubscribe(source: String, subject: String) {
-    val subject = "$source.$subject"
+  override fun unsubscribe(source: String) {
+    val subject = "$source.*"
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }

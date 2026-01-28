@@ -6,4 +6,5 @@ import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeSta
 class CsmlClass(
   val collaborativeStateMachineClass: CollaborativeStateMachineClass,
   val instantiate: Map<String, String>,
+  val subscriptions: Map<String, List<String>>,
 )

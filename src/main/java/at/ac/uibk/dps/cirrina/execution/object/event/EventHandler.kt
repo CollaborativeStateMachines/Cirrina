@@ -8,13 +8,9 @@ abstract class EventHandler : AutoCloseable {
 
   abstract fun sendEvent(event: Event, source: String?)
 
-  abstract fun subscribe(subject: String)
+  abstract fun subscribe(source: String)
 
-  abstract fun unsubscribe(subject: String)
-
-  abstract fun subscribe(source: String, subject: String)
-
-  abstract fun unsubscribe(source: String, subject: String)
+  abstract fun unsubscribe(source: String)
 
   protected open fun propagateEvent(event: Event) {
     listener?.onReceiveEvent(event)

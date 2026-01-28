@@ -99,17 +99,14 @@ constructor(
       csmlClass.instantiate
         .flatMap { (instanceName, stateMachineClass) ->
           buildInstances(
-              csmlClass.collaborativeStateMachineClass.findStateMachineClassByName(
-                stateMachineClass
-              ) ?: error("state machine class '$stateMachineClass' not found"),
-              instanceName,
-              null,
-            )
-            .map { it.name to it }
+            csmlClass.collaborativeStateMachineClass.findStateMachineClassByName(stateMachineClass)
+              ?: error("state machine class '$stateMachineClass' not found"),
+            instanceName,
+            null,
+            csmlClass.subscriptions[instanceName],
+          )
         }
-        .toMap()
-
-    // TODO: Manage event subscriptions
+        .associateBy { it.instanceName }
 
     // Create the event handler
     disruptor.handleEventsWith(
@@ -154,18 +151,22 @@ constructor(
     stateMachineClass: StateMachineClass,
     instanceName: String,
     parentInstance: StateMachine?,
+    eventSubscriptions: List<String>?,
   ): List<StateMachine> =
-    stateMachineFactory.create(instanceName, this, stateMachineClass, parentInstance).let {
-      parentInstance ->
-      stateMachineClass.nestedStateMachineClasses
-        .flatMap { nestedStateMachineClass ->
-          buildInstances(nestedStateMachineClass, "", parentInstance)
-        }
-        .let { nestedInstances ->
-          parentInstance.apply { nestedStateMachineInstanceNames = nestedInstances.map { it.name } }
-          listOf(parentInstance) + nestedInstances
-        }
-    }
+    stateMachineFactory
+      .create(instanceName, this, stateMachineClass, parentInstance, eventSubscriptions)
+      .let { parentInstance ->
+        stateMachineClass.nestedStateMachineClasses
+          .flatMap { nestedStateMachineClass ->
+            buildInstances(nestedStateMachineClass, "", parentInstance, null)
+          }
+          .let { nestedInstances ->
+            parentInstance.apply {
+              nestedStateMachineInstanceNames = nestedInstances.map { it.instanceName }
+            }
+            listOf(parentInstance) + nestedInstances
+          }
+      }
 
   /** Routes incoming external events into the ring buffer for asynchronous processing. */
   override fun onReceiveEvent(event: Event) {

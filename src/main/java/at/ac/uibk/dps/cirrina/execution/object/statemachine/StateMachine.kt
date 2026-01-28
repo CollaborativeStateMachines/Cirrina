@@ -30,10 +30,11 @@ private const val VAR_PREFIX = "$"
 class StateMachine
 @AssistedInject
 constructor(
-  @Assisted val name: String,
+  @Assisted val instanceName: String,
   @Assisted private val runtime: Runtime,
   @Assisted private val stateMachineClass: StateMachineClass,
   @Assisted private val parentStateMachine: StateMachine? = null,
+  @Assisted private val eventSubscriptions: List<String>? = null,
   private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   eventHandler: EventHandler,
@@ -42,10 +43,11 @@ constructor(
   @AssistedFactory
   interface Factory {
     fun create(
-      name: String,
+      instanceName: String,
       runtime: Runtime,
       stateMachineClass: StateMachineClass,
-      parent: StateMachine?,
+      parentStateMachine: StateMachine?,
+      eventSubscriptions: List<String>?,
     ): StateMachine
   }
 
@@ -86,6 +88,10 @@ constructor(
   }
 
   init {
+    // Subscribe to the source denoted by the subscription string
+    eventSubscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
+
+    // Register the state machine with the phaser
     runtime.phaser.register()
   }
 
@@ -297,11 +303,11 @@ constructor(
       meterRegistry,
     )
 
-  override fun toString() = ToStringBuilder(this).append("name", name).toString()
+  override fun toString() = ToStringBuilder(this).append("name", instanceName).toString()
 
-  inner class StateMachineEventHandler(private val eventHandler: EventHandler) {
+  inner class StateMachineEventHandler(val eventHandler: EventHandler) {
     fun sendEvent(event: Event) {
-      eventHandler.sendEvent(event, name)
+      eventHandler.sendEvent(event, instanceName)
     }
   }
 }

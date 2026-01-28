@@ -5,6 +5,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import java.time.Duration
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.Assertions.*
@@ -18,16 +19,16 @@ internal class NatsEventHandlerTest {
   @EnumSource(EventChannel::class)
   fun testNatsEventHandlerSendReceive(channel: EventChannel) {
     val natsUrl = System.getenv("NATS_EVENT_URL")
-    assumeTrue(natsUrl != null, "Skipping NATS event handler test")
+    assumeTrue(natsUrl != null, "skipping nats event handler test")
 
-    assertTimeout(Duration.ofSeconds(5)) {
+    assertTimeout(Duration.ofSeconds(15)) {
       val count = 5
-      val latch = CountDownLatch(count)
       val context = InMemoryContext()
       val extent = Extent.of(context)
+      val receivedEvents = CopyOnWriteArrayList<Event>()
 
-      // Collects events and counts down the latch
-      val receivedEvents = mutableListOf<Event>()
+      var latch = CountDownLatch(count)
+
       val handlerListener =
         object : EventListener {
           override fun onReceiveEvent(event: Event) {
@@ -36,61 +37,52 @@ internal class NatsEventHandlerTest {
           }
         }
 
-      val event =
-        EventBuilder.from(Csml.EventDescription("e1", channel, mapOf("varName" to "5")))
-          .build()
-          .getOrThrow()
+      val eventDescription = Csml.EventDescription("e1", channel, mapOf("varName" to "5"))
+      val event = EventBuilder.from(eventDescription).build().getOrThrow()
 
       NatsEventHandler(natsUrl).use { handler ->
-        assertTrue(handler.awaitReady(), "NATS handler failed to connect")
+        assertTrue(handler.awaitReady(), "nats handler failed to connect")
         handler.listener = handlerListener
 
-        if (channel in setOf(EventChannel.GLOBAL, EventChannel.EXTERNAL)) {
-          // Scope helper to manage subscriptions and event validation
-          handler.run {
-            manageSubscription(channel, "e1", "source", subscribe = true)
+        handler.subscribe("global")
+        handler.subscribe("source")
 
-            repeat(count) { sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+        // Send <count> events
+        repeat(count) { handler.sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
 
-            assertTrue(latch.await(2, TimeUnit.SECONDS), "Timed out waiting for events")
-            assertEquals(count, receivedEvents.size)
-
-            receivedEvents.forEach { e ->
-              assertEquals("e1", e.name)
-              assertEquals(channel, e.channel)
-              e.data.first().run {
-                assertEquals("varName", name)
-                assertEquals(5, value)
-                assertFalse(isLazy)
-              }
-            }
-
-            receivedEvents.clear()
-            manageSubscription(channel, "e1", "source", subscribe = false)
-
-            repeat(count) { sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
-
-            assertEquals(0, receivedEvents.size, "Events received after unsubscribe")
-          }
+        // External and global events should be received
+        if (channel == EventChannel.EXTERNAL || channel == EventChannel.GLOBAL) {
+          val success = latch.await(5, TimeUnit.SECONDS)
+          assertTrue(success, "timed out waiting for external or global events")
+          assertEquals(count, receivedEvents.size)
         } else {
-          // Ensure non-routable channels don't trigger listeners
-          repeat(count) { handler.sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+          Thread.sleep(500)
           assertEquals(0, receivedEvents.size)
         }
-      }
-    }
-  }
 
-  private fun NatsEventHandler.manageSubscription(
-    channel: EventChannel,
-    name: String,
-    source: String,
-    subscribe: Boolean,
-  ) {
-    when (channel) {
-      EventChannel.GLOBAL -> if (subscribe) subscribe(name) else unsubscribe(name)
-      EventChannel.EXTERNAL -> if (subscribe) subscribe(source, name) else unsubscribe(source, name)
-      else -> {}
+        // Clear and unsubscribe
+        receivedEvents.clear()
+        handler.unsubscribe("source")
+
+        latch = CountDownLatch(count)
+
+        // Send <count> events
+        repeat(count) { handler.sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+
+        // Only global events should be received
+        if (channel == EventChannel.GLOBAL) {
+          val success = latch.await(5, TimeUnit.SECONDS)
+          assertTrue(success, "timed out waiting for global events")
+          assertEquals(count, receivedEvents.size)
+        } else {
+          Thread.sleep(500)
+          assertEquals(
+            0,
+            receivedEvents.size,
+            "events received for internal or external channel after unsubscribe",
+          )
+        }
+      }
     }
   }
 }

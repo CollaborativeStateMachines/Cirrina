@@ -5,7 +5,10 @@ module at.ac.uibk.dps.cirrina.csm.Csml
 typealias Version = "4.0.0"
 
 /// The name of an instance of a state machine or "*" to refer to all instances.
-typealias InstanceName = String(matches(Regex(#"^([a-zA-Z_]\w*|\*)$"#)))
+typealias InstanceName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
+/// The subscription to events raised by state machine instances.
+typealias Subscription = String(matches(Regex(#"^([a-zA-Z_]\w*|\*)$"#)))
 
 /// The CSML version.
 version: Version
@@ -18,7 +21,7 @@ instantiate: Mapping<InstanceName, StateMachineName>
 
 /// Subscriptions to events raised by state machine instances. The key is the name of the instance
 /// subscribed to the events raised by the instances in the value listing.
-subscription: Mapping<InstanceName, Listing<InstanceName>>
+subscriptions: Mapping<InstanceName, Listing<Subscription>>
 
 /// The name of a state machine.
 typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))

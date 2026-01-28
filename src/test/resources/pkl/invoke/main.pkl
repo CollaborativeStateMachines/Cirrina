@@ -2,4 +2,12 @@ amends "modulepath:/pkl/csm/csml.pkl"
 import "invokeStateMachine.pkl"
 
 version = "4.0.0"
-stateMachines { ["invokeStateMachine"] = invokeStateMachine.sm }
+collaborativeStateMachine {
+  stateMachines {
+    ["invokeStateMachine"] = invokeStateMachine.sm
+  }
+}
+instantiate {
+  ["invoke"] = "invokeStateMachine"
+}
+subscriptions {}

@@ -27,6 +27,7 @@ class CsmlClassBuilder private constructor(private val csmlDescription: Csml) {
         .build()
         .getOrThrow(),
       csmlDescription.instantiate,
+      csmlDescription.subscriptions,
     )
   }
 }

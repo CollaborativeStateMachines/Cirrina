@@ -23,13 +23,9 @@ class TimeoutTest {
 
     override fun close() {}
 
-    override fun subscribe(subject: String) {}
+    override fun subscribe(source: String) {}
 
-    override fun unsubscribe(subject: String) {}
-
-    override fun subscribe(source: String, subject: String) {}
-
-    override fun unsubscribe(source: String, subject: String) {}
+    override fun unsubscribe(source: String) {}
   }
 
   @Test

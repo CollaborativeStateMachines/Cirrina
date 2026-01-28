@@ -48,9 +48,9 @@ class CirrinaModule {
           // Wait for the connection to be established
           awaitReady(Cirrina.NATS_CONNECTION_TIMEOUT)
 
-          // Subscribe to all events
-          subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
-          subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
+          // Subscribe to global and peripheral events
+          subscribe(NatsEventHandler.GLOBAL_SOURCE)
+          subscribe(NatsEventHandler.PERIPHERAL_SOURCE)
         }
     }
 
