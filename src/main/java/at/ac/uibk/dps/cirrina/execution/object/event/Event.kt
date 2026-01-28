@@ -8,9 +8,10 @@ import kotlin.time.Clock
 import org.apache.commons.lang3.builder.ToStringBuilder
 
 data class Event(
-  val name: String,
+  val topic: String,
   val channel: EventChannel,
   val data: List<ContextVariable> = emptyList(),
+  val source: String? = null,
   val id: String = getInsecureUuid().toString(),
   val createdTime: Long = Clock.System.now().epochSeconds,
 ) {
@@ -20,11 +21,19 @@ data class Event(
   }
 
   fun withData(data: List<ContextVariable>): Event {
-    return Event(name, channel, data)
+    return Event(topic, channel, data, source, id, createdTime)
+  }
+
+  fun withSource(source: String): Event {
+    return Event(topic, channel, data, source, id, createdTime)
   }
 
   override fun toString(): String =
-    ToStringBuilder(this).append("id", id).append("channel", channel).toString()
+    ToStringBuilder(this)
+      .append("source", source)
+      .append("topic", topic)
+      .append("channel", channel)
+      .toString()
 
   companion object {
     fun ensureHasEvaluatedData(event: Event, extent: Extent): Event = event.evaluateData(extent)

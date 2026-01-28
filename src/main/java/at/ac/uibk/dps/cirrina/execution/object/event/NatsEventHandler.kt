@@ -101,25 +101,19 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
    * ignored.
    *
    * @param event the Event to send
-   * @param source the source of the event, used if channel is EXTERNAL
    */
-  override fun sendEvent(event: Event, source: String?) {
+  override fun sendEvent(event: Event) {
     val subject =
       when (event.channel) {
         Csml.EventChannel.EXTERNAL -> {
-          if (source == null) {
-            logger.warn { "event source is null, cannot send event '${event.name}'" }
+          if (event.source == null) {
+            logger.warn { "event source is null, cannot send event '${event.topic}'" }
             return
           }
-          "$source.${event.name}"
+          "${event.source}.${event.topic}"
         }
 
-        Csml.EventChannel.GLOBAL -> {
-          if (source != null) {
-            logger.warn { "source '$source' ignored for global events" }
-          }
-          "$GLOBAL_SOURCE.${event.name}"
-        }
+        Csml.EventChannel.GLOBAL -> "$GLOBAL_SOURCE.${event.topic}"
 
         else -> {
           logger.warn { "unsupported channel '${event.channel}', event not sent" }

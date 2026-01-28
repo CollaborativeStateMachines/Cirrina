@@ -6,7 +6,7 @@ abstract class EventHandler : AutoCloseable {
 
   var listener: EventListener? = null
 
-  abstract fun sendEvent(event: Event, source: String?)
+  abstract fun sendEvent(event: Event)
 
   abstract fun subscribe(source: String)
 

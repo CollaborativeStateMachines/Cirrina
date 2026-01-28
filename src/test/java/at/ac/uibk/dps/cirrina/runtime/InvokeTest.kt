@@ -22,7 +22,7 @@ import org.junit.jupiter.api.assertTimeout
 class InvokeTest {
 
   private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+    override fun sendEvent(event: Event) = propagateEvent(event)
 
     override fun close() {}
 
@@ -33,7 +33,7 @@ class InvokeTest {
 
   @Test
   fun testInvokeExecute() {
-    assertTimeout(Duration.ofSeconds(10)) {
+    assertTimeout(Duration.ofSeconds(5)) {
       assertDoesNotThrow {
         val eventHandler = SimpleEventHandler()
         val context =

@@ -23,7 +23,7 @@ class EventBuilder private constructor(private val eventDescription: EventDescri
 
   fun build(): Result<Event> {
     return buildVariableList(eventDescription.data).map { variables ->
-      Event(name = eventDescription.topic, channel = eventDescription.channel, data = variables)
+      Event(eventDescription.topic, eventDescription.channel, variables)
     }
   }
 }

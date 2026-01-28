@@ -19,7 +19,7 @@ import org.junit.jupiter.api.assertTimeout
 class TimeoutTest {
 
   private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+    override fun sendEvent(event: Event) = propagateEvent(event)
 
     override fun close() {}
 

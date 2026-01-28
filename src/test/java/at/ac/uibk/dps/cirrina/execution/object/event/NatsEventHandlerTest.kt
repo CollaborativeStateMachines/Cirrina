@@ -48,7 +48,9 @@ internal class NatsEventHandlerTest {
         handler.subscribe("source")
 
         // Send <count> events
-        repeat(count) { handler.sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+        repeat(count) {
+          handler.sendEvent(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+        }
 
         // External and global events should be received
         if (channel == EventChannel.EXTERNAL || channel == EventChannel.GLOBAL) {
@@ -67,7 +69,9 @@ internal class NatsEventHandlerTest {
         latch = CountDownLatch(count)
 
         // Send <count> events
-        repeat(count) { handler.sendEvent(Event.ensureHasEvaluatedData(event, extent), "source") }
+        repeat(count) {
+          handler.sendEvent(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+        }
 
         // Only global events should be received
         if (channel == EventChannel.GLOBAL) {

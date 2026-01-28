@@ -68,7 +68,7 @@ private constructor(
     allStateMachines: Set<StateMachineClass>,
   ): List<StateMachineClass> =
     allStateMachines.filter { target ->
-      target.inputEvents.contains(raisedEvent.name) &&
+      target.inputEvents.contains(raisedEvent.topic) &&
         when (raisedEvent.channel) {
           EventChannel.INTERNAL -> source == target
           EventChannel.GLOBAL,

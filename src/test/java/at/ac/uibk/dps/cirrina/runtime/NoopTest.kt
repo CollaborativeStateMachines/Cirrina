@@ -17,7 +17,7 @@ import org.junit.jupiter.api.assertTimeout
 class NoopTest {
 
   private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+    override fun sendEvent(event: Event) = propagateEvent(event)
 
     override fun close() {}
 

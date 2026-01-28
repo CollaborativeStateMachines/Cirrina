@@ -23,7 +23,7 @@ import org.junit.jupiter.api.assertThrows
 class CompleteTest {
 
   private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
+    override fun sendEvent(event: Event) = propagateEvent(event)
 
     override fun close() {}
 
@@ -34,7 +34,7 @@ class CompleteTest {
 
   @Test
   fun testCompleteExecute() {
-    assertTimeout(Duration.ofSeconds(10)) {
+    assertTimeout(Duration.ofSeconds(5)) {
       assertDoesNotThrow {
         val eventHandler = SimpleEventHandler()
         val context = mockPersistentContext()
@@ -131,11 +131,12 @@ class CompleteTest {
 
     val event =
       EventProtos.Event.newBuilder()
-        .setCreatedTime(1)
-        .setName("testEvent")
-        .setId("someId")
+        .setTopic("testEvent")
         .setChannel(EventProtos.Event.Channel.PERIPHERAL)
         .addData(contextVariable)
+        .setSource("source")
+        .setId("someId")
+        .setCreatedTime(1)
         .build()
 
     assertThrows<NullPointerException> {
@@ -143,10 +144,12 @@ class CompleteTest {
     }
 
     assertNotNull(event)
-    assertEquals("testEvent", event.name)
+    assertEquals("testEvent", event.topic)
     assertEquals(EventProtos.Event.Channel.PERIPHERAL, event.channel)
-    assertEquals(event, EventProtos.Event.parseFrom(event.toByteArray()))
     assertEquals(123, event.getData(0).value.integer)
+    assertEquals("source", event.source)
+    assertEquals("someId", event.id)
+    assertEquals(event, EventProtos.Event.parseFrom(event.toByteArray()))
 
     val valueCollection =
       ContextVariableProtos.ValueCollection.newBuilder()

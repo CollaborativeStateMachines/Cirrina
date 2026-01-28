@@ -152,7 +152,7 @@ constructor(
     activeState?.let { current ->
       // Find candidate transitions
       val candidates =
-        stateMachineClass.getOnTransitionsFromStateByEventName(current.stateClass, event.name)
+        stateMachineClass.getOnTransitionsFromStateByEventName(current.stateClass, event.topic)
       if (candidates.isEmpty()) return null
 
       // Build a temporary extent for transition evaluation
@@ -307,7 +307,8 @@ constructor(
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
     fun sendEvent(event: Event) {
-      eventHandler.sendEvent(event, instanceName)
+      // Any event passing through the state machine is tagged with the state machine instance name
+      eventHandler.sendEvent(event.withSource(instanceName))
     }
   }
 }
