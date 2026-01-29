@@ -9,6 +9,7 @@ collaborativeStateMachine {
     ["pingStateMachine"] = pingStateMachine.sm
     ["pongStateMachine"] = pongStateMachine.sm
   }
+  persistent { ["v"] = "0" }
 }
 instantiate {
   ["ping"] = "pingStateMachine"

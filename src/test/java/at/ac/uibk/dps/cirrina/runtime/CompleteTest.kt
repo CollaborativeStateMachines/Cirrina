@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
@@ -14,7 +15,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.*
@@ -32,7 +32,7 @@ class CompleteTest {
             subscribe(GLOBAL_SOURCE)
             subscribe(PERIPHERAL_SOURCE)
           }
-        val context = mockPersistentContext()
+        val context = InMemoryContext()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
           listOf(ContextVariable("v", (v.value as Int) + 1))

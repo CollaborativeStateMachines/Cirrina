@@ -4,11 +4,11 @@ import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Test
@@ -26,7 +26,7 @@ class NoopTest {
             subscribe(GLOBAL_SOURCE)
             subscribe(PERIPHERAL_SOURCE)
           }
-        val context = mockPersistentContext()
+        val context = InMemoryContext()
 
         val selector =
           RandomServiceImplementationSelector(

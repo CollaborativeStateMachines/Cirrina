@@ -1,0 +1,66 @@
+package at.ac.uibk.dps.cirrina.runtime
+
+import InMemoryEventHandler
+import at.ac.uibk.dps.cirrina.csm.Csml
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
+import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
+import at.ac.uibk.dps.cirrina.di.TestModule
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
+import kotlin.time.measureTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+
+class EventsTest {
+
+  @Test
+  fun testEventsExecute() = runBlocking {
+    assertDoesNotThrow {
+      val eventHandler =
+        InMemoryEventHandler().apply {
+          subscribe(GLOBAL_SOURCE)
+          subscribe(PERIPHERAL_SOURCE)
+        }
+      val context = InMemoryContext()
+
+      val selector =
+        RandomServiceImplementationSelector(
+          ServiceImplementationBuilder.from(emptyList()).build().getOrThrow()
+        )
+
+      val runtime =
+        DaggerTestComponent.builder()
+          .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.events))
+          .build()
+          .runtime()
+
+      val eventJob =
+        launch(Dispatchers.Default) {
+          delay(1000)
+          eventHandler.send(
+            EventBuilder.from(Csml.EventDescription("pe1", EventChannel.PERIPHERAL, mapOf()))
+              .build()
+              .getOrThrow()
+              .withSource(PERIPHERAL_SOURCE)
+          )
+        }
+
+      val duration = measureTime { runtime.run() }
+      println("events execution: $duration")
+
+      eventJob.join()
+
+      assertTrue(context.get("b") as Boolean)
+    }
+  }
+}

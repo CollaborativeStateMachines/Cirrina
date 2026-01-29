@@ -6,16 +6,15 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
@@ -31,18 +30,7 @@ class InvokeTest {
             subscribe(GLOBAL_SOURCE)
             subscribe(PERIPHERAL_SOURCE)
           }
-        val context =
-          mockPersistentContext(
-            createBlock = {
-              create("v", 0)
-              create("e", 0)
-            },
-            assignBlock = { superAssign, name, value ->
-              assertTrue(name == "v" || name == "e")
-              assertTrue(value is Int)
-              superAssign(name, value)
-            },
-          )
+        val context = InMemoryContext()
 
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")

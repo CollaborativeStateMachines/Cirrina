@@ -1,0 +1,77 @@
+import "modulepath:/pkl/csm/csml.pkl"
+
+one = new csml.StateMachine {
+  states {
+    ["a"] {
+      initial = true
+      on {
+        ["e2"] { to = "b" }
+        ["e6"] { to = "d" }
+      }
+    }
+    ["b"] {
+      entry { new csml.Raise { event { channel = "global"; topic = "e3" } } }
+      on { ["e4"] { to = "c" } }
+    }
+    ["c"] {
+      terminal = true
+      entry {
+        new csml.Raise { event { channel = "external"; topic = "e5" } }
+        new csml.Eval { expression = "b = true" }
+      }
+    }
+    ["d"] { terminal = true }
+  }
+  stateMachines {
+    ["nestedStateMachine1"] {
+      states {
+        ["a"] {
+          initial = true
+          on { ["pe1"] { to = "b" } }
+        }
+        ["b"] {
+          terminal = true
+          entry { new csml.Raise { event { channel = "internal"; topic = "e1" } } }
+        }
+      }
+    }
+    ["nestedStateMachine2"] {
+      states {
+        ["a"] {
+          initial = true
+          on { ["e1"] { to = "b" } }
+        }
+        ["b"] {
+          terminal = true
+          entry { new csml.Raise { event { channel = "internal"; topic = "e2" } } }
+        }
+      }
+    }
+  }
+}
+
+two = new csml.StateMachine {
+  states {
+    ["a"] {
+      initial = true
+      on { ["e3"] { to = "b" } }
+    }
+    ["b"] {
+      terminal = true
+      entry { new csml.Raise { event { channel = "external"; topic = "e4" } } }
+    }
+  }
+}
+
+three = new csml.StateMachine {
+  states {
+    ["a"] {
+      initial = true
+      entry { new csml.Raise { event { channel = "external"; topic = "e6" } } }
+      on { ["e5"] { to = "b" } }
+    }
+    ["b"] {
+      terminal = true
+    }
+  }
+}
