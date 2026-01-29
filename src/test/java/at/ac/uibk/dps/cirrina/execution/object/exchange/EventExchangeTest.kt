@@ -15,6 +15,7 @@ class EventExchangeTest {
         "topic",
         EventChannel.EXTERNAL,
         listOf(ContextVariable("varName", "some string")),
+        "target",
         "source",
         "id",
         1,
@@ -23,6 +24,7 @@ class EventExchangeTest {
     // Verify the event properties
     assertEquals(originalEvent.topic, "topic")
     assertEquals(originalEvent.channel, EventChannel.EXTERNAL)
+    assertEquals(originalEvent.target, "target")
     assertEquals(originalEvent.data.size, 1)
     assertEquals(originalEvent.data[0].name, "varName")
     assertEquals(originalEvent.data[0].value, "some string")
@@ -35,6 +37,8 @@ class EventExchangeTest {
       assertEquals(originalEvent.topic, receivedEvent.topic)
       assertEquals(originalEvent.channel, receivedEvent.channel)
       assertEquals(originalEvent.data, receivedEvent.data)
+      assertEquals(originalEvent.target, receivedEvent.target)
+      assertEquals(originalEvent.source, receivedEvent.source)
       assertEquals(originalEvent.id, receivedEvent.id)
       assertEquals(originalEvent.createdTime, receivedEvent.createdTime)
     }

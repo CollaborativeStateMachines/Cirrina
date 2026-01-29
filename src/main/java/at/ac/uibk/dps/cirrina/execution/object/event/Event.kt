@@ -11,7 +11,8 @@ data class Event(
   val topic: String,
   val channel: EventChannel,
   val data: List<ContextVariable> = emptyList(),
-  val source: String? = null,
+  val target: String = "",
+  val source: String = "",
   val id: String = getInsecureUuid().toString(),
   val createdTime: Long = Clock.System.now().epochSeconds,
 ) {
@@ -21,11 +22,15 @@ data class Event(
   }
 
   fun withData(data: List<ContextVariable>): Event {
-    return Event(topic, channel, data, source, id, createdTime)
+    return Event(topic, channel, data, target, source, id, createdTime)
+  }
+
+  fun withTarget(target: String): Event {
+    return Event(topic, channel, data, target, source, id, createdTime)
   }
 
   fun withSource(source: String): Event {
-    return Event(topic, channel, data, source, id, createdTime)
+    return Event(topic, channel, data, target, source, id, createdTime)
   }
 
   override fun toString(): String =

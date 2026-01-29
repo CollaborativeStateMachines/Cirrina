@@ -104,6 +104,7 @@ class EvalDescription extends ActionDescription {
 
 class RaiseDescription extends ActionDescription {
   event: EventDescription
+  target: Expression?
 }
 
 class TimeoutDescription extends ActionDescription {

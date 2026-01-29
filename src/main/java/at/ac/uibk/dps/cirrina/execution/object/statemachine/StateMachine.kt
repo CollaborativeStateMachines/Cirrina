@@ -128,8 +128,12 @@ constructor(
   }
 
   private fun Event.isValid(): Boolean {
+    // If a target is specified, it must match this instance name
+    if (!target.isEmpty() && target != instanceName) {
+      return false
+    }
     // External events must have a source
-    if (channel != EventChannel.INTERNAL && source == null) {
+    if (channel != EventChannel.INTERNAL && source.isEmpty()) {
       logger.warn { "$this received event '$topic' with unspecified source" }
       return false
     }
@@ -175,7 +179,10 @@ constructor(
   }
 
   private fun doEnter(state: State, event: Event?): Transition? {
+    logger.debug { "state machine '$instanceName' entering state '${state.stateClass.name}'" }
+
     activeState = state
+
     val factory = createFactory(state, event)
 
     execute(state.getEntryActionCommands(factory))
@@ -190,6 +197,8 @@ constructor(
   }
 
   private fun doExit(state: State, event: Event?) {
+    logger.debug { "state machine '$instanceName' exiting state '${state.stateClass.name}'" }
+
     timeoutActionManager.stopAll()
     execute(state.getExitActionCommands(createFactory(state, event)))
   }
@@ -244,6 +253,8 @@ constructor(
 
   private fun checkTermination() {
     if (isTerminated()) {
+      logger.info { "state machine '$instanceName' terminated" }
+
       timeoutActionManager.shutdown()
       coroutineScope.cancel()
       runtime.phaser.arriveAndDeregister()

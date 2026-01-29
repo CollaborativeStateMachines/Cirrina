@@ -108,6 +108,9 @@ constructor(
         }
         .associateBy { it.instanceName }
 
+    // Subscribe to all external events according to the subscriptions
+    csmlClass.subscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
+
     // Create the event handler
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->

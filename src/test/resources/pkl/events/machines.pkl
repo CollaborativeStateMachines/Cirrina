@@ -10,13 +10,13 @@ one = new csml.StateMachine {
       }
     }
     ["b"] {
-      entry { new csml.Raise { event { channel = "global"; topic = "e3" } } }
+      entry { new csml.Raise { event { channel = "global"; topic = "e3" }; target = "'two'" } }
       on { ["e4"] { to = "c" } }
     }
     ["c"] {
       terminal = true
       entry {
-        new csml.Raise { event { channel = "external"; topic = "e5" } }
+        new csml.Raise { event { channel = "global"; topic = "e5" } }
         new csml.Eval { expression = "b = true" }
       }
     }
@@ -72,6 +72,25 @@ three = new csml.StateMachine {
     }
     ["b"] {
       terminal = true
+    }
+  }
+}
+
+four = new csml.StateMachine {
+  states {
+    ["a"] {
+      initial = true
+      on {
+        ["e3"] { to = "b" }
+        ["e5"] { to = "c" }
+      }
+    }
+    ["b"] {
+      terminal = true
+    }
+    ["c"] {
+      terminal = true
+      entry { new csml.Eval { expression = "c = true" } }
     }
   }
 }

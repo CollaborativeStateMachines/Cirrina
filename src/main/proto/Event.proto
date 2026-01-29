@@ -19,7 +19,8 @@ message Event {
   string topic = 1;
   Channel channel = 2;
   repeated ContextVariable data = 3;
-  string source = 4;
-  string id = 5;
-  int64 createdTime = 6;
+  string target = 4;
+  string source = 5;
+  string id = 6;
+  int64 createdTime = 7;
 }

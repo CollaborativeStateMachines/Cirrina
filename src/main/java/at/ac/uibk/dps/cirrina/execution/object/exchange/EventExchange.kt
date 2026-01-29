@@ -29,7 +29,7 @@ class EventExchange(val event: Event) {
           ContextVariableExchange.fromProto(contextVariableProto)
         }
 
-      Event(proto.topic, channel, data, proto.source, proto.id, proto.createdTime)
+      Event(proto.topic, channel, data, proto.target, proto.source, proto.id, proto.createdTime)
     }
   }
 
@@ -57,6 +57,7 @@ class EventExchange(val event: Event) {
       .setTopic(event.topic)
       .setChannel(channel)
       .addAllData(dataProtos)
+      .setTarget(event.target)
       .setSource(event.source)
       .setId(event.id)
       .setCreatedTime(event.createdTime)

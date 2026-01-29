@@ -48,40 +48,34 @@ private constructor(
     }
 
   private fun buildEvalAction(eval: EvalDescription): Result<Action> =
-    ExpressionBuilder.from(eval.expression).build().map { EvalAction(it) }
+    ExpressionBuilder.from(eval.expression).build().map(::EvalAction)
 
-  private fun buildInvokeAction(invoke: InvokeDescription): Result<Action> =
-    buildVariableList(invoke.input).map { input ->
-      buildEvents(invoke.raises)
-        .map { raises -> InvokeAction(invoke.type, invoke.mode, input, raises) }
-        .getOrThrow()
-    }
+  private fun buildInvokeAction(invoke: InvokeDescription): Result<Action> = runCatching {
+    val input = buildVariableList(invoke.input).getOrThrow()
+    val raises = buildEvents(invoke.raises).getOrThrow()
+    InvokeAction(invoke.type, invoke.mode, input, raises)
+  }
 
-  private fun buildMatchAction(match: MatchDescription): Result<Action> =
-    ExpressionBuilder.from(match.value).build().map { valueExpression ->
-      buildCases(match.cases)
-        .map { cases ->
-          MatchAction(valueExpression, cases, match.default?.let { from(it).build().getOrThrow() })
-        }
-        .getOrThrow()
-    }
+  private fun buildMatchAction(match: MatchDescription): Result<Action> = runCatching {
+    val valueExpression = ExpressionBuilder.from(match.value).build().getOrThrow()
+    val cases = buildCases(match.cases).getOrThrow()
+    val default = match.default?.let { from(it).build().getOrThrow() }
+    MatchAction(valueExpression, cases, default)
+  }
 
-  private fun buildRaiseAction(raise: RaiseDescription): Result<Action> =
-    EventBuilder.from(raise.event).build().map { RaiseAction(it) }
+  private fun buildRaiseAction(raise: RaiseDescription): Result<Action> = runCatching {
+    val target = raise.target?.let { ExpressionBuilder.from(raise.target).build().getOrThrow() }
+    val event = EventBuilder.from(raise.event).build().getOrThrow()
+    RaiseAction(event, target)
+  }
 
-  private fun buildTimeoutAction(timeout: TimeoutDescription): Result<Action> =
-    runCatching { name ?: throw IllegalArgumentException("Timeout action name is required") }
-      .map { actionName ->
-        ExpressionBuilder.from(timeout.delay)
-          .build()
-          .map { delay ->
-            from(timeout.`do`)
-              .build()
-              .map { `do` -> TimeoutAction(actionName, delay, `do`) }
-              .getOrThrow()
-          }
-          .getOrThrow()
-      }
+  private fun buildTimeoutAction(timeout: TimeoutDescription): Result<Action> = runCatching {
+    val actionName = name ?: error("timeout action name is required")
+    val delay = ExpressionBuilder.from(timeout.delay).build().getOrThrow()
+    val todo = from(timeout.`do`).build().getOrThrow()
+
+    TimeoutAction(actionName, delay, todo)
+  }
 
   private fun buildResetAction(reset: ResetDescription): Result<Action> =
     Result.success(TimeoutResetAction(reset.name))
@@ -89,7 +83,9 @@ private constructor(
   private fun buildCases(cases: List<CaseDescription>): Result<Map<Expression, Action>> =
     runCatching {
       cases.associate { case ->
-        ExpressionBuilder.from(case.of).build().getOrThrow() to from(case.then).build().getOrThrow()
+        val of = ExpressionBuilder.from(case.of).build().getOrThrow()
+        val then = from(case.then).build().getOrThrow()
+        of to then
       }
     }
 

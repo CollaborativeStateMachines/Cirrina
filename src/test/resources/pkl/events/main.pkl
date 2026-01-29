@@ -7,15 +7,16 @@ collaborativeStateMachine {
     ["oneMachine"] = machines.one
     ["twoMachine"] = machines.two
     ["threeMachine"] = machines.three
+    ["fourMachine"] = machines.four
   }
-  persistent { ["b"] = "false" }
+  persistent { ["b"] = "false"; ["c"] = "false" }
 }
 instantiate {
   ["one"] = "oneMachine"
   ["two"] = "twoMachine"
   ["three"] = "threeMachine"
+  ["four"] = "fourMachine"
 }
 subscriptions {
   ["one"] { "two" }
-  ["three"] { "one" }
 }

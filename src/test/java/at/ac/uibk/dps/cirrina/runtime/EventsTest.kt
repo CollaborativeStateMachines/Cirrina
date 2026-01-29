@@ -8,7 +8,6 @@ import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventBuilder
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
@@ -26,11 +25,7 @@ class EventsTest {
   @Test
   fun testEventsExecute() = runBlocking {
     assertDoesNotThrow {
-      val eventHandler =
-        InMemoryEventHandler().apply {
-          subscribe(GLOBAL_SOURCE)
-          subscribe(PERIPHERAL_SOURCE)
-        }
+      val eventHandler = InMemoryEventHandler()
       val context = InMemoryContext()
 
       val selector =
@@ -61,6 +56,7 @@ class EventsTest {
       eventJob.join()
 
       assertTrue(context.get("b") as Boolean)
+      assertTrue(context.get("c") as Boolean)
     }
   }
 }
