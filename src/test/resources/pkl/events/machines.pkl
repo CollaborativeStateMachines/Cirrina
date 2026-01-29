@@ -10,7 +10,7 @@ one = new csml.StateMachine {
       }
     }
     ["b"] {
-      entry { new csml.Raise { event { channel = "global"; topic = "e3" }; target = "'two'" } }
+      entry { new csml.Raise { event { channel = "global"; topic = "e3" }; target = "target" } }
       on { ["e4"] { to = "c" } }
     }
     ["c"] {

@@ -34,6 +34,7 @@ constructor(
   @Assisted private val stateMachineClass: StateMachineClass,
   @Assisted private val parentStateMachine: StateMachine? = null,
   @Assisted private val eventSubscriptions: List<String>? = null,
+  @Assisted private val data: List<ContextVariable>? = null,
   private val meterRegistry: MeterRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   eventHandler: EventHandler,
@@ -47,6 +48,7 @@ constructor(
       stateMachineClass: StateMachineClass,
       parentStateMachine: StateMachine?,
       eventSubscriptions: List<String>?,
+      data: List<ContextVariable>?,
     ): StateMachine
   }
 
@@ -68,12 +70,17 @@ constructor(
   private var activeState: State? = null
 
   /** Computes the context extent, inheriting from parent or root runtime. */
-  override val extent: Extent by lazy {
-    parentStateMachine?.extent?.extend(buildTransientContext())
-      ?: runtime.extent.extend(buildTransientContext())
-  }
+  override val extent: Extent
 
   init {
+    val transientContext = buildTransientContext()
+
+    data?.forEach { transientContext.create(it.name, it.value) }
+
+    extent =
+      parentStateMachine?.extent?.extend(transientContext)
+        ?: runtime.extent.extend(transientContext)
+
     eventSubscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
     runtime.phaser.register()
   }

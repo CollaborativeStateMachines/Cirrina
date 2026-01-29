@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.classes.collaborativestatemachine
 
 import at.ac.uibk.dps.cirrina.classes.csml.CsmlClass
 import at.ac.uibk.dps.cirrina.csm.Csml
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 
 /** A builder for constructing [CsmlClass] instances from [Csml] descriptions. */
 class CsmlClassBuilder private constructor(private val csmlDescription: Csml) {
@@ -22,12 +23,21 @@ class CsmlClassBuilder private constructor(private val csmlDescription: Csml) {
    * @return a [Result] containing the fully constructed csml class or a failure.
    */
   fun build(): Result<CsmlClass> = runCatching {
-    CsmlClass(
+    val collaborativeStateMachineClass =
       CollaborativeStateMachineClassBuilder.from(csmlDescription.collaborativeStateMachine)
         .build()
-        .getOrThrow(),
-      csmlDescription.instantiate,
-      csmlDescription.subscriptions,
+        .getOrThrow()
+
+    val instanceData =
+      csmlDescription.instanceData.mapValues { (_, innerMap) ->
+        ContextBuilder.from(innerMap).inMemoryContext().build().getOrThrow().getAll()
+      }
+
+    CsmlClass(
+      collaborativeStateMachineClass = collaborativeStateMachineClass,
+      instantiate = csmlDescription.instantiate,
+      instanceData = instanceData,
+      instanceSubscriptions = csmlDescription.instanceSubscriptions,
     )
   }
 }

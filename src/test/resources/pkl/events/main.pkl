@@ -17,6 +17,9 @@ instantiate {
   ["three"] = "threeMachine"
   ["four"] = "fourMachine"
 }
-subscriptions {
+instanceData {
+  ["one"] { ["target"] = "'two'" }
+}
+instanceSubscriptions {
   ["one"] { "two" }
 }

@@ -4,6 +4,7 @@ import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
 import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CsmlClassBuilder
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
@@ -103,13 +104,14 @@ constructor(
               ?: error("state machine class '$stateMachineClass' not found"),
             instanceName,
             null,
-            csmlClass.subscriptions[instanceName],
+            csmlClass.instanceSubscriptions[instanceName],
+            csmlClass.instanceData[instanceName],
           )
         }
         .associateBy { it.instanceName }
 
     // Subscribe to all external events according to the subscriptions
-    csmlClass.subscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
+    csmlClass.instanceSubscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
 
     // Create the event handler
     disruptor.handleEventsWith(
@@ -152,10 +154,11 @@ constructor(
     instanceName: String,
     parentInstance: StateMachine?,
     eventSubscriptions: List<String>?,
+    data: List<ContextVariable>?,
   ): List<StateMachine> =
     stateMachineFactory
       // Create a state machine instance
-      .create(instanceName, this, stateMachineClass, parentInstance, eventSubscriptions)
+      .create(instanceName, this, stateMachineClass, parentInstance, eventSubscriptions, data)
       // With the parent instance...
       .let { currentInstance ->
         stateMachineClass.nestedStateMachineClasses
@@ -165,6 +168,7 @@ constructor(
               nestedStateMachineClass,
               "${currentInstance.instanceName}.$index@${nestedStateMachineClass.name}",
               currentInstance,
+              null,
               null,
             )
           }
