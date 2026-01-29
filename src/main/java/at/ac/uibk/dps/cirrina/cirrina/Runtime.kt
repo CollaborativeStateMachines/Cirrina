@@ -111,9 +111,6 @@ constructor(
     // Create the event handler
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->
-        // TODO: We can avoid dispatching to every state machine if we know what a state machine is
-        // subscribed to
-        // TODO: Manage event subscriptions
         stateMachineInstances.values.forEach { it.onReceiveEvent(envelope.event!!) }
       }
     )
@@ -154,17 +151,27 @@ constructor(
     eventSubscriptions: List<String>?,
   ): List<StateMachine> =
     stateMachineFactory
+      // Create a state machine instance
       .create(instanceName, this, stateMachineClass, parentInstance, eventSubscriptions)
-      .let { parentInstance ->
+      // With the parent instance...
+      .let { currentInstance ->
         stateMachineClass.nestedStateMachineClasses
-          .flatMap { nestedStateMachineClass ->
-            buildInstances(nestedStateMachineClass, "", parentInstance, null)
+          .flatMapIndexed { index, nestedStateMachineClass ->
+            // build the nested state machine instances...
+            buildInstances(
+              nestedStateMachineClass,
+              "${currentInstance.instanceName}.$index@${nestedStateMachineClass.name}",
+              currentInstance,
+              null,
+            )
           }
           .let { nestedInstances ->
-            parentInstance.apply {
+            // add the nested instance names to the parent instance...
+            currentInstance.apply {
               nestedStateMachineInstanceNames = nestedInstances.map { it.instanceName }
             }
-            listOf(parentInstance) + nestedInstances
+            // and return the parent instance and the nested instances
+            listOf(currentInstance) + nestedInstances
           }
       }
 

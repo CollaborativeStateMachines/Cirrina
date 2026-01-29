@@ -33,7 +33,7 @@ internal constructor(
     Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent)
       .also { event ->
         when (event.channel) {
-          EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
+          EventChannel.INTERNAL -> executionContext.stateMachineEventHandler::propagateToParent
           else -> executionContext.stateMachineEventHandler::sendEvent
         }.invoke(event)
       }

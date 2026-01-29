@@ -1,10 +1,11 @@
 package at.ac.uibk.dps.cirrina.runtime
 
+import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
@@ -18,21 +19,15 @@ import org.junit.jupiter.api.assertTimeout
 
 class PingPongTest {
 
-  private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event) = propagateEvent(event)
-
-    override fun close() {}
-
-    override fun subscribe(source: String) {}
-
-    override fun unsubscribe(source: String) {}
-  }
-
   @Test
   fun testPingPongExecute() {
     assertTimeout(Duration.ofSeconds(5)) {
       assertDoesNotThrow {
-        val eventHandler = SimpleEventHandler()
+        val eventHandler =
+          InMemoryEventHandler().apply {
+            subscribe(GLOBAL_SOURCE)
+            subscribe(PERIPHERAL_SOURCE)
+          }
         val context =
           mockPersistentContext(
             createBlock = { create("v", 0) },
@@ -50,15 +45,7 @@ class PingPongTest {
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(
-              TestModule(
-                eventHandler,
-                context,
-                selector,
-                DefaultDescriptions.pingPong,
-                listOf("pingStateMachine", "pongStateMachine"),
-              )
-            )
+            .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.pingPong))
             .build()
             .runtime()
 

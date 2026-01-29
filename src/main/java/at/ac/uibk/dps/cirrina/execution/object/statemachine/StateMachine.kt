@@ -101,12 +101,12 @@ constructor(
         stateInstances[stateMachineClass.initialState.name] ?: error("initial state not found")
       }
       .onSuccess { initial ->
-        logger.info { "$this starting" }
+        logger.info { "starting" }
 
         // Enter the initial state and take the first transition if present
         doEnter(initial, null)?.let { step(it, null) }
       }
-      .onFailure { logger.error(it) { "$this fatal error" } }
+      .onFailure { logger.error(it) { "fatal error" } }
       .also {
         // Indicate that the state machine is ready
         readySignal.countDown()
@@ -114,30 +114,43 @@ constructor(
 
   /** Handles the received [event]. */
   override fun onReceiveEvent(event: Event) {
-    readySignal.await()
-    takeIf { !isTerminated() }
-      ?.run {
-        logger.debug { event }
-
-        // Handle the event and progress if a transition is present
-        handleEvent(event)?.let { step(it, event) }
-
-        // Propagate the event to nested state machines
-        propagate(event)
+    if (event.channel != EventChannel.INTERNAL && event.source == null) {
+      logger.warn {
+        "event source is null and event is not internal, cannot handle event '${event.topic}'"
       }
+      return
+    }
+
+    // Wait for readiness
+    readySignal.await()
+
+    // Check if the event is subscribed to
+    if (
+      event.channel == EventChannel.EXTERNAL && eventSubscriptions?.contains(event.source) != true
+    ) {
+      return
+    }
+
+    // Perform a step if the event has a transition
+    handleEvent(event)?.let { transition -> step(transition, event) }
+
+    // Trickly propagate the event to nested state machines
+    if (event.channel == EventChannel.INTERNAL) {
+      stateMachineEventHandler.propagateToNested(event)
+    }
   }
 
   private tailrec fun step(transition: Transition, event: Event?) {
     // Internal transition
     if (transition.isInternal) {
-      logger.debug { "$this internal transition: $transition" }
+      logger.debug { "internal transition: $transition" }
       doTransition(transition, event)
       return
     }
 
     // Acquire the target state
     val target = stateInstances[transition.targetStateName] ?: error("target not found")
-    logger.debug { "$this transitioning: $activeState -> $target" }
+    logger.debug { "transitioning: $activeState -> $target" }
 
     // Execute exit and transition actions
     doExit(activeState!!, event)
@@ -172,7 +185,7 @@ constructor(
   private fun doEnter(state: State, event: Event?): Transition? =
     state
       .also {
-        logger.debug { "$this entering: $it" }
+        logger.debug { "entering: $it" }
 
         // Switch state
         activeState = it
@@ -194,7 +207,7 @@ constructor(
 
   private fun doExit(state: State, event: Event?) =
     state.run {
-      logger.debug { "$this exiting: $state" }
+      logger.debug { "exiting: $state" }
 
       // Stop all timeout actions
       timeoutActionManager.stopAll()
@@ -223,7 +236,7 @@ constructor(
       .let { selected ->
         when (selected.size) {
           0 -> null
-          1 -> selected.first().also { logger.debug { "$this selected: $it" } }
+          1 -> selected.first().also { logger.debug { "selected: $it" } }
           else -> error("non-determinism detected in $this")
         }
       }
@@ -245,7 +258,7 @@ constructor(
     // Evaluate the delay expression
     val delay = timeout.delay.execute(extent) as? Number ?: error("non-numeric delay")
 
-    logger.debug { "$this starting: $timeout" }
+    logger.debug { "starting: $timeout" }
 
     // Start the timeout coroutine
     timeoutActionManager.start(timeout.name, delay) {
@@ -255,14 +268,14 @@ constructor(
   }
 
   private fun stopTimeout(name: String) =
-    logger.debug { "$this stopping timeout: $name" }.also { timeoutActionManager.stop(name) }
+    logger.debug { "stopping timeout: $name" }.also { timeoutActionManager.stop(name) }
 
   private fun isTerminated(): Boolean =
     parentStateMachine?.isTerminated() ?: false || activeState?.stateClass?.terminal == true
 
   private fun checkTermination() {
     if (isTerminated()) {
-      logger.info { "$this terminated" }
+      logger.info { "terminated" }
 
       // Stop timeouts
       timeoutActionManager.shutdown()
@@ -272,15 +285,6 @@ constructor(
 
       // Indicate termination
       runtime.phaser.arriveAndDeregister()
-    }
-  }
-
-  private fun propagate(event: Event) {
-    if (event.channel == EventChannel.INTERNAL) {
-      nestedStateMachineInstanceNames.forEach {
-        runtime.findStateMachineInstance(it)?.onReceiveEvent(event)
-          ?: error("nested state machine instance $it missing")
-      }
     }
   }
 
@@ -295,7 +299,6 @@ constructor(
         scope,
         serviceImplementationSelector,
         stateMachineEventHandler,
-        this,
         coroutineScope,
         event,
         isWhile,
@@ -308,7 +311,19 @@ constructor(
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
     fun sendEvent(event: Event) {
       // Any event passing through the state machine is tagged with the state machine instance name
-      eventHandler.sendEvent(event.withSource(instanceName))
+      eventHandler.send(event.withSource(instanceName))
+    }
+
+    fun propagateToParent(event: Event) {
+      this@StateMachine.parentStateMachine?.stateMachineEventHandler?.propagateToParent(event)
+        ?: onReceiveEvent(event)
+    }
+
+    fun propagateToNested(event: Event) {
+      nestedStateMachineInstanceNames.forEach { name ->
+        runtime.findStateMachineInstance(name)?.onReceiveEvent(event)
+          ?: error("Nested state machine instance '$name' missing")
+      }
     }
   }
 }

@@ -7,6 +7,8 @@ import at.ac.uibk.dps.cirrina.cirrina.PersistentContextProvider
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
@@ -49,8 +51,8 @@ class CirrinaModule {
           awaitReady(Cirrina.NATS_CONNECTION_TIMEOUT)
 
           // Subscribe to global and peripheral events
-          subscribe(NatsEventHandler.GLOBAL_SOURCE)
-          subscribe(NatsEventHandler.PERIPHERAL_SOURCE)
+          subscribe(GLOBAL_SOURCE)
+          subscribe(PERIPHERAL_SOURCE)
         }
     }
 

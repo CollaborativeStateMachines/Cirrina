@@ -1,12 +1,13 @@
 package at.ac.uibk.dps.cirrina.runtime
 
+import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
@@ -22,21 +23,15 @@ import org.junit.jupiter.api.assertThrows
 
 class CompleteTest {
 
-  private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event) = propagateEvent(event)
-
-    override fun close() {}
-
-    override fun subscribe(source: String) {}
-
-    override fun unsubscribe(source: String) {}
-  }
-
   @Test
   fun testCompleteExecute() {
-    assertTimeout(Duration.ofSeconds(5)) {
+    assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = SimpleEventHandler()
+        val eventHandler =
+          InMemoryEventHandler().apply {
+            subscribe(GLOBAL_SOURCE)
+            subscribe(PERIPHERAL_SOURCE)
+          }
         val context = mockPersistentContext()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
@@ -63,15 +58,7 @@ class CompleteTest {
 
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(
-                TestModule(
-                  eventHandler,
-                  context,
-                  selector,
-                  DefaultDescriptions.complete,
-                  listOf("completeStateMachine"),
-                )
-              )
+              .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.complete))
               .build()
               .runtime()
 

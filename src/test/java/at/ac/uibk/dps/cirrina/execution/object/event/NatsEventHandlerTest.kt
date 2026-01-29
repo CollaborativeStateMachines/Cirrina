@@ -49,7 +49,7 @@ internal class NatsEventHandlerTest {
 
         // Send <count> events
         repeat(count) {
-          handler.sendEvent(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+          handler.send(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
         }
 
         // External and global events should be received
@@ -70,7 +70,7 @@ internal class NatsEventHandlerTest {
 
         // Send <count> events
         repeat(count) {
-          handler.sendEvent(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+          handler.send(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
         }
 
         // Only global events should be received

@@ -14,4 +14,7 @@ instantiate {
   ["ping"] = "pingStateMachine"
   ["pong"] = "pongStateMachine"
 }
-subscriptions {}
+subscriptions {
+  ["ping"] { "pong" }
+  ["pong"] { "ping" }
+}

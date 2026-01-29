@@ -15,11 +15,6 @@ private val logger = KotlinLogging.logger {}
  */
 class NatsEventHandler(natsUrl: String) : EventHandler() {
 
-  companion object {
-    const val GLOBAL_SOURCE = "global"
-    const val PERIPHERAL_SOURCE = "peripheral"
-  }
-
   // NATS connection can be null if not connected.
   private var connection: Connection? = null
 
@@ -89,7 +84,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   private fun handle(message: Message) {
     runCatching {
         val event = EventExchange.fromBytes(message.data).getOrThrow().event
-        propagateEvent(event)
+        propagate(event)
       }
       .onFailure { e -> logger.error(e) { "unexpected error while handling a message" } }
   }
@@ -102,7 +97,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
    *
    * @param event the Event to send
    */
-  override fun sendEvent(event: Event) {
+  override fun send(event: Event) {
     val subject =
       when (event.channel) {
         Csml.EventChannel.EXTERNAL -> {

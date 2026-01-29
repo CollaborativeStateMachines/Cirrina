@@ -16,7 +16,6 @@ class TestModule(
   private val context: Context,
   private val selector: ServiceImplementationSelector,
   private val mainUri: URI,
-  private val names: List<String>,
 ) {
   @Provides fun provideEventHandler() = eventHandler
 
