@@ -13,7 +13,6 @@ data class EnvironmentVariable<T>(
   val default: T,
   val mapper: (String) -> T = { it as T },
 ) {
-  /** Get the value of the environment variable. */
   fun get(): T {
     val value = System.getenv(name)
     return when {
@@ -24,14 +23,19 @@ data class EnvironmentVariable<T>(
 }
 
 object EnvironmentVariables {
+  // TODO: Make nullable
   val etcdContextUrl = EnvironmentVariable("ETCD_CONTEXT_URL", "http://localhost:2379")
 
+  // TODO: Make nullable
   val influxMetricUrl = EnvironmentVariable("INFLUX_METRIC_URL", "http://localhost:8086")
 
   val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "org")
   val influxMetricBucket = EnvironmentVariable("INFLUX_METRIC_BUCKET", "bucket")
   val influxMetricToken = EnvironmentVariable("INFLUX_METRIC_TOKEN", "bzO10KmR8x")
   val influxMetricStep = EnvironmentVariable("INFLUX_METRIC_STEP", 5000L)
+
+  // TODO: Make nullable
+  val zipkinTraceUrl = EnvironmentVariable("ZIPKIN_TRACE_URL", "http://localhost:9411/api/v2/spans")
 
   val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
 

@@ -14,6 +14,7 @@ import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelec
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
+import at.ac.uibk.dps.cirrina.utils.getBuildVersion
 import dagger.Module
 import dagger.Provides
 import io.micrometer.core.instrument.Clock
@@ -24,12 +25,29 @@ import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler
 import io.micrometer.influx.InfluxConfig
 import io.micrometer.influx.InfluxMeterRegistry
+import io.micrometer.observation.ObservationHandler
+import io.micrometer.observation.ObservationRegistry
+import io.micrometer.tracing.handler.DefaultTracingObservationHandler
+import io.micrometer.tracing.otel.bridge.OtelBaggageManager
+import io.micrometer.tracing.otel.bridge.OtelCurrentTraceContext
+import io.micrometer.tracing.otel.bridge.OtelTracer
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
+import io.opentelemetry.context.propagation.ContextPropagators
+import io.opentelemetry.exporter.zipkin.ZipkinSpanExporter
+import io.opentelemetry.sdk.OpenTelemetrySdk
+import io.opentelemetry.sdk.resources.Resource
+import io.opentelemetry.sdk.trace.SdkTracerProvider
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
+import io.opentelemetry.semconv.ServiceAttributes
+import jakarta.inject.Named
 import jakarta.inject.Qualifier
 import jakarta.inject.Singleton
 import java.net.URI
 import java.time.Duration
+import java.util.UUID
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -38,6 +56,11 @@ private val logger = KotlinLogging.logger {}
 
 @Module
 class CirrinaModule {
+
+  @Provides
+  @Singleton
+  @Named("identifier")
+  fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
 
   @Provides
   @Singleton
@@ -78,6 +101,58 @@ class CirrinaModule {
     ProcessorMetrics().bindTo(compositeRegistry)
 
     return compositeRegistry
+  }
+
+  @Provides
+  @Singleton
+  fun provideTracing(
+    @Named("identifier") identifier: String,
+    meterRegistry: MeterRegistry,
+  ): ObservationRegistry {
+    val observationRegistry = ObservationRegistry.create()
+
+    val zipkinExporter =
+      ZipkinSpanExporter.builder().setEndpoint(EnvironmentVariables.zipkinTraceUrl.get()).build()
+
+    val sdkTracerProvider =
+      SdkTracerProvider.builder()
+        .addSpanProcessor(BatchSpanProcessor.builder(zipkinExporter).build())
+        .setResource(
+          Resource.getDefault()
+            .toBuilder()
+            .put(ServiceAttributes.SERVICE_NAME, identifier)
+            .put(ServiceAttributes.SERVICE_VERSION, getBuildVersion())
+            .build()
+        )
+        .build()
+
+    val openTelemetry =
+      OpenTelemetrySdk.builder()
+        .setTracerProvider(sdkTracerProvider)
+        .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+        .build()
+
+    val otelTracer = openTelemetry.getTracer("io.micrometer.tracing")
+
+    val otelCurrentTraceContext = OtelCurrentTraceContext()
+
+    val eventPublisher = OtelTracer.EventPublisher {}
+
+    val baggageManager = OtelBaggageManager(otelCurrentTraceContext, emptyList(), emptyList())
+
+    val otelTracerBridge =
+      OtelTracer(otelTracer, otelCurrentTraceContext, eventPublisher, baggageManager)
+
+    observationRegistry
+      .observationConfig()
+      .observationHandler(
+        ObservationHandler.FirstMatchingCompositeObservationHandler(
+          DefaultTracingObservationHandler(otelTracerBridge),
+          DefaultMeterObservationHandler(meterRegistry),
+        )
+      )
+
+    return observationRegistry
   }
 
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())

@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.service
 
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
-import org.hibernate.validator.internal.util.Contracts.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow

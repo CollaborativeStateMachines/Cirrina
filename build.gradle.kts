@@ -46,14 +46,6 @@ protobuf {
 }
 
 dependencies {
-  implementation("com.ecwid.consul:consul-api:1.4.5")
-
-  implementation("com.fasterxml.jackson.core:jackson-databind:2.15.1")
-  implementation("com.fasterxml.jackson.module:jackson-module-parameter-names:2.15.1")
-  implementation("com.fasterxml.jackson.module:jackson-module-jsonSchema:2.15.1")
-  implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.15.1")
-  implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.1")
-
   implementation("com.google.dagger:dagger:2.59")
   kapt("com.google.dagger:dagger-compiler:2.59")
 
@@ -69,28 +61,18 @@ dependencies {
 
   implementation("io.micrometer:micrometer-core:1.17.0-M1")
   implementation("io.micrometer:micrometer-registry-influx:1.17.0-M1")
+  implementation("io.micrometer:micrometer-tracing:1.7.0-M1")
+  implementation("io.micrometer:micrometer-tracing-bridge-otel:1.7.0-M1")
 
-  implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"))
-  implementation("io.opentelemetry:opentelemetry-api")
-  implementation("io.opentelemetry:opentelemetry-sdk")
-  implementation("io.opentelemetry:opentelemetry-exporter-logging")
-  implementation("io.opentelemetry:opentelemetry-exporter-otlp")
-  implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.25.0-alpha")
-  implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
+  implementation("io.opentelemetry:opentelemetry-exporter-zipkin:1.58.0")
+  implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.39.0")
 
   implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 
   implementation("org.apache.commons:commons-jexl3:3.3")
   implementation("org.apache.commons:commons-lang3:3.19.0")
 
-  implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
-
   implementation("org.eclipse.zenoh:zenoh-kotlin:1.7.2")
-
-  implementation("org.glassfish.expressly:expressly:5.0.0")
-
-  implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
-  implementation("org.hibernate:hibernate-validator-cdi:8.0.1.Final")
 
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 

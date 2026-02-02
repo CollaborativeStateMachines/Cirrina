@@ -8,6 +8,7 @@ import dagger.Module
 import dagger.Provides
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import io.micrometer.observation.ObservationRegistry
 import java.net.URI
 
 @Module
@@ -26,4 +27,6 @@ class TestModule(
   @Provides @CsmMain fun provideUri() = mainUri
 
   @Provides fun provideMeterRegistry(): MeterRegistry = SimpleMeterRegistry()
+
+  @Provides fun provideObservationRegistry(): ObservationRegistry = ObservationRegistry.create()
 }

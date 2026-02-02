@@ -12,9 +12,11 @@ private val logger = KotlinLogging.logger {}
 class Cirrina {
 
   fun run() {
-    logger.info { "cirrina version ${getBuildVersion()}" }
 
     val component = DaggerCirrinaComponent.create()
+
+    logger.info { "cirrina version ${getBuildVersion()}" }
+    logger.info { component.identifier() }
 
     runCatching {
         component.eventHandler().use { _ ->

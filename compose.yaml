@@ -30,3 +30,7 @@ services:
       - "http://0.0.0.0:2379"
       - "--advertise-client-urls"
       - "http://0.0.0.0:2379"
+  zipkin:
+    image: "openzipkin/zipkin:latest"
+    ports:
+      - "9411:9411"
