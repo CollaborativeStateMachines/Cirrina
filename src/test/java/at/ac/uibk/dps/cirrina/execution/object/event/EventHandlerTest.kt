@@ -1,0 +1,90 @@
+package at.ac.uibk.dps.cirrina.execution.`object`.event
+
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.use
+import org.hibernate.validator.internal.util.Contracts.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
+
+abstract class EventHandlerTest {
+
+  protected abstract fun createEventHandler(): EventHandler
+
+  @ParameterizedTest
+  @EnumSource(EventChannel::class)
+  fun testEventHandlerSendReceive(channel: EventChannel) {
+    createEventHandler().use { eventHandler ->
+      val count = 5
+
+      val context = InMemoryContext()
+      val extent = Extent.of(context)
+
+      val receivedEvents = CopyOnWriteArrayList<Event>()
+      var latch = CountDownLatch(count)
+
+      val handlerListener =
+        object : EventListener {
+          override fun onReceiveEvent(event: Event) {
+            receivedEvents.add(event)
+            latch.countDown()
+          }
+        }
+
+      val eventDescription = EventDescription("e1", channel, mapOf("varName" to "5"))
+      val event = EventBuilder.from(eventDescription).build().getOrThrow()
+
+      eventHandler.listener = handlerListener
+
+      eventHandler.subscribe(GLOBAL_SOURCE)
+      eventHandler.subscribe("source")
+
+      // Send <count> events
+      repeat(count) {
+        eventHandler.send(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+      }
+
+      // External and global events should be received
+      if (channel == EventChannel.EXTERNAL || channel == EventChannel.GLOBAL) {
+        val success = latch.await(5, TimeUnit.SECONDS)
+        assertTrue(success, "timed out waiting for external or global events")
+        assertEquals(count, receivedEvents.size)
+      } else {
+        Thread.sleep(500)
+        assertEquals(0, receivedEvents.size)
+      }
+
+      // Clear and unsubscribe
+      receivedEvents.clear()
+      eventHandler.unsubscribe("source")
+
+      latch = CountDownLatch(count)
+
+      // Send <count> events
+      repeat(count) {
+        eventHandler.send(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+      }
+
+      // Only global events should be received
+      if (channel == EventChannel.GLOBAL) {
+        val success = latch.await(5, TimeUnit.SECONDS)
+        assertTrue(success, "timed out waiting for global events")
+        assertEquals(count, receivedEvents.size)
+      } else {
+        Thread.sleep(500)
+        assertEquals(
+          0,
+          receivedEvents.size,
+          "events received for internal or external channel after unsubscribe",
+        )
+      }
+    }
+  }
+}

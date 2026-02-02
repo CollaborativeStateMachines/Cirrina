@@ -9,7 +9,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
-import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.ZenohEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
@@ -43,13 +43,8 @@ class CirrinaModule {
   @Singleton
   fun provideEventHandler(): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
-      EventProvider.NATS ->
-        NatsEventHandler(EnvironmentVariables.natsEventUrl.get()).apply {
-          logger.info { "awaiting nats connection..." }
-
-          // Wait for the connection to be established
-          awaitReady(Cirrina.NATS_CONNECTION_TIMEOUT)
-
+      EventProvider.ZENOH ->
+        ZenohEventHandler(listOf()).apply {
           // Subscribe to global and peripheral events
           subscribe(GLOBAL_SOURCE)
           subscribe(PERIPHERAL_SOURCE)

@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
 enum class EventProvider {
-  NATS
+  ZENOH
 }
 
 enum class PersistentContextProvider {
@@ -24,8 +24,6 @@ data class EnvironmentVariable<T>(
 }
 
 object EnvironmentVariables {
-  val natsEventUrl = EnvironmentVariable("NATS_EVENT_URL", "nats://localhost:4222/")
-
   val etcdContextUrl = EnvironmentVariable("ETCD_CONTEXT_URL", "http://localhost:2379")
 
   val influxMetricUrl = EnvironmentVariable("INFLUX_METRIC_URL", "http://localhost:8086")
@@ -43,7 +41,7 @@ object EnvironmentVariables {
   val eventProvider =
     EnvironmentVariable(
       "EVENT_PROVIDER",
-      EventProvider.NATS,
+      EventProvider.ZENOH,
       { value ->
         try {
           EventProvider.valueOf(value.uppercase())

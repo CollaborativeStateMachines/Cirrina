@@ -28,8 +28,6 @@ class Cirrina {
   }
 
   companion object {
-    const val NATS_CONNECTION_TIMEOUT = 1000L
-
     const val ETCD_CONNECTION_TIMEOUT = 1000L
 
     init {

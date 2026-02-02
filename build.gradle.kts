@@ -70,8 +70,6 @@ dependencies {
   implementation("io.micrometer:micrometer-core:1.17.0-M1")
   implementation("io.micrometer:micrometer-registry-influx:1.17.0-M1")
 
-  implementation("io.nats:jnats:2.17.3")
-
   implementation(platform("io.opentelemetry:opentelemetry-bom:1.38.0"))
   implementation("io.opentelemetry:opentelemetry-api")
   implementation("io.opentelemetry:opentelemetry-sdk")
@@ -86,6 +84,8 @@ dependencies {
   implementation("org.apache.commons:commons-lang3:3.19.0")
 
   implementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
+
+  implementation("org.eclipse.zenoh:zenoh-kotlin:1.7.2")
 
   implementation("org.glassfish.expressly:expressly:5.0.0")
 
