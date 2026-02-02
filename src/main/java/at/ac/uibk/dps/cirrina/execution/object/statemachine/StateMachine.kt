@@ -1,8 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.statemachine
 
 import at.ac.uibk.dps.cirrina.cirrina.Runtime
-import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
-import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.command.*
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
@@ -13,6 +11,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.state.State
 import at.ac.uibk.dps.cirrina.execution.`object`.transition.Transition
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
+import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -31,7 +31,7 @@ class StateMachine
 constructor(
   @Assisted val instanceName: String,
   @Assisted private val runtime: Runtime,
-  @Assisted private val stateMachineClass: StateMachineClass,
+  @Assisted private val stateMachineSpec: StateMachineSpec,
   @Assisted private val parentStateMachine: StateMachine? = null,
   @Assisted private val eventSubscriptions: List<String>? = null,
   @Assisted private val data: List<ContextVariable>? = null,
@@ -45,7 +45,7 @@ constructor(
     fun create(
       instanceName: String,
       runtime: Runtime,
-      stateMachineClass: StateMachineClass,
+      stateMachineSpec: StateMachineSpec,
       parentStateMachine: StateMachine?,
       eventSubscriptions: List<String>?,
       data: List<ContextVariable>?,
@@ -62,8 +62,7 @@ constructor(
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
-  private val stateInstances =
-    stateMachineClass.vertexSet().associate { it.name to State(it, this) }
+  private val stateInstances = stateMachineSpec.vertexSet().associate { it.name to State(it, this) }
 
   private val eventQueue = ConcurrentLinkedQueue<Event>()
   private val isProcessing = AtomicBoolean(false)
@@ -88,7 +87,7 @@ constructor(
   /** Initializes the state machine at its initial state and triggers the first transition. */
   fun start() {
     val initial =
-      stateInstances[stateMachineClass.initialState.name] ?: error("initial state not found")
+      stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
 
     doEnter(initial, null)?.let { step(it, null) }
     processQueue()
@@ -170,7 +169,7 @@ constructor(
   private fun handleEvent(event: Event): Transition? {
     val current = activeState ?: return null
     val candidates =
-      stateMachineClass.getOnTransitionsFromStateByEventName(current.stateClass, event.topic)
+      stateMachineSpec.getOnTransitionsFromStateByEventName(current.state, event.topic)
     if (candidates.isEmpty()) return null
 
     val evalExtent =
@@ -186,7 +185,7 @@ constructor(
   }
 
   private fun doEnter(state: State, event: Event?): Transition? {
-    logger.debug { "state machine '$instanceName' entering state '${state.stateClass.name}'" }
+    logger.debug { "state machine '$instanceName' entering state '${state.state.name}'" }
 
     activeState = state
 
@@ -199,12 +198,12 @@ constructor(
     checkTermination()
 
     return if (!isTerminated()) {
-      trySelect(stateMachineClass.getAlwaysTransitionsFromState(state.stateClass), extent)
+      trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.state), extent)
     } else null
   }
 
   private fun doExit(state: State, event: Event?) {
-    logger.debug { "state machine '$instanceName' exiting state '${state.stateClass.name}'" }
+    logger.debug { "state machine '$instanceName' exiting state '${state.state.name}'" }
 
     timeoutActionManager.stopAll()
     execute(state.getExitActionCommands(createFactory(state, event)))
@@ -216,7 +215,7 @@ constructor(
     }
   }
 
-  private fun trySelect(transitions: List<TransitionClass>, evalExtent: Extent): Transition? {
+  private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
     val selected =
       transitions.mapNotNull { tc ->
         val result = tc.evaluate(evalExtent)
@@ -256,7 +255,7 @@ constructor(
   private fun stopTimeout(name: String) = timeoutActionManager.stop(name)
 
   private fun isTerminated(): Boolean =
-    parentStateMachine?.isTerminated() == true || activeState?.stateClass?.terminal == true
+    parentStateMachine?.isTerminated() == true || activeState?.state?.terminal == true
 
   private fun checkTermination() {
     if (isTerminated()) {
@@ -269,7 +268,7 @@ constructor(
   }
 
   private fun buildTransientContext(): Context =
-    stateMachineClass.transientContextDescription?.let {
+    stateMachineSpec.transientContextDescription?.let {
       ContextBuilder.from(it).inMemoryContext().build().getOrThrow()
     } ?: ContextBuilder.empty().inMemoryContext().build().getOrThrow()
 
@@ -289,16 +288,13 @@ constructor(
   override fun toString() = "StateMachine(name='$instanceName')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    /** Sends an event to the state machine's event handler with the instance name as a source. */
     fun sendEvent(event: Event) = eventHandler.send(event.withSource(instanceName))
 
-    /** Bubbles event up to the root parent before tunneling down. */
     fun propagateToParent(event: Event) {
       parentStateMachine?.stateMachineEventHandler?.propagateToParent(event)
         ?: onReceiveEvent(event)
     }
 
-    /** Distributes internal events to all registered nested machines. */
     fun propagateToNested(event: Event) {
       nestedStateMachineInstanceNames.forEach { name ->
         runtime.findStateMachineInstance(name)?.onReceiveEvent(event)

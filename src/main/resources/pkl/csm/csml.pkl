@@ -19,11 +19,11 @@ collaborativeStateMachine: CollaborativeStateMachineDescription
 /// State machine instances from the collaborative state machine declaration to instantiate.
 instances: Mapping<InstanceName, StateMachineName>
 
-instanceData: Mapping<InstanceName, Context>
-
 /// Subscriptions to events raised by state machine instances. The key is the name of the instance
 /// subscribed to the events raised by the instances in the value listing.
 instanceSubscriptions: Mapping<InstanceName, Listing<Subscription>>
+
+instanceData: Mapping<InstanceName, Context>
 
 /// The name of a state machine.
 typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))

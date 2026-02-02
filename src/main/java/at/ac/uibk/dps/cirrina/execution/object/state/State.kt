@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.state
 
-import at.ac.uibk.dps.cirrina.classes.state.StateClass
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
 import at.ac.uibk.dps.cirrina.execution.command.Scope
@@ -9,6 +8,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
+import at.ac.uibk.dps.cirrina.spec.State
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jgrapht.Graph
 import org.jgrapht.traverse.TopologicalOrderIterator
@@ -19,16 +19,16 @@ import org.jgrapht.traverse.TopologicalOrderIterator
  * This class manages the static context associated with a state and provides methods to retrieve
  * action commands for different phases of the state's lifecycle (entry, while, exit).
  *
- * @property stateClass the definition of the state containing action graphs and descriptions.
+ * @property state the definition of the state containing action graphs and descriptions.
  * @property parentStateMachine the parent state machine providing the base scope and identifier.
  */
-class State(val stateClass: StateClass, private val parentStateMachine: StateMachine) : Scope {
+class State(val state: State, private val parentStateMachine: StateMachine) : Scope {
 
-  private val entryActions: List<Action> = stateClass.entryActionGraph.asTopologicalList()
-  private val whileActions: List<Action> = stateClass.whileActionGraph.asTopologicalList()
-  private val exitActions: List<Action> = stateClass.exitActionGraph.asTopologicalList()
+  private val entryActions: List<Action> = state.entryActions.asTopologicalList()
+  private val whileActions: List<Action> = state.whileActions.asTopologicalList()
+  private val exitActions: List<Action> = state.exitActions.asTopologicalList()
   private val timeoutActions: List<TimeoutAction> =
-    stateClass.afterActionGraph.asTopologicalList().filterIsInstance<TimeoutAction>()
+    state.afterActions.asTopologicalList().filterIsInstance<TimeoutAction>()
 
   /**
    * The current extent of the state, created by extending the parent's extent with the state's
@@ -74,10 +74,10 @@ class State(val stateClass: StateClass, private val parentStateMachine: StateMac
     TopologicalOrderIterator(this).asSequence().toList()
 
   private fun buildStaticContext() =
-    (stateClass.staticContextDescription?.let { ContextBuilder.from(it) } ?: ContextBuilder.empty())
+    (state.staticContextDescription?.let { ContextBuilder.from(it) } ?: ContextBuilder.empty())
       .inMemoryContext()
       .build()
       .getOrThrow()
 
-  override fun toString() = ToStringBuilder(this).append("name", stateClass.name).toString()
+  override fun toString() = ToStringBuilder(this).append("name", state.name).toString()
 }
