@@ -17,7 +17,7 @@ interface CirrinaComponent {
 
   fun eventHandler(): EventHandler
 
-  fun persistentContext(): Context
+  fun persistentContext(): Context?
 
   fun meterRegistry(): MeterRegistry
 

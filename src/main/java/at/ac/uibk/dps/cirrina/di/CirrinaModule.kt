@@ -76,15 +76,18 @@ class CirrinaModule {
 
   @Provides
   @Singleton
-  fun providePersistentContext(): Context =
+  fun providePersistentContext(): Context? =
     when (EnvironmentVariables.contextProvider.get()) {
-      PersistentContextProvider.ETCD ->
-        EtcdContext(listOf(EnvironmentVariables.etcdContextUrl.get())).apply {
+      PersistentContextProvider.ETCD -> {
+        val url = EnvironmentVariables.etcdContextUrl.get() ?: return null
+
+        EtcdContext(listOf(url)).apply {
           logger.info { "awaiting etcd connection..." }
 
           // Wait for the connection to be established
           awaitReady(Cirrina.ETCD_CONNECTION_TIMEOUT)
         }
+      }
     }
 
   @Provides
@@ -92,15 +95,17 @@ class CirrinaModule {
   fun provideMeterRegistry(): MeterRegistry {
     val compositeRegistry = CompositeMeterRegistry()
 
-    compositeRegistry.add(createInfluxRegistry(EnvironmentVariables.influxMetricUrl.get()))
+    EnvironmentVariables.influxMetricUrl.get()?.let { url ->
+      compositeRegistry.add(createInfluxRegistry(url))
+    }
 
-    ClassLoaderMetrics().bindTo(compositeRegistry)
-    JvmMemoryMetrics().bindTo(compositeRegistry)
-    JvmGcMetrics().bindTo(compositeRegistry)
-    JvmThreadMetrics().bindTo(compositeRegistry)
-    ProcessorMetrics().bindTo(compositeRegistry)
-
-    return compositeRegistry
+    return compositeRegistry.apply {
+      ClassLoaderMetrics().bindTo(this)
+      JvmMemoryMetrics().bindTo(this)
+      JvmGcMetrics().bindTo(this)
+      JvmThreadMetrics().bindTo(this)
+      ProcessorMetrics().bindTo(this)
+    }
   }
 
   @Provides
@@ -111,8 +116,9 @@ class CirrinaModule {
   ): ObservationRegistry {
     val observationRegistry = ObservationRegistry.create()
 
-    val zipkinExporter =
-      ZipkinSpanExporter.builder().setEndpoint(EnvironmentVariables.zipkinTraceUrl.get()).build()
+    val traceUrl = EnvironmentVariables.zipkinTraceUrl.get() ?: return observationRegistry
+
+    val zipkinExporter = ZipkinSpanExporter.builder().setEndpoint(traceUrl).build()
 
     val sdkTracerProvider =
       SdkTracerProvider.builder()
@@ -133,26 +139,20 @@ class CirrinaModule {
         .build()
 
     val otelTracer = openTelemetry.getTracer("io.micrometer.tracing")
-
     val otelCurrentTraceContext = OtelCurrentTraceContext()
-
-    val eventPublisher = OtelTracer.EventPublisher {}
-
     val baggageManager = OtelBaggageManager(otelCurrentTraceContext, emptyList(), emptyList())
 
-    val otelTracerBridge =
-      OtelTracer(otelTracer, otelCurrentTraceContext, eventPublisher, baggageManager)
+    val otelTracerBridge = OtelTracer(otelTracer, otelCurrentTraceContext, {}, baggageManager)
 
-    observationRegistry
-      .observationConfig()
-      .observationHandler(
-        ObservationHandler.FirstMatchingCompositeObservationHandler(
-          DefaultTracingObservationHandler(otelTracerBridge),
-          DefaultMeterObservationHandler(meterRegistry),
+    return observationRegistry.apply {
+      observationConfig()
+        .observationHandler(
+          ObservationHandler.FirstMatchingCompositeObservationHandler(
+            DefaultTracingObservationHandler(otelTracerBridge),
+            DefaultMeterObservationHandler(meterRegistry),
+          )
         )
-      )
-
-    return observationRegistry
+    }
   }
 
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())

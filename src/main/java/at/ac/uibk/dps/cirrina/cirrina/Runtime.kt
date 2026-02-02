@@ -33,7 +33,7 @@ class Runtime
 @Inject
 constructor(
   private val eventHandler: EventHandler,
-  private val persistentContext: Context,
+  private val persistentContext: Context?,
   private val stateMachineFactory: StateMachine.Factory,
   meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
@@ -45,7 +45,7 @@ constructor(
 
   val stateMachineInstances: Map<String, StateMachine>
 
-  val extent: Extent = Extent.of(persistentContext)
+  val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
   val phaser: Phaser = Phaser(1)
 
@@ -72,11 +72,13 @@ constructor(
         .getOrThrow()
 
     // Create all persistent variables
-    csmlSpec.collaborativeStateMachineSpec.persistentContextVariables.forEach { variable ->
-      runCatching { persistentContext.create(variable.name, variable.value) }
-        .onFailure {
-          logger.warn { "variable '${variable.name}' already exists or failed to create" }
-        }
+    persistentContext?.let { context ->
+      csmlSpec.collaborativeStateMachineSpec.persistentContextVariables.forEach { variable ->
+        runCatching { context.create(variable.name, variable.value) }
+          .onFailure {
+            logger.warn { "variable '${variable.name}' already exists or failed to create" }
+          }
+      }
     }
 
     // Build the state machine instances
