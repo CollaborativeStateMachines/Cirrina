@@ -38,17 +38,22 @@ abstract class EventHandlerTest {
           }
         }
 
-      val eventDescription = EventDescription("e1", channel, mapOf("varName" to "5"))
-      val event = EventBuilder.from(eventDescription).build().getOrThrow()
-
       eventHandler.listener = handlerListener
 
       eventHandler.subscribe(GLOBAL_SOURCE)
       eventHandler.subscribe("source")
 
       // Send <count> events
-      repeat(count) {
-        eventHandler.send(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+      repeat(count) { i ->
+        eventHandler.send(
+          Event.ensureHasEvaluatedData(
+              EventBuilder.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
+                .build()
+                .getOrThrow(),
+              extent,
+            )
+            .withSource("source")
+        )
       }
 
       // External and global events should be received
@@ -56,6 +61,11 @@ abstract class EventHandlerTest {
         val success = latch.await(5, TimeUnit.SECONDS)
         assertTrue(success, "timed out waiting for external or global events")
         assertEquals(count, receivedEvents.size)
+        receivedEvents.forEachIndexed { index, event ->
+          val variable = event.data.first()
+          assertEquals("varName", variable.name, "event data mismatch at index $index (name)")
+          assertEquals(index, variable.value, "event data mismatch at index $index (value)")
+        }
       } else {
         Thread.sleep(500)
         assertEquals(0, receivedEvents.size)
@@ -68,8 +78,16 @@ abstract class EventHandlerTest {
       latch = CountDownLatch(count)
 
       // Send <count> events
-      repeat(count) {
-        eventHandler.send(Event.ensureHasEvaluatedData(event, extent).withSource("source"))
+      repeat(count) { i ->
+        eventHandler.send(
+          Event.ensureHasEvaluatedData(
+              EventBuilder.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
+                .build()
+                .getOrThrow(),
+              extent,
+            )
+            .withSource("source")
+        )
       }
 
       // Only global events should be received
