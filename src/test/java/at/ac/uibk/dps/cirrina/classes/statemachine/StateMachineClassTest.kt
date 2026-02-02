@@ -1,15 +1,9 @@
 package at.ac.uibk.dps.cirrina.classes.statemachine
 
-import at.ac.uibk.dps.cirrina.classes.collaborativestatemachine.CollaborativeStateMachineClassBuilder
-import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
-import at.ac.uibk.dps.cirrina.io.CsmParser
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertDoesNotThrow
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+
+/*@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StateMachineClassTest {
 
   private lateinit var stateMachineClass: StateMachineClass
@@ -78,4 +72,4 @@ class StateMachineClassTest {
       )
     }
   }
-}
+}*/

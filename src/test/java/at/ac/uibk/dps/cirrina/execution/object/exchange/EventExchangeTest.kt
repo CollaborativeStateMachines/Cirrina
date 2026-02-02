@@ -4,7 +4,6 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 
 class EventExchangeTest {
@@ -12,20 +11,36 @@ class EventExchangeTest {
   @Test
   fun testToFromBytes() {
     val originalEvent =
-      Event("name", EventChannel.EXTERNAL, listOf(ContextVariable("varName", "some string")))
+      Event(
+        "topic",
+        EventChannel.EXTERNAL,
+        listOf(ContextVariable("varName", "some string")),
+        "target",
+        "source",
+        "id",
+        1,
+      )
+
+    // Verify the event properties
+    assertEquals(originalEvent.topic, "topic")
+    assertEquals(originalEvent.channel, EventChannel.EXTERNAL)
+    assertEquals(originalEvent.target, "target")
+    assertEquals(originalEvent.data.size, 1)
+    assertEquals(originalEvent.data[0].name, "varName")
+    assertEquals(originalEvent.data[0].value, "some string")
+    assertEquals(originalEvent.source, "source")
+    assertEquals(originalEvent.id, "id")
+    assertEquals(originalEvent.createdTime, 1)
 
     // Perform round-trip and verify the event properties
     originalEvent.roundTrip().let { receivedEvent ->
+      assertEquals(originalEvent.topic, receivedEvent.topic)
+      assertEquals(originalEvent.channel, receivedEvent.channel)
+      assertEquals(originalEvent.data, receivedEvent.data)
+      assertEquals(originalEvent.target, receivedEvent.target)
+      assertEquals(originalEvent.source, receivedEvent.source)
       assertEquals(originalEvent.id, receivedEvent.id)
-      assertEquals("name", receivedEvent.name)
-      assertEquals(EventChannel.EXTERNAL, receivedEvent.channel)
-
-      // Verify nested data
-      receivedEvent.data.first().run {
-        assertEquals("varName", name)
-        assertEquals("some string", value)
-        assertFalse(isLazy)
-      }
+      assertEquals(originalEvent.createdTime, receivedEvent.createdTime)
     }
   }
 

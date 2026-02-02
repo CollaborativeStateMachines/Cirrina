@@ -1,0 +1,25 @@
+amends "modulepath:/pkl/csm/csml.pkl"
+import "machines.pkl"
+
+version = "4.0.0"
+collaborativeStateMachine {
+  stateMachines {
+    ["oneMachine"] = machines.one
+    ["twoMachine"] = machines.two
+    ["threeMachine"] = machines.three
+    ["fourMachine"] = machines.four
+  }
+  persistent { ["b"] = "false"; ["c"] = "false" }
+}
+instances {
+  ["one"] = "oneMachine"
+  ["two"] = "twoMachine"
+  ["three"] = "threeMachine"
+  ["four"] = "fourMachine"
+}
+instanceData {
+  ["one"] { ["target"] = "'two'" }
+}
+instanceSubscriptions {
+  ["one"] { "two" }
+}

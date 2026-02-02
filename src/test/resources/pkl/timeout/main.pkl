@@ -2,5 +2,13 @@ amends "modulepath:/pkl/csm/csml.pkl"
 import "timeoutStateMachine.pkl"
 
 version = "4.0.0"
-stateMachines { ["timeoutStateMachine"] = timeoutStateMachine.sm }
-persistent { ["v"] = "0" }
+collaborativeStateMachine {
+  stateMachines {
+    ["timeoutStateMachine"] = timeoutStateMachine.sm
+  }
+  persistent { ["v"] = "0" }
+}
+instances {
+  ["timeout"] = "timeoutStateMachine"
+}
+instanceSubscriptions {}

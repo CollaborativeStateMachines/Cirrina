@@ -1,19 +1,18 @@
 package at.ac.uibk.dps.cirrina.runtime
 
+import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.*
@@ -22,26 +21,12 @@ import org.junit.jupiter.api.assertThrows
 
 class CompleteTest {
 
-  private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
-
-    override fun close() {}
-
-    override fun subscribe(subject: String) {}
-
-    override fun unsubscribe(subject: String) {}
-
-    override fun subscribe(source: String, subject: String) {}
-
-    override fun unsubscribe(source: String, subject: String) {}
-  }
-
   @Test
   fun testCompleteExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = SimpleEventHandler()
-        val context = mockPersistentContext()
+        val eventHandler = InMemoryEventHandler()
+        val context = InMemoryContext()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
           listOf(ContextVariable("v", (v.value as Int) + 1))
@@ -67,15 +52,7 @@ class CompleteTest {
 
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(
-                TestModule(
-                  eventHandler,
-                  context,
-                  selector,
-                  DefaultDescriptions.complete,
-                  listOf("completeStateMachine"),
-                )
-              )
+              .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.complete))
               .build()
               .runtime()
 
@@ -135,11 +112,12 @@ class CompleteTest {
 
     val event =
       EventProtos.Event.newBuilder()
-        .setCreatedTime(1)
-        .setName("testEvent")
-        .setId("someId")
+        .setTopic("testEvent")
         .setChannel(EventProtos.Event.Channel.PERIPHERAL)
         .addData(contextVariable)
+        .setSource("source")
+        .setId("someId")
+        .setCreatedTime(1)
         .build()
 
     assertThrows<NullPointerException> {
@@ -147,10 +125,12 @@ class CompleteTest {
     }
 
     assertNotNull(event)
-    assertEquals("testEvent", event.name)
+    assertEquals("testEvent", event.topic)
     assertEquals(EventProtos.Event.Channel.PERIPHERAL, event.channel)
-    assertEquals(event, EventProtos.Event.parseFrom(event.toByteArray()))
     assertEquals(123, event.getData(0).value.integer)
+    assertEquals("source", event.source)
+    assertEquals("someId", event.id)
+    assertEquals(event, EventProtos.Event.parseFrom(event.toByteArray()))
 
     val valueCollection =
       ContextVariableProtos.ValueCollection.newBuilder()

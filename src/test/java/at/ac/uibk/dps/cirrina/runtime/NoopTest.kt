@@ -1,13 +1,12 @@
 package at.ac.uibk.dps.cirrina.runtime
 
+import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockPersistentContext
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Test
@@ -16,26 +15,12 @@ import org.junit.jupiter.api.assertTimeout
 
 class NoopTest {
 
-  private class SimpleEventHandler : EventHandler() {
-    override fun sendEvent(event: Event, source: String?) = propagateEvent(event)
-
-    override fun close() {}
-
-    override fun subscribe(subject: String) {}
-
-    override fun unsubscribe(subject: String) {}
-
-    override fun subscribe(source: String, subject: String) {}
-
-    override fun unsubscribe(source: String, subject: String) {}
-  }
-
   @Test
   fun testNoopExecute() {
     assertTimeout(Duration.ofSeconds(5)) {
       assertDoesNotThrow {
-        val eventHandler = SimpleEventHandler()
-        val context = mockPersistentContext()
+        val eventHandler = InMemoryEventHandler()
+        val context = InMemoryContext()
 
         val selector =
           RandomServiceImplementationSelector(
@@ -44,15 +29,7 @@ class NoopTest {
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(
-              TestModule(
-                eventHandler,
-                context,
-                selector,
-                DefaultDescriptions.noop,
-                listOf("noopStateMachine"),
-              )
-            )
+            .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.noop))
             .build()
             .runtime()
 

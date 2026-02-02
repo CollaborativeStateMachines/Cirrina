@@ -35,7 +35,7 @@ class JexlExpression(source: String) : Expression(source) {
   override fun execute(extent: Extent): Any? =
     try {
       jexlScript.execute(ExtentJexlContext(extent))
-    } catch (e: Exception) {
+    } catch (_: Exception) {
       error("failed to execute expression '$source'")
     }
 

@@ -9,5 +9,6 @@ object DefaultDescriptions {
   val timeout: URI by lazy { resourceUri("pkl/timeout/main.pkl") }
   val pingPong: URI by lazy { resourceUri("pkl/pingPong/main.pkl") }
   val noop: URI by lazy { resourceUri("pkl/noop/main.pkl") }
-  val empty: URI by lazy { resourceUri("pkl/noop/empty.pkl") }
+  val empty: URI by lazy { resourceUri("pkl/empty/main.pkl") }
+  val events: URI by lazy { resourceUri("pkl/events/main.pkl") }
 }

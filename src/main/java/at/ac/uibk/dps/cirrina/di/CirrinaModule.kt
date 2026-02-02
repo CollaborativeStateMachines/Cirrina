@@ -7,6 +7,8 @@ import at.ac.uibk.dps.cirrina.cirrina.PersistentContextProvider
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.NatsEventHandler
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
@@ -34,8 +36,6 @@ private val logger = KotlinLogging.logger {}
 
 @Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class CsmMain
 
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class CsmStateMachineNames
-
 @Module
 class CirrinaModule {
 
@@ -50,9 +50,9 @@ class CirrinaModule {
           // Wait for the connection to be established
           awaitReady(Cirrina.NATS_CONNECTION_TIMEOUT)
 
-          // Subscribe to all events
-          subscribe(NatsEventHandler.GLOBAL_SOURCE, "*")
-          subscribe(NatsEventHandler.PERIPHERAL_SOURCE, "*")
+          // Subscribe to global and peripheral events
+          subscribe(GLOBAL_SOURCE)
+          subscribe(PERIPHERAL_SOURCE)
         }
     }
 
@@ -86,10 +86,6 @@ class CirrinaModule {
   }
 
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
-
-  @Provides
-  @CsmStateMachineNames
-  fun provideCsmStateMachineNames(): List<String> = EnvironmentVariables.csmStateMachines.get()
 
   @Provides
   @Singleton

@@ -16,9 +16,11 @@ message Event {
     PERIPHERAL = 3;
   }
 
-  int64 createdTime = 1;
-  string id = 2;
-  string name = 3;
-  Channel channel = 4;
-  repeated ContextVariable data = 5;
+  string topic = 1;
+  Channel channel = 2;
+  repeated ContextVariable data = 3;
+  string target = 4;
+  string source = 5;
+  string id = 6;
+  int64 createdTime = 7;
 }

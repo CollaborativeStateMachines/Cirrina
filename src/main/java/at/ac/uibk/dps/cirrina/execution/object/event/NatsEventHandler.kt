@@ -15,11 +15,6 @@ private val logger = KotlinLogging.logger {}
  */
 class NatsEventHandler(natsUrl: String) : EventHandler() {
 
-  companion object {
-    const val GLOBAL_SOURCE = "global"
-    const val PERIPHERAL_SOURCE = "peripheral"
-  }
-
   // NATS connection can be null if not connected.
   private var connection: Connection? = null
 
@@ -89,7 +84,7 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   private fun handle(message: Message) {
     runCatching {
         val event = EventExchange.fromBytes(message.data).getOrThrow().event
-        propagateEvent(event)
+        propagate(event)
       }
       .onFailure { e -> logger.error(e) { "unexpected error while handling a message" } }
   }
@@ -101,19 +96,19 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
    * ignored.
    *
    * @param event the Event to send
-   * @param source the source of the event, used if channel is EXTERNAL
    */
-  override fun sendEvent(event: Event, source: String?) {
+  override fun send(event: Event) {
     val subject =
       when (event.channel) {
-        Csml.EventChannel.EXTERNAL ->
-          source?.let { "$it.${event.name}" }
-            ?: run {
-              logger.warn { "event source is null, cannot send event '${event.name}'" }
-              return
-            }
+        Csml.EventChannel.EXTERNAL -> {
+          if (event.source == null) {
+            logger.warn { "event source is null, cannot send event '${event.topic}'" }
+            return
+          }
+          "${event.source}.${event.topic}"
+        }
 
-        Csml.EventChannel.GLOBAL -> "$GLOBAL_SOURCE.${event.name}"
+        Csml.EventChannel.GLOBAL -> "$GLOBAL_SOURCE.${event.topic}"
 
         else -> {
           logger.warn { "unsupported channel '${event.channel}', event not sent" }
@@ -130,12 +125,12 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   }
 
   /**
-   * Subscribes to all sources for a given event name.
+   * Subscribes to all events for a given event source.
    *
-   * @param subject the event name to subscribe to
+   * @param source the event source to subscribe to
    */
-  override fun subscribe(subject: String) {
-    val subject = "*.$subject"
+  override fun subscribe(source: String) {
+    val subject = "$source.*"
     synchronized(lock) {
       subscriptions.add(subject)
       runCatching {
@@ -147,45 +142,12 @@ class NatsEventHandler(natsUrl: String) : EventHandler() {
   }
 
   /**
-   * Unsubscribes from all sources for a given event name.
+   * Unsubscribes from all events for a given event source.
    *
-   * @param subject the event name to unsubscribe from
+   * @param source the event source to unsubscribe from
    */
-  override fun unsubscribe(subject: String) {
-    val subject = "*.$subject"
-    synchronized(lock) {
-      subscriptions.remove(subject)
-      runCatching { dispatcher?.unsubscribe(subject) }
-        .onFailure { _ -> logger.warn { "could not unsubscribe from $subject" } }
-    }
-  }
-
-  /**
-   * Subscribes to a specific source and event.
-   *
-   * @param source the source of the event
-   * @param subject the name of the event
-   */
-  override fun subscribe(source: String, subject: String) {
-    val subject = "$source.$subject"
-    synchronized(lock) {
-      subscriptions.add(subject)
-      runCatching {
-          dispatcher?.subscribe(subject)
-            ?: logger.info { "dispatcher unavailable; queued subscription: $subject" }
-        }
-        .onFailure { _ -> logger.warn { "could not subscribe to $subject" } }
-    }
-  }
-
-  /**
-   * Unsubscribes from a specific source and event.
-   *
-   * @param source the source of the event
-   * @param subject the name of the event
-   */
-  override fun unsubscribe(source: String, subject: String) {
-    val subject = "$source.$subject"
+  override fun unsubscribe(source: String) {
+    val subject = "$source.*"
     synchronized(lock) {
       subscriptions.remove(subject)
       runCatching { dispatcher?.unsubscribe(subject) }

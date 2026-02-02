@@ -2,38 +2,49 @@ package at.ac.uibk.dps.cirrina.classes.collaborativestatemachine
 
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClass
 import at.ac.uibk.dps.cirrina.classes.statemachine.StateMachineClassBuilder
-import at.ac.uibk.dps.cirrina.csm.Csml
+import at.ac.uibk.dps.cirrina.csm.Csml.CollaborativeStateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 
 /**
- * A builder for constructing [CollaborativeStateMachineClass] instances from [Csml] definitions.
+ * A builder for constructing [CollaborativeStateMachineClass] instances from
+ * [CollaborativeStateMachineDescription] definitions.
  */
-class CollaborativeStateMachineClassBuilder private constructor(private val csml: Csml) {
+class CollaborativeStateMachineClassBuilder
+private constructor(
+  private val collaborativeStateMachineDescription: CollaborativeStateMachineDescription
+) {
 
   companion object {
     /**
-     * Creates a new [CollaborativeStateMachineClassBuilder] from the provided [Csml].
+     * Creates a new [CollaborativeStateMachineClassBuilder] from the provided
+     * [CollaborativeStateMachineDescription].
      *
-     * @param csml the collaborative state machine description.
+     * @param collaborativeStateMachineDescription the collaborative state machine description.
      * @return a new builder instance.
      */
-    fun from(csml: Csml): CollaborativeStateMachineClassBuilder =
-      CollaborativeStateMachineClassBuilder(csml)
+    fun from(
+      collaborativeStateMachineDescription: CollaborativeStateMachineDescription
+    ): CollaborativeStateMachineClassBuilder =
+      CollaborativeStateMachineClassBuilder(collaborativeStateMachineDescription)
   }
 
   /**
    * Builds a [CollaborativeStateMachineClass].
    *
-   * @return a [Result] containing the fully constructed collaborative machine or a failure.
+   * @return a [Result] containing the fully constructed collaborative machine class or a failure.
    */
   fun build(): Result<CollaborativeStateMachineClass> = runCatching {
     CollaborativeStateMachineClass(
-        ContextBuilder.from(csml.persistent).inMemoryContext().build().getOrThrow().getAll()
+        ContextBuilder.from(collaborativeStateMachineDescription.persistent)
+          .inMemoryContext()
+          .build()
+          .getOrThrow()
+          .getAll()
       )
       .apply {
-        csml.stateMachines.forEach { (name, desc) ->
+        collaborativeStateMachineDescription.stateMachines.forEach { (name, desc) ->
           addVertex(StateMachineClassBuilder.from(desc).withName(name).build().getOrThrow())
         }
       }
@@ -57,7 +68,7 @@ class CollaborativeStateMachineClassBuilder private constructor(private val csml
     allStateMachines: Set<StateMachineClass>,
   ): List<StateMachineClass> =
     allStateMachines.filter { target ->
-      target.inputEvents.contains(raisedEvent.name) &&
+      target.inputEvents.contains(raisedEvent.topic) &&
         when (raisedEvent.channel) {
           EventChannel.INTERNAL -> source == target
           EventChannel.GLOBAL,

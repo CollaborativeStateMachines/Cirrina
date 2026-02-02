@@ -29,13 +29,17 @@ internal constructor(
    * @return an empty list of [ActionCommand]s.
    * @throws Exception if the command execution fails due to an internal error.
    */
-  override fun execute(): List<ActionCommand> =
-    Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent)
-      .also { event ->
-        when (event.channel) {
-          EventChannel.INTERNAL -> executionContext.eventListener::onReceiveEvent
-          else -> executionContext.stateMachineEventHandler::sendEvent
-        }.invoke(event)
+  override fun execute(): List<ActionCommand> {
+    val event =
+      Event.ensureHasEvaluatedData(raiseAction.event, executionContext.scope.extent).run {
+        val target = raiseAction.target?.execute(executionContext.scope.extent) as? String
+        if (target != null) withTarget(target) else this
       }
-      .run { emptyList() }
+
+    with(executionContext.stateMachineEventHandler) {
+      if (event.channel == EventChannel.INTERNAL) propagateToParent(event) else sendEvent(event)
+    }
+
+    return emptyList()
+  }
 }

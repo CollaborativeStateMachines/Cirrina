@@ -4,19 +4,20 @@ import java.lang.AutoCloseable
 
 abstract class EventHandler : AutoCloseable {
 
+  companion object {
+    const val GLOBAL_SOURCE = "global"
+    const val PERIPHERAL_SOURCE = "peripheral"
+  }
+
   var listener: EventListener? = null
 
-  abstract fun sendEvent(event: Event, source: String?)
+  abstract fun send(event: Event)
 
-  abstract fun subscribe(subject: String)
+  abstract fun subscribe(source: String)
 
-  abstract fun unsubscribe(subject: String)
+  abstract fun unsubscribe(source: String)
 
-  abstract fun subscribe(source: String, subject: String)
-
-  abstract fun unsubscribe(source: String, subject: String)
-
-  protected open fun propagateEvent(event: Event) {
+  protected open fun propagate(event: Event) {
     listener?.onReceiveEvent(event)
   }
 }

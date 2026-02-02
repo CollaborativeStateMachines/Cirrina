@@ -29,14 +29,14 @@ class EventExchange(val event: Event) {
           ContextVariableExchange.fromProto(contextVariableProto)
         }
 
-      Event(proto.name, channel, data, proto.id, proto.createdTime)
+      Event(proto.topic, channel, data, proto.target, proto.source, proto.id, proto.createdTime)
     }
   }
 
   fun toBytes(): Result<ByteArray> {
     if (event.data.any { it.isLazy }) {
       return Result.failure(
-        IllegalStateException("event '${event.name}' has unevaluated event data")
+        IllegalStateException("event '${event.topic}' has unevaluated event data")
       )
     }
 
@@ -48,17 +48,19 @@ class EventExchange(val event: Event) {
       try {
         EventProtos.Event.Channel.valueOf(event.channel.name)
       } catch (e: IllegalArgumentException) {
-        throw UnsupportedOperationException("event '${event.name}' has an unrecognized channel", e)
+        throw UnsupportedOperationException("event '${event.topic}' has an unrecognized channel", e)
       }
 
     val dataProtos = event.data.map { variable -> ContextVariableExchange(variable).toProto() }
 
     EventProtos.Event.newBuilder()
-      .setCreatedTime(event.createdTime)
-      .setId(event.id)
-      .setName(event.name)
+      .setTopic(event.topic)
       .setChannel(channel)
       .addAllData(dataProtos)
+      .setTarget(event.target)
+      .setSource(event.source)
+      .setId(event.id)
+      .setCreatedTime(event.createdTime)
       .build()
   }
 }

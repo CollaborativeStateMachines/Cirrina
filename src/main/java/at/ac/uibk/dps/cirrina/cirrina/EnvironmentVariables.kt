@@ -49,14 +49,6 @@ object EnvironmentVariables {
   val csmServiceBindingsUri =
     EnvironmentVariable("CSM_SERVICE_BINDINGS_URL", "file:///app/services.pkl")
 
-  /** The state machine names to instantiate. */
-  val csmStateMachines =
-    EnvironmentVariable(
-      "CSM_STATE_MACHINES",
-      emptyList(),
-      { value -> value.split(",").map { it.trim() }.filter { it.isNotEmpty() } },
-    )
-
   /** The event provider to use. */
   val eventProvider =
     EnvironmentVariable(
