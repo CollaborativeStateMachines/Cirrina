@@ -16,7 +16,6 @@ class Cirrina {
 
     val component = DaggerCirrinaComponent.create()
 
-    // Run the runtime
     runCatching {
         component.eventHandler().use { _ ->
           component.persistentContext().use { _ -> component.runtime().run() }
@@ -29,10 +28,8 @@ class Cirrina {
   }
 
   companion object {
-    /** Timeout for the NATS connection. */
     const val NATS_CONNECTION_TIMEOUT = 1000L
 
-    /** Timeout for the ETCD connection. */
     const val ETCD_CONNECTION_TIMEOUT = 1000L
 
     init {

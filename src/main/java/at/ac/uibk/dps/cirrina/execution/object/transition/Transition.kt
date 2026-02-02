@@ -1,9 +1,9 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.transition
 
-import at.ac.uibk.dps.cirrina.classes.transition.TransitionClass
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
+import at.ac.uibk.dps.cirrina.spec.Transition
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jgrapht.traverse.TopologicalOrderIterator
 
@@ -14,27 +14,25 @@ import org.jgrapht.traverse.TopologicalOrderIterator
  * (conditional) transition. It also manages the execution of actions associated with the
  * transition.
  *
- * @property transitionClass the definition of the transition including action graphs and targets.
+ * @property transition the definition of the transition including action graphs and targets.
  * @property isOr indicates whether this transition represents an 'or' logic branch.
  */
-class Transition(private val transitionClass: TransitionClass, val isOr: Boolean) {
+class Transition(private val transition: Transition, val isOr: Boolean) {
 
   private val sortedActions: List<Action> =
-    TopologicalOrderIterator(transitionClass.actionGraph).asSequence().toList()
+    TopologicalOrderIterator(transition.actions).asSequence().toList()
 
   init {
-    require(!isOr || transitionClass.or != null) {
-      "or transition must have a valid 'or' target state"
-    }
+    require(!isOr || transition.or != null) { "or transition must have a valid 'or' target state" }
   }
 
   /** Indicates whether this is an internal transition (no target state change). */
   val isInternal: Boolean
-    get() = transitionClass.to == null
+    get() = transition.to == null
 
   /** The name of the target state this transition leads to, if any. */
   val targetStateName: String?
-    get() = if (isOr) transitionClass.or else transitionClass.to
+    get() = if (isOr) transition.or else transition.to
 
   /**
    * Retrieves the action commands associated with this transition.
