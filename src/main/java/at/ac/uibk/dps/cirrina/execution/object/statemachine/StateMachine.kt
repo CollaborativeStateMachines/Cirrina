@@ -17,6 +17,8 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.observation.Observation
+import io.micrometer.observation.ObservationRegistry
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.Delegates
@@ -36,6 +38,7 @@ constructor(
   @Assisted private val eventSubscriptions: List<String>? = null,
   @Assisted private val data: List<ContextVariable>? = null,
   private val meterRegistry: MeterRegistry,
+  private val observationRegistry: ObservationRegistry,
   private val serviceImplementationSelector: ServiceImplementationSelector,
   eventHandler: EventHandler,
 ) : EventListener, Scope {
@@ -52,7 +55,6 @@ constructor(
     ): StateMachine
   }
 
-  /** Names of state machines nested within this instance. */
   var nestedStateMachineInstanceNames: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
       if (old.isNotEmpty()) error("nestedStateMachineInstanceNames is already set")
@@ -68,8 +70,12 @@ constructor(
   private val isProcessing = AtomicBoolean(false)
   private var activeState: State? = null
 
-  /** Computes the context extent, inheriting from parent or root runtime. */
   override val extent: Extent
+
+  private val instanceObservation =
+    Observation.start("stateMachine.instance", observationRegistry).apply {
+      lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+    }
 
   init {
     val transientContext = buildTransientContext()
@@ -84,19 +90,16 @@ constructor(
     runtime.phaser.register()
   }
 
-  /** Initializes the state machine at its initial state and triggers the first transition. */
   fun start() {
-    val initial =
-      stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
+    instanceObservation.observe {
+      val initial =
+        stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
 
-    doEnter(initial, null)?.let { step(it, null) }
-    processQueue()
+      doEnter(initial, null)?.let { step(it, null) }
+      processQueue()
+    }
   }
 
-  /**
-   * Entry point for received events. Filters valid sources/subscriptions and enqueues them for
-   * sequential processing.
-   */
   override fun onReceiveEvent(event: Event) {
     event
       .takeIf { it.isValid() }
@@ -124,13 +127,19 @@ constructor(
   private fun processEvent(event: Event) {
     if (isTerminated()) return
 
-    // Attempt local state transition
-    handleEvent(event)?.let { transition -> step(transition, event) }
+    Observation.createNotStarted("stateMachine.event", observationRegistry)
+      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+      .lowCardinalityKeyValue("event.topic", event.topic)
+      .parentObservation(instanceObservation)
+      .observe {
+        // Attempt local state transition
+        handleEvent(event)?.let { transition -> step(transition, event) }
 
-    // If the event is internal, tunnel it down to nested instances
-    if (event.channel == EventChannel.INTERNAL) {
-      stateMachineEventHandler.propagateToNested(event)
-    }
+        // If the event is internal, tunnel it down to nested instances
+        if (event.channel == EventChannel.INTERNAL) {
+          stateMachineEventHandler.propagateToNested(event)
+        }
+      }
   }
 
   private fun Event.isValid(): Boolean {
@@ -185,34 +194,57 @@ constructor(
   }
 
   private fun doEnter(state: State, event: Event?): Transition? {
-    logger.debug { "state machine '$instanceName' entering state '${state.state.name}'" }
+    return Observation.createNotStarted("stateMachine.enter", observationRegistry)
+      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+      .lowCardinalityKeyValue("state.name", state.state.name)
+      .lowCardinalityKeyValue("event.topic", event?.topic ?: "none")
+      .observe<Transition?> {
+        // Change the active state
+        activeState = state
 
-    activeState = state
+        val factory = createFactory(state, event)
 
-    val factory = createFactory(state, event)
+        // Execute entry and while actions
+        execute(state.getEntryActionCommands(factory))
+        execute(state.getWhileActionCommands(createFactory(state, event, true)))
 
-    execute(state.getEntryActionCommands(factory))
-    execute(state.getWhileActionCommands(createFactory(state, event, true)))
+        // Start timeout actions
+        state.getTimeoutActionObjects().forEach(::startTimeout)
 
-    state.getTimeoutActionObjects().forEach(::startTimeout)
-    checkTermination()
+        // Check termination
+        checkTermination()
 
-    return if (!isTerminated()) {
-      trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.state), extent)
-    } else null
+        // Proceed if not terminated
+        if (!isTerminated()) {
+          trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.state), extent)
+        } else null
+      }
   }
 
   private fun doExit(state: State, event: Event?) {
-    logger.debug { "state machine '$instanceName' exiting state '${state.state.name}'" }
+    return Observation.createNotStarted("stateMachine.exit", observationRegistry)
+      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+      .lowCardinalityKeyValue("state.name", state.state.name)
+      .lowCardinalityKeyValue("event.topic", event?.topic ?: "none")
+      .observe {
+        // Stop all timeout actions
+        timeoutActionManager.stopAll()
 
-    timeoutActionManager.stopAll()
-    execute(state.getExitActionCommands(createFactory(state, event)))
+        // Execute exit actions
+        execute(state.getExitActionCommands(createFactory(state, event)))
+      }
   }
 
   private fun doTransition(transition: Transition, event: Event?) {
-    if (!transition.isOr) {
-      execute(transition.getActionCommands(createFactory(this, event)))
-    }
+    return Observation.createNotStarted("stateMachine.transition", observationRegistry)
+      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+      .lowCardinalityKeyValue("event.topic", event?.topic ?: "none")
+      .observe {
+        // Execute transition actions, if the transition is an or we skip the transitions
+        if (!transition.isOr) {
+          execute(transition.getActionCommands(createFactory(this, event)))
+        }
+      }
   }
 
   private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
@@ -261,6 +293,7 @@ constructor(
     if (isTerminated()) {
       logger.info { "state machine '$instanceName' terminated" }
 
+      instanceObservation.stop()
       timeoutActionManager.shutdown()
       coroutineScope.cancel()
       runtime.phaser.arriveAndDeregister()

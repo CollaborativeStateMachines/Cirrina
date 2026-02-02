@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.cirrina
 
 enum class EventProvider {
-  NATS
+  ZENOH
 }
 
 enum class PersistentContextProvider {
@@ -13,7 +13,6 @@ data class EnvironmentVariable<T>(
   val default: T,
   val mapper: (String) -> T = { it as T },
 ) {
-  /** Get the value of the environment variable. */
   fun get(): T {
     val value = System.getenv(name)
     return when {
@@ -24,16 +23,16 @@ data class EnvironmentVariable<T>(
 }
 
 object EnvironmentVariables {
-  val natsEventUrl = EnvironmentVariable("NATS_EVENT_URL", "nats://localhost:4222/")
+  val etcdContextUrl = EnvironmentVariable<String?>("ETCD_CONTEXT_URL", null)
 
-  val etcdContextUrl = EnvironmentVariable("ETCD_CONTEXT_URL", "http://localhost:2379")
-
-  val influxMetricUrl = EnvironmentVariable("INFLUX_METRIC_URL", "http://localhost:8086")
+  val influxMetricUrl = EnvironmentVariable<String?>("INFLUX_METRIC_URL", null)
 
   val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "org")
   val influxMetricBucket = EnvironmentVariable("INFLUX_METRIC_BUCKET", "bucket")
   val influxMetricToken = EnvironmentVariable("INFLUX_METRIC_TOKEN", "bzO10KmR8x")
   val influxMetricStep = EnvironmentVariable("INFLUX_METRIC_STEP", 5000L)
+
+  val zipkinTraceUrl = EnvironmentVariable<String?>("ZIPKIN_TRACE_URL", null)
 
   val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
 
@@ -43,7 +42,7 @@ object EnvironmentVariables {
   val eventProvider =
     EnvironmentVariable(
       "EVENT_PROVIDER",
-      EventProvider.NATS,
+      EventProvider.ZENOH,
       { value ->
         try {
           EventProvider.valueOf(value.uppercase())

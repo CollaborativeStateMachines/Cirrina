@@ -12,9 +12,11 @@ private val logger = KotlinLogging.logger {}
 class Cirrina {
 
   fun run() {
-    logger.info { "cirrina version ${getBuildVersion()}" }
 
     val component = DaggerCirrinaComponent.create()
+
+    logger.info { "cirrina version ${getBuildVersion()}" }
+    logger.info { component.identifier() }
 
     runCatching {
         component.eventHandler().use { _ ->
@@ -28,8 +30,6 @@ class Cirrina {
   }
 
   companion object {
-    const val NATS_CONNECTION_TIMEOUT = 1000L
-
     const val ETCD_CONNECTION_TIMEOUT = 1000L
 
     init {
