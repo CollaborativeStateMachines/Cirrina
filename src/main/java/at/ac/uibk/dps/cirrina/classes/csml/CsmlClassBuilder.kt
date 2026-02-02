@@ -35,7 +35,7 @@ class CsmlClassBuilder private constructor(private val csmlDescription: Csml) {
 
     CsmlClass(
       collaborativeStateMachineClass = collaborativeStateMachineClass,
-      instantiate = csmlDescription.instantiate,
+      instantiate = csmlDescription.instances,
       instanceData = instanceData,
       instanceSubscriptions = csmlDescription.instanceSubscriptions,
     )

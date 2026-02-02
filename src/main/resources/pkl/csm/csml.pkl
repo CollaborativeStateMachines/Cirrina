@@ -17,7 +17,7 @@ version: Version
 collaborativeStateMachine: CollaborativeStateMachineDescription
 
 /// State machine instances from the collaborative state machine declaration to instantiate.
-instantiate: Mapping<InstanceName, StateMachineName>
+instances: Mapping<InstanceName, StateMachineName>
 
 instanceData: Mapping<InstanceName, Context>
 

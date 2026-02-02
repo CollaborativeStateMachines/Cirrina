@@ -11,7 +11,7 @@ collaborativeStateMachine {
   }
   persistent { ["b"] = "false"; ["c"] = "false" }
 }
-instantiate {
+instances {
   ["one"] = "oneMachine"
   ["two"] = "twoMachine"
   ["three"] = "threeMachine"

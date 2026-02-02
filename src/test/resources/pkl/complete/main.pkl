@@ -8,7 +8,6 @@ collaborativeStateMachine {
   }
   persistent { ["b"] = "false"; ["v"] = "0"; ["e"] = "false" }
 }
-instantiate {
+instances {
   ["complete"] = "completeStateMachine"
 }
-subscriptions {}

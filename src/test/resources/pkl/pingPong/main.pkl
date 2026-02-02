@@ -11,11 +11,11 @@ collaborativeStateMachine {
   }
   persistent { ["v"] = "0" }
 }
-instantiate {
+instances {
   ["ping"] = "pingStateMachine"
   ["pong"] = "pongStateMachine"
 }
-subscriptions {
+instanceSubscriptions {
   ["ping"] { "pong" }
   ["pong"] { "ping" }
 }

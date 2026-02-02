@@ -8,7 +8,7 @@ collaborativeStateMachine {
   }
   persistent { ["v"] = "0" }
 }
-instantiate {
+instances {
   ["timeout"] = "timeoutStateMachine"
 }
-subscriptions {}
+instanceSubscriptions {}

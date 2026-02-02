@@ -7,6 +7,6 @@ collaborativeStateMachine {
     ["noopStateMachine"] = noopStateMachine.sm
   }
 }
-instantiate {
+instances {
   ["noop"] = "noopStateMachine"
 }
