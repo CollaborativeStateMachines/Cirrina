@@ -33,8 +33,8 @@ class Runtime
 @Inject
 constructor(
   private val eventHandler: EventHandler,
-  private val persistentContext: Context?,
   private val stateMachineFactory: StateMachine.Factory,
+  persistentContext: Context?,
   meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
 ) : EventListener {
@@ -141,9 +141,9 @@ constructor(
     data: List<ContextVariable>?,
   ): List<StateMachine> =
     stateMachineFactory
-      // Create a state machine instance
+      // Create a state machine instance...
       .create(instanceName, this, stateMachineSpec, parentInstance, eventSubscriptions, data)
-      // With the parent instance...
+      // with the parent instance...
       .let { currentInstance ->
         stateMachineSpec.nestedStateMachinesSpecs
           .flatMapIndexed { index, nestedStateMachineClass ->

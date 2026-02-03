@@ -37,15 +37,12 @@ class ZenohEventHandler(endpoints: List<String>) : EventHandler() {
   override fun send(event: Event) {
     val pathString = getZenohPath(event) ?: return
 
-    runCatching {
-        val keyExpr = KeyExpr.tryFrom(pathString).getOrThrow()
-        val bytes = EventExchange(event).toBytes().getOrThrow()
+    val keyExpr = KeyExpr.tryFrom(pathString).getOrThrow()
+    val bytes = EventExchange(event).toBytes()
 
-        val payload = ZBytes.from(bytes)
+    val payload = ZBytes.from(bytes)
 
-        session.put(keyExpr, payload).getOrThrow()
-      }
-      .onFailure { e -> logger.error(e) { "put failed for $pathString" } }
+    session.put(keyExpr, payload)
   }
 
   override fun subscribe(source: String) {
@@ -63,7 +60,7 @@ class ZenohEventHandler(endpoints: List<String>) : EventHandler() {
   private fun handleIncoming(sample: Sample) {
     runCatching {
         val bytes = sample.payload.toBytes()
-        val event = EventExchange.fromBytes(bytes).getOrThrow().event
+        val event = EventExchange.fromBytes(bytes).event
         propagate(event)
       }
       .onFailure { e -> logger.error(e) { "failed to handle sample from ${sample.keyExpr}" } }
