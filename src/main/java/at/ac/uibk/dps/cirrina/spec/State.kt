@@ -3,8 +3,7 @@ package at.ac.uibk.dps.cirrina.spec
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
 import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
-import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionBuilder
-import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionGraphBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
 
 class State
@@ -18,12 +17,12 @@ private constructor(
   whileActions: List<Action>,
   afterActions: List<Action>,
 ) {
-  val entryActions = ActionGraphBuilder.from(entryActions).build()
-  val exitActions = ActionGraphBuilder.from(exitActions).build()
-  val whileActions = ActionGraphBuilder.from(whileActions).build()
-  val afterActions = ActionGraphBuilder.from(afterActions).build()
+  val entryActions = ActionGraph.create(entryActions)
+  val exitActions = ActionGraph.create(exitActions)
+  val whileActions = ActionGraph.create(whileActions)
+  val afterActions = ActionGraph.create(afterActions)
 
-  inline fun <reified T> getActionsOfType(): List<T> =
+  inline fun <reified T : Action> getActionsOfType(): List<T> =
     listOf(entryActions, exitActions, whileActions, afterActions).flatMap {
       it.getActionsOfType<T>()
     }
@@ -43,11 +42,11 @@ private constructor(
     }
 
     private fun resolveActions(descriptions: List<ActionDescription>): List<Action> =
-      descriptions.map { ActionBuilder.from(it).build().getOrThrow() }
+      descriptions.map { Action.create(it).getOrThrow() }
 
     private fun resolveAfterActions(descriptions: Map<String, ActionDescription>): List<Action> =
       descriptions
-        .map { (name, desc) -> ActionBuilder.from(desc).withName(name).build().getOrThrow() }
+        .map { (name, desc) -> Action.create(desc, name).getOrThrow() }
         .also { actions ->
           require(actions.all { it is TimeoutAction }) {
             "all 'after' actions must be timeout actions"

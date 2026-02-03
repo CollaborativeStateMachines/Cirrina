@@ -3,21 +3,21 @@ package at.ac.uibk.dps.cirrina.execution.`object`.action
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.SimpleDirectedGraph
 
-/**
- * Represents a directed graph of [Action] objects where edges define the sequence of execution.
- *
- * The direction of edges indicates that the source action must be processed before the target
- * action.
- */
-class ActionGraph : SimpleDirectedGraph<Action, DefaultEdge> {
+class ActionGraph private constructor() :
+  SimpleDirectedGraph<Action, DefaultEdge>(DefaultEdge::class.java) {
 
-  /** Initializes an empty action graph. */
-  internal constructor() : super(DefaultEdge::class.java)
+  inline fun <reified T : Action> getActionsOfType(): List<T> = vertexSet().filterIsInstance<T>()
 
-  /**
-   * Filters and returns actions of a specific type [T].
-   *
-   * @return a list of actions matching type [T].
-   */
-  inline fun <reified T> getActionsOfType(): List<T> = vertexSet().filterIsInstance<T>()
+  companion object {
+    fun create(actions: List<Action>, baseGraph: ActionGraph = ActionGraph()): ActionGraph =
+      baseGraph.apply {
+        var lastVertex = vertexSet().lastOrNull()
+
+        actions.forEach { action ->
+          addVertex(action)
+          lastVertex?.let { addEdge(it, action) }
+          lastVertex = action
+        }
+      }
+  }
 }
