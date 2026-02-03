@@ -13,7 +13,7 @@ RUN gradle distZip
 RUN unzip build/distributions/cirrina.zip -d /tmp \
     && chmod +x /tmp/cirrina/bin/cirrina
 
-FROM gcr.io/distroless/java21-debian12 AS runtime
+FROM gcr.io/distroless/java25-debian13 AS runtime
 
 COPY --from=build /tmp/cirrina /opt/cirrina
 
