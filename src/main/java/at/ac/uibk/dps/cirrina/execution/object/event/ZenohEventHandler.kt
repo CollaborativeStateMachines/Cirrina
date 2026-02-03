@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.event
 
+import at.ac.uibk.dps.cirrina.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventExchange
 import io.zenoh.Config
@@ -9,28 +10,24 @@ import io.zenoh.bytes.ZBytes
 import io.zenoh.keyexpr.KeyExpr
 import io.zenoh.pubsub.Subscriber
 import io.zenoh.sample.Sample
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-class ZenohEventHandler(endpoints: List<String>) : EventHandler() {
+class ZenohEventHandler() : EventHandler() {
 
   private val session: Session
 
   private val activeSubscriptions = ConcurrentHashMap<String, Subscriber<Unit>>()
 
   init {
-    val endpointsJson = endpoints.joinToString(",") { "\"tcp/$it\"" }
-    val configJson =
-      """
-        {
-            "connect": { "endpoints": [$endpointsJson] },
-        }
-    """
-        .trimIndent()
+    val config =
+      EnvironmentVariables.zenohEventHandlerConfigUri.get()?.let { uri ->
+        Config.fromFile(File(uri)).getOrThrow()
+      } ?: Config.default()
 
-    val config = Config.fromJson(configJson).getOrThrow()
     this.session = Zenoh.open(config).getOrThrow()
   }
 

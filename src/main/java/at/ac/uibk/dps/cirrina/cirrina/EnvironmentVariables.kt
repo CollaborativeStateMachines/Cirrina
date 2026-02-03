@@ -25,6 +25,9 @@ data class EnvironmentVariable<T>(
 object EnvironmentVariables {
   val etcdContextUrl = EnvironmentVariable<String?>("ETCD_CONTEXT_URL", null)
 
+  val zenohEventHandlerConfigUri =
+    EnvironmentVariable<String?>("ZENOH_EVENT_HANDLER_CONFIG_URI", null)
+
   val influxMetricUrl = EnvironmentVariable<String?>("INFLUX_METRIC_URL", null)
 
   val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "org")
