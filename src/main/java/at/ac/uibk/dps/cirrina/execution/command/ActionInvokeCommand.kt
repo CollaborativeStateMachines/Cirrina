@@ -11,17 +11,6 @@ import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-/**
- * A command responsible for invoking an external service as defined by an [InvokeAction] within the
- * provided [executionContext].
- *
- * This command selects an appropriate service implementation, prepares the required input
- * variables, and triggers the service invocation asynchronously.
- *
- * @property invokeAction the definition of the service call and associated events.
- * @property executionContext the context in which the invocation occurs.
- * @property meterRegistry the registry used for collecting metrics.
- */
 class ActionInvokeCommand
 internal constructor(
   private val invokeAction: InvokeAction,
@@ -29,12 +18,6 @@ internal constructor(
   meterRegistry: MeterRegistry,
 ) : ActionCommand(executionContext, meterRegistry) {
 
-  /**
-   * Executes the service invocation logic.
-   *
-   * @return an empty list of [ActionCommand]s.
-   * @throws Exception if the command execution fails due to an internal error.
-   */
   override fun execute(): List<ActionCommand> =
     selectServiceImplementation()
       .let { service -> service to prepareInput(executionContext.scope.extent) }
@@ -56,7 +39,7 @@ internal constructor(
 
   private fun raiseEvents(output: List<ContextVariable>) =
     invokeAction.raises
-      .map { it.withData(output) }
+      .map { it.copy(data = output) }
       .forEach { event ->
         when (event.channel) {
           EventChannel.INTERNAL -> executionContext.stateMachineEventHandler::propagateToParent

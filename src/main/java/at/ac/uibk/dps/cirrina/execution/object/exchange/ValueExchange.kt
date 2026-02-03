@@ -65,7 +65,7 @@ class ValueExchange(val value: Any?) {
         is List<*> -> builder.list = toCollectionProto(value)
         is Map<*, *> -> builder.map = toMapProto(value)
         null -> builder.clear()
-        else -> throw UnsupportedOperationException("value type could not be converted to proto")
+        else -> error("value type could not be converted to proto")
       }
 
       builder.build()

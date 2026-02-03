@@ -5,7 +5,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
 import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.guard.Guard
-import at.ac.uibk.dps.cirrina.execution.`object`.guard.GuardBuilder
 import org.jgrapht.graph.DefaultEdge
 
 class Transition
@@ -33,7 +32,7 @@ private constructor(
         Transition(
           event,
           description.to,
-          description.iif?.let { GuardBuilder.from(it).build().getOrThrow() },
+          description.iif?.let { Guard.from(it).getOrThrow() },
           description.`do`.map { Action.create(it).getOrThrow() },
           description.or,
         )

@@ -70,7 +70,6 @@ dependencies {
   implementation("jakarta.annotation:jakarta.annotation-api:3.0.0")
 
   implementation("org.apache.commons:commons-jexl3:3.3")
-  implementation("org.apache.commons:commons-lang3:3.19.0")
 
   implementation("org.eclipse.zenoh:zenoh-kotlin:1.7.2")
 

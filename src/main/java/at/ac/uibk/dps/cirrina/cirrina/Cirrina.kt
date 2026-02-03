@@ -4,8 +4,6 @@ import at.ac.uibk.dps.cirrina.di.DaggerCirrinaComponent
 import at.ac.uibk.dps.cirrina.utils.getBuildVersion
 import java.util.logging.LogManager
 import mu.KotlinLogging
-import org.apache.commons.lang3.builder.ToStringBuilder
-import org.apache.commons.lang3.builder.ToStringStyle.SHORT_PREFIX_STYLE
 
 private val logger = KotlinLogging.logger {}
 
@@ -33,11 +31,8 @@ class Cirrina {
     const val ETCD_CONNECTION_TIMEOUT = 1000L
 
     init {
-      configureStringBuilder()
       configureLogging()
     }
-
-    private fun configureStringBuilder() = ToStringBuilder.setDefaultStyle(SHORT_PREFIX_STYLE)
 
     private fun configureLogging() =
       runCatching {

@@ -7,11 +7,12 @@ class Guard internal constructor(val expression: Expression) {
 
   fun evaluate(extent: Extent): Boolean {
     val result = expression.execute(extent)
-
-    require(result is Boolean) {
-      "guard expression '$expression' does not produce a boolean value (produced: ${result?.javaClass?.simpleName})"
-    }
-
+    require(result is Boolean) { "guard expression '$expression' did not produce a boolean" }
     return result
+  }
+
+  companion object {
+    fun from(expressionDescription: String): Result<Guard> =
+      Expression.from(expressionDescription).map(::Guard)
   }
 }

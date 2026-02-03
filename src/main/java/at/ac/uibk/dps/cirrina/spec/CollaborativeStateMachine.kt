@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.CollaborativeStateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import org.jgrapht.graph.DirectedPseudograph
@@ -19,8 +19,7 @@ private constructor(val persistentContextVariables: List<ContextVariable>) :
     fun create(
       description: CollaborativeStateMachineDescription
     ): Result<CollaborativeStateMachine> = runCatching {
-      val variables =
-        ContextBuilder.from(description.persistent).inMemoryContext().build().getOrThrow().getAll()
+      val variables = Context.from(description.persistent).getOrThrow().getAll()
 
       val spec = CollaborativeStateMachine(variables)
 

@@ -4,25 +4,21 @@ import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 
 data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolean = false) {
 
-  companion object {
-    fun lazy(name: String, expression: Expression): ContextVariable =
-      ContextVariable(name, expression, isLazy = true)
-
-    fun eager(name: String, value: Any?): ContextVariable =
-      ContextVariable(name, value, isLazy = false)
-  }
-
   init {
-    require(name.isNotBlank()) { "name cannot be null or blank" }
+    require(name.isNotBlank()) { "name cannot be blank" }
   }
 
   fun evaluate(extent: Extent): ContextVariable =
-    takeIf { isLazy }
-      ?.let {
-        val expression =
-          value as? Expression
-            ?: error("variable '$name' is marked lazy but value is not an expression")
+    if (isLazy) {
+      val expression =
+        value as? Expression
+          ?: error("variable '$name' is marked lazy but value is not an expression")
+      copy(value = expression.execute(extent), isLazy = false)
+    } else this
 
-        ContextVariable(name, expression.execute(extent), false)
-      } ?: this
+  companion object {
+    fun lazy(name: String, expression: Expression) = ContextVariable(name, expression, true)
+
+    fun eager(name: String, value: Any?) = ContextVariable(name, value, false)
+  }
 }

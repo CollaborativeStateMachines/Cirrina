@@ -4,19 +4,8 @@ import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
 import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
 import at.ac.uibk.dps.cirrina.spec.Transition
-import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jgrapht.traverse.TopologicalOrderIterator
 
-/**
- * A representation of a state transition within a state machine.
- *
- * This class determines the target state based on whether the transition is a standard or an 'or'
- * (conditional) transition. It also manages the execution of actions associated with the
- * transition.
- *
- * @property transition the definition of the transition including action graphs and targets.
- * @property isOr indicates whether this transition represents an 'or' logic branch.
- */
 class Transition(private val transition: Transition, val isOr: Boolean) {
 
   private val sortedActions: List<Action> =
@@ -26,27 +15,15 @@ class Transition(private val transition: Transition, val isOr: Boolean) {
     require(!isOr || transition.or != null) { "or transition must have a valid 'or' target state" }
   }
 
-  /** Indicates whether this is an internal transition (no target state change). */
   val isInternal: Boolean
     get() = transition.to == null
 
-  /** The name of the target state this transition leads to, if any. */
   val targetStateName: String?
     get() = if (isOr) transition.or else transition.to
 
-  /**
-   * Retrieves the action commands associated with this transition.
-   *
-   * @param commandFactory the factory used to create the commands.
-   * @return the list of [ActionCommand]s mapped from the pre-sorted actions.
-   */
   fun getActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
     sortedActions.map { commandFactory.createActionCommand(it) }
 
   override fun toString(): String =
-    ToStringBuilder(this)
-      .append("internal", isInternal)
-      .append("target", targetStateName)
-      .append("or", isOr)
-      .toString()
+    "${this::class.simpleName}(internal=$isInternal, target=$targetStateName, or=$isOr)"
 }

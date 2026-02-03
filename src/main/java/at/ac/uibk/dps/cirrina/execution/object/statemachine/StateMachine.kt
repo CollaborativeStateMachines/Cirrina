@@ -301,9 +301,8 @@ constructor(
   }
 
   private fun buildTransientContext(): Context =
-    stateMachineSpec.transientContextDescription?.let {
-      ContextBuilder.from(it).inMemoryContext().build().getOrThrow()
-    } ?: ContextBuilder.empty().inMemoryContext().build().getOrThrow()
+    stateMachineSpec.transientContextDescription?.let { Context.from(it).getOrThrow() }
+      ?: Context.empty().getOrThrow()
 
   private fun createFactory(scope: Scope, event: Event?, isWhile: Boolean = false) =
     CommandFactory(
@@ -321,7 +320,7 @@ constructor(
   override fun toString() = "StateMachine(name='$instanceName')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun sendEvent(event: Event) = eventHandler.send(event.withSource(instanceName))
+    fun sendEvent(event: Event) = eventHandler.send(event.copy(source = instanceName))
 
     fun propagateToParent(event: Event) {
       parentStateMachine?.stateMachineEventHandler?.propagateToParent(event)

@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
@@ -43,10 +43,9 @@ class EventsTest {
         launch(Dispatchers.Default) {
           delay(1000)
           eventHandler.send(
-            EventBuilder.from(Csml.EventDescription("pe1", EventChannel.PERIPHERAL, mapOf()))
-              .build()
+            Event.from(Csml.EventDescription("pe1", EventChannel.PERIPHERAL, mapOf()))
               .getOrThrow()
-              .withSource(PERIPHERAL_SOURCE)
+              .copy(source = PERIPHERAL_SOURCE)
           )
         }
 
