@@ -6,22 +6,23 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 class EventExchange(val event: Event) {
 
   companion object {
-    fun fromBytes(data: ByteArray): Result<EventExchange> =
-      runCatching {
-          val eventProto = EventProtos.Event.parseFrom(data)
-          fromProto(eventProto).getOrThrow()
-        }
-        .map { EventExchange(it) }
-        .recoverCatching { ex ->
-          throw UnsupportedOperationException("received an event with an unsupported payload", ex)
+    fun fromBytes(data: ByteArray): EventExchange {
+      val eventProto =
+        try {
+          EventProtos.Event.parseFrom(data)
+        } catch (_: Exception) {
+          error("received an event with an unsupported payload")
         }
 
-    fun fromProto(proto: EventProtos.Event): Result<Event> = runCatching {
+      return EventExchange(fromProto(eventProto))
+    }
+
+    fun fromProto(proto: EventProtos.Event): Event {
       val channel =
         try {
           EventChannel.valueOf(proto.channel.name)
-        } catch (e: IllegalArgumentException) {
-          throw UnsupportedOperationException("event has an unrecognized channel", e)
+        } catch (_: Exception) {
+          error("event has an unrecognized channel: ${proto.channel.name}")
         }
 
       val data =
@@ -29,31 +30,37 @@ class EventExchange(val event: Event) {
           ContextVariableExchange.fromProto(contextVariableProto)
         }
 
-      Event(proto.topic, channel, data, proto.target, proto.source, proto.id, proto.createdTime)
-    }
-  }
-
-  fun toBytes(): Result<ByteArray> {
-    if (event.data.any { it.isLazy }) {
-      return Result.failure(
-        IllegalStateException("event '${event.topic}' has unevaluated event data")
+      return Event(
+        proto.topic,
+        channel,
+        data,
+        proto.target,
+        proto.source,
+        proto.id,
+        proto.createdTime,
       )
     }
-
-    return toProto().map { it.toByteArray() }
   }
 
-  fun toProto(): Result<EventProtos.Event> = runCatching {
+  fun toBytes(): ByteArray {
+    if (event.data.any { it.isLazy }) {
+      error("event '${event.topic}' has unevaluated event data")
+    }
+
+    return toProto().toByteArray()
+  }
+
+  fun toProto(): EventProtos.Event {
     val channel =
       try {
         EventProtos.Event.Channel.valueOf(event.channel.name)
-      } catch (e: IllegalArgumentException) {
-        throw UnsupportedOperationException("event '${event.topic}' has an unrecognized channel", e)
+      } catch (_: Exception) {
+        error("event '${event.topic}' has an unrecognized channel: ${event.channel.name}")
       }
 
     val dataProtos = event.data.map { variable -> ContextVariableExchange(variable).toProto() }
 
-    EventProtos.Event.newBuilder()
+    return EventProtos.Event.newBuilder()
       .setTopic(event.topic)
       .setChannel(channel)
       .addAllData(dataProtos)

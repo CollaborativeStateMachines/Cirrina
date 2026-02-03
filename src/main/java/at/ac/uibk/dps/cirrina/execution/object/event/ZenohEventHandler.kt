@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.event
 
+import at.ac.uibk.dps.cirrina.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventExchange
 import io.zenoh.Config
@@ -9,43 +10,36 @@ import io.zenoh.bytes.ZBytes
 import io.zenoh.keyexpr.KeyExpr
 import io.zenoh.pubsub.Subscriber
 import io.zenoh.sample.Sample
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-class ZenohEventHandler(endpoints: List<String>) : EventHandler() {
+class ZenohEventHandler() : EventHandler() {
 
   private val session: Session
 
   private val activeSubscriptions = ConcurrentHashMap<String, Subscriber<Unit>>()
 
   init {
-    val endpointsJson = endpoints.joinToString(",") { "\"tcp/$it\"" }
-    val configJson =
-      """
-        {
-            "connect": { "endpoints": [$endpointsJson] },
-        }
-    """
-        .trimIndent()
+    val config =
+      EnvironmentVariables.zenohEventHandlerConfigUri.get()?.let { uri ->
+        Config.fromFile(File(uri)).getOrThrow()
+      } ?: Config.default()
 
-    val config = Config.fromJson(configJson).getOrThrow()
     this.session = Zenoh.open(config).getOrThrow()
   }
 
   override fun send(event: Event) {
     val pathString = getZenohPath(event) ?: return
 
-    runCatching {
-        val keyExpr = KeyExpr.tryFrom(pathString).getOrThrow()
-        val bytes = EventExchange(event).toBytes().getOrThrow()
+    val keyExpr = KeyExpr.tryFrom(pathString).getOrThrow()
+    val bytes = EventExchange(event).toBytes()
 
-        val payload = ZBytes.from(bytes)
+    val payload = ZBytes.from(bytes)
 
-        session.put(keyExpr, payload).getOrThrow()
-      }
-      .onFailure { e -> logger.error(e) { "put failed for $pathString" } }
+    session.put(keyExpr, payload)
   }
 
   override fun subscribe(source: String) {
@@ -63,7 +57,7 @@ class ZenohEventHandler(endpoints: List<String>) : EventHandler() {
   private fun handleIncoming(sample: Sample) {
     runCatching {
         val bytes = sample.payload.toBytes()
-        val event = EventExchange.fromBytes(bytes).getOrThrow().event
+        val event = EventExchange.fromBytes(bytes).event
         propagate(event)
       }
       .onFailure { e -> logger.error(e) { "failed to handle sample from ${sample.keyExpr}" } }

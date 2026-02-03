@@ -19,10 +19,9 @@ import dagger.assisted.AssistedInject
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.properties.Delegates
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -66,8 +65,7 @@ constructor(
   private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
   private val stateInstances = stateMachineSpec.vertexSet().associate { it.name to State(it, this) }
 
-  private val eventQueue = ConcurrentLinkedQueue<Event>()
-  private val isProcessing = AtomicBoolean(false)
+  private val eventChannel = Channel<Event>(Channel.UNLIMITED)
   private var activeState: State? = null
 
   override val extent: Extent
@@ -78,16 +76,34 @@ constructor(
     }
 
   init {
+    // Create a transient context for this state machine instance
     val transientContext = buildTransientContext()
 
+    // Push the instance data into the transient context
     data?.forEach { transientContext.create(it.name, it.value) }
 
+    // Build the extent by either extending the parent's extent or the runtime's root extent with
+    // this instance's transient context
     extent =
       parentStateMachine?.extent?.extend(transientContext)
         ?: runtime.extent.extend(transientContext)
 
+    // Subscribe to events from the parent state machine, if any
     eventSubscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
+
+    // Register the state machine instance with the runtime
     runtime.phaser.register()
+
+    // Start a coroutine to process events
+    launchEventProcessor()
+  }
+
+  private fun launchEventProcessor() {
+    coroutineScope.launch {
+      for (event in eventChannel) {
+        processEvent(event)
+      }
+    }
   }
 
   fun start() {
@@ -96,31 +112,12 @@ constructor(
         stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
 
       doEnter(initial, null)?.let { step(it, null) }
-      processQueue()
     }
   }
 
   override fun onReceiveEvent(event: Event) {
-    event
-      .takeIf { it.isValid() }
-      ?.let {
-        eventQueue.add(it)
-        processQueue()
-      }
-  }
-
-  private fun processQueue() {
-    if (isProcessing.compareAndSet(false, true)) {
-      try {
-        while (true) {
-          val event = eventQueue.poll() ?: break
-          processEvent(event)
-        }
-      } finally {
-        isProcessing.set(false)
-        // Final check to ensure no events were added during the lock release
-        if (eventQueue.isNotEmpty()) processQueue()
-      }
+    if (event.isValid()) {
+      eventChannel.trySend(event)
     }
   }
 
@@ -295,6 +292,9 @@ constructor(
 
       instanceObservation.stop()
       timeoutActionManager.shutdown()
+
+      // Close the channel and cancel scope
+      eventChannel.close()
       coroutineScope.cancel()
       runtime.phaser.arriveAndDeregister()
     }

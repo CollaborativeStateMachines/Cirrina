@@ -67,7 +67,7 @@ class CirrinaModule {
   fun provideEventHandler(): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.ZENOH ->
-        ZenohEventHandler(listOf()).apply {
+        ZenohEventHandler().apply {
           // Subscribe to global and peripheral events
           subscribe(GLOBAL_SOURCE)
           subscribe(PERIPHERAL_SOURCE)
