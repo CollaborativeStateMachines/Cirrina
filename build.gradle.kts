@@ -13,7 +13,7 @@ group = "ac.at.uibk.dps.cirrina"
 
 version = rootProject.file("version.txt").readText().trim()
 
-application { mainClass = "at.ac.uibk.dps.cirrina.cirrina.CirrinaKt" }
+application { mainClass.set("at.ac.uibk.dps.cirrina.CirrinaKt") }
 
 java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
 
@@ -71,6 +71,16 @@ repositories {
   maven(url = "https://repository.cloudera.com/artifactory/cloudera-repos/")
 }
 
+sourceSets {
+  main {
+    kotlin {
+      srcDirs("src/main/kotlin")
+
+      srcDir("build/generated/pkl/pklGenJava/java")
+    }
+  }
+}
+
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
   compilerOptions {
     jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
@@ -96,7 +106,7 @@ tasks.distZip { archiveFileName.set("${project.name}.zip") }
 
 tasks.withType<Jar> {
   manifest {
-    attributes["Main-Class"] = "at.ac.uibk.dps.cirrina.main.Main"
+    attributes["Main-Class"] = "at.ac.uibk.dps.cirrina.CirrinaKt"
     attributes["Implementation-Version"] = version
     attributes["Enable-Native-Access"] = "ALL-UNNAMED"
   }

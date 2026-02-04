@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.cirrina
+package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.di.DaggerCirrinaComponent
 import at.ac.uibk.dps.cirrina.utils.getBuildVersion

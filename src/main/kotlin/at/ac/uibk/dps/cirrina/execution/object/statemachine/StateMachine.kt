@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.statemachine
 
-import at.ac.uibk.dps.cirrina.cirrina.Runtime
+import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.command.*
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction

@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.cirrina
+package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context

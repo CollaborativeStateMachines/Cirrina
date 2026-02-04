@@ -1,9 +1,9 @@
 package at.ac.uibk.dps.cirrina.cirrina.di
 
-import at.ac.uibk.dps.cirrina.cirrina.Cirrina
-import at.ac.uibk.dps.cirrina.cirrina.EnvironmentVariables
-import at.ac.uibk.dps.cirrina.cirrina.EventProvider
-import at.ac.uibk.dps.cirrina.cirrina.PersistentContextProvider
+import at.ac.uibk.dps.cirrina.Cirrina
+import at.ac.uibk.dps.cirrina.EnvironmentVariables
+import at.ac.uibk.dps.cirrina.EventProvider
+import at.ac.uibk.dps.cirrina.PersistentContextProvider
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactory
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
