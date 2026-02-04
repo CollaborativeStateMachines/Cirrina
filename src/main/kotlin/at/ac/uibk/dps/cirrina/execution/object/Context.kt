@@ -15,6 +15,9 @@ data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolea
       copy(value = expression.execute(extent), isLazy = false)
     } else this
 
+  override fun toString(): String =
+    "ContextVariable(name='$name', value='$value', isLazy='$isLazy')"
+
   companion object {
     fun lazy(name: String, expression: Expression) = ContextVariable(name, expression, true)
 

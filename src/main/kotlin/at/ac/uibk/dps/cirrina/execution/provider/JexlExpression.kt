@@ -36,15 +36,15 @@ class JexlExpression(source: String) : Expression(source) {
   private val jexlScript: JexlScript =
     try {
       JexlProvider.engine.createScript(source)
-    } catch (_: Exception) {
-      error("could not parse expression '$source'")
+    } catch (e: Exception) {
+      error("could not parse expression '$source': ${e.localizedMessage}")
     }
 
   override fun execute(extent: Extent): Any? =
     try {
       jexlScript.execute(ExtentJexlContext(extent))
-    } catch (_: Exception) {
-      error("failed to execute expression '$source'")
+    } catch (e: Exception) {
+      error("failed to execute expression '$source': ${e.localizedMessage}")
     }
 
   private class ExtentJexlContext(private val extent: Extent) : JexlContext {

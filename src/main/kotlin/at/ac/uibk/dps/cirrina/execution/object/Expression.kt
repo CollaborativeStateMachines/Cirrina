@@ -11,9 +11,6 @@ abstract class Expression(val source: String) {
   companion object {
     private val cache = ConcurrentHashMap<String, Expression>()
 
-    fun from(source: String): Expression {
-      require(source.isNotBlank()) { "expression source cannot be blank" }
-      return cache.computeIfAbsent(source) { JexlExpression(it) }
-    }
+    fun from(source: String): Expression = cache.computeIfAbsent(source) { JexlExpression(it) }
   }
 }

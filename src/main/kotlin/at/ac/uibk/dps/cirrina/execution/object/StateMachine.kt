@@ -111,7 +111,9 @@ internal constructor(
       return
     }
 
-    val target = stateInstances[transition.targetStateName] ?: error("target not found")
+    val target =
+      stateInstances[transition.targetStateName]
+        ?: error("target state '${transition.targetStateName}' not found")
     val current = activeState ?: error("no active state to transition from")
 
     doExit(current, event)
@@ -182,7 +184,7 @@ internal constructor(
     return when (selected.size) {
       0 -> null
       1 -> selected.first()
-      else -> error("non-determinism detected in $this")
+      else -> error("non-determinism detected with selected transitions '$selected'")
     }
   }
 
@@ -198,10 +200,17 @@ internal constructor(
   }
 
   private fun startTimeout(timeout: TimeoutAction) {
-    val delay = timeout.delay.execute(extent) as? Number ?: error("non-numeric delay")
+    val delay =
+      timeout.delay.execute(extent) as? Number
+        ?: error("timeout delay '${timeout.delay}' is non-numeric")
     timeoutActionManager.start(timeout.name, delay) {
-      val command = commandFactory.create(timeout.`do`, createContext(this, null))
-      execute(listOf(command as? ActionRaiseCommand ?: error("must be raise")))
+      val action = timeout.`do`
+      val command = commandFactory.create(action, createContext(this, null))
+      execute(
+        listOf(
+          command as? ActionRaiseCommand ?: error("timeout action '$action' must be a raise action")
+        )
+      )
     }
   }
 

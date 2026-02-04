@@ -103,7 +103,15 @@ constructor(
 
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->
-        stateMachineInstances.values.forEach { it.onReceiveEvent(envelope.event!!) }
+        stateMachineInstances.values.forEach {
+          try {
+            it.onReceiveEvent(envelope.event!!)
+          } catch (e: Exception) {
+            logger.error(e) {
+              "error in processing event for state machine instance '${it.instanceName}'"
+            }
+          }
+        }
       }
     )
     disruptor.start()

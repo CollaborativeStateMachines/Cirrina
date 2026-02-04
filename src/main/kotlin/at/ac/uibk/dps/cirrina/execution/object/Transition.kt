@@ -30,7 +30,7 @@ internal constructor(
     sortedActions.map { commandFactory.create(it, ctx) }
 
   override fun toString(): String =
-    "${this::class.simpleName}(internal=$isInternal, target=$targetStateName, or=$isOr)"
+    "${this::class.simpleName}(internal='$isInternal', target='$targetStateName', or='$isOr')"
 
   @AssistedFactory
   interface Factory {

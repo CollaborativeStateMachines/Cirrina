@@ -59,7 +59,7 @@ sealed interface Action {
 
         is ResetDescription -> TimeoutResetAction(description.name)
 
-        else -> error("unknown type: ${description.javaClass.simpleName}")
+        else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
 
     private fun buildVariables(context: Map<String, String>) =
@@ -76,7 +76,9 @@ interface EventRaisingAction : Action {
   fun raises(): List<Event>
 }
 
-class EvalAction internal constructor(val expression: Expression) : Action
+class EvalAction internal constructor(val expression: Expression) : Action {
+  override fun toString() = "EvalAction(expression='$expression')"
+}
 
 class InvokeAction
 internal constructor(
@@ -86,6 +88,9 @@ internal constructor(
   val raises: List<Event>,
 ) : EventRaisingAction {
   override fun raises(): List<Event> = raises
+
+  override fun toString() =
+    "InvokeAction(type='$type', mode='$mode', input='$input', raises='$raises')"
 }
 
 class MatchAction
@@ -98,11 +103,15 @@ internal constructor(
     (cases.values + listOfNotNull(default)).filterIsInstance<EventRaisingAction>().flatMap {
       it.raises()
     }
+
+  override fun toString() = "MatchAction(value='$value', cases='$cases', default='$default')"
 }
 
 class RaiseAction internal constructor(val event: Event, val target: Expression?) :
   EventRaisingAction {
   override fun raises(): List<Event> = listOf(event)
+
+  override fun toString() = "RaiseAction(event='$event', target='$target')"
 }
 
 class TimeoutAction
@@ -110,6 +119,10 @@ internal constructor(val name: String, val delay: Expression, val `do`: Action) 
   EventRaisingAction {
   override fun raises(): List<Event> =
     (`do` as? RaiseAction)?.let { listOf(it.event) } ?: emptyList()
+
+  override fun toString() = "TimeoutAction(name='$name', delay='$delay', do='${`do`}')"
 }
 
-class TimeoutResetAction internal constructor(val action: String) : Action
+class TimeoutResetAction internal constructor(val action: String) : Action {
+  override fun toString() = "TimeoutResetAction(action='$action')"
+}

@@ -17,7 +17,7 @@ data class Event(
   fun evaluateData(extent: Extent): Event = copy(data = data.map { it.evaluate(extent) })
 
   override fun toString(): String =
-    "${this::class.simpleName}(source='$source', topic='$topic', channel=$channel)"
+    "${this::class.simpleName}(source='$source', topic='$topic', channel='$channel')"
 
   companion object {
     fun from(description: EventDescription): Event {
