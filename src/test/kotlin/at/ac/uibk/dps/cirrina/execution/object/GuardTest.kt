@@ -1,7 +1,5 @@
-package at.ac.uibk.dps.cirrina.execution.`object`.guard
+package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.execution.`object`.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.Guard
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow

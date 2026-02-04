@@ -1,10 +1,8 @@
-package at.ac.uibk.dps.cirrina.execution.`object`.expression
+package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.execution.`object`.Expression
-import at.ac.uibk.dps.cirrina.execution.`object`.Extent
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.nio.ByteBuffer
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -51,7 +49,7 @@ class ExpressionTest {
     }
 
     val array = extent.resolve("someArray") as Array<*>
-    assertArrayEquals(arrayOf(1, 2, 3, 4, 5, 6), array)
+    Assertions.assertArrayEquals(arrayOf(1, 2, 3, 4, 5, 6), array)
     (1..6).forEach { "someArray.contains($it)" isEqualTo true }
 
     // Removal tests
@@ -59,7 +57,7 @@ class ExpressionTest {
     "someArray = someArray - {5}".eval()
     "someArray = someArray - [6, ...]".eval()
 
-    assertArrayEquals(arrayOf(1, 2, 3), extent.resolve("someArray") as Array<*>)
+    Assertions.assertArrayEquals(arrayOf(1, 2, 3), extent.resolve("someArray") as Array<*>)
   }
 
   @Test
@@ -92,12 +90,12 @@ class ExpressionTest {
     repeat(100) {
       val bytes =
         "std:randomPayload([1024, 1024 * 10, 1024 * 100, 1024 * 1000])".eval() as ByteArray
-      assertTrue(bytes.size in expectedSizes)
+      Assertions.assertTrue(bytes.size in expectedSizes)
     }
 
     repeat(100) {
       val v = "std:takeRandom([1, 2, 3, ...])".eval()
-      assertTrue(v in listOf(1, 2, 3))
+      Assertions.assertTrue(v in listOf(1, 2, 3))
     }
   }
 
@@ -125,11 +123,11 @@ class ExpressionTest {
     fun String.eval(): Any? = Expression.from(this).execute(extent)
 
     infix fun String.isEqualTo(expected: Any?) {
-      assertEquals(expected, this.eval())
+      Assertions.assertEquals(expected, this.eval())
     }
 
     infix fun Any?.isEqualTo(expected: Any?) {
-      assertEquals(expected, this)
+      Assertions.assertEquals(expected, this)
     }
   }
 }

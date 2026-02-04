@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina.cirrina.di
 
-import at.ac.uibk.dps.cirrina.Cirrina
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.EventProvider
 import at.ac.uibk.dps.cirrina.PersistentContextProvider
@@ -73,11 +72,7 @@ class CirrinaModule {
       PersistentContextProvider.ETCD -> {
         val url = EnvironmentVariables.etcdContextUrl.get() ?: return null
 
-        ContextEtcd(listOf(url)).apply {
-          logger.info { "awaiting etcd connection..." }
-
-          awaitReady(Cirrina.ETCD_CONNECTION_TIMEOUT)
-        }
+        ContextEtcd(listOf(url))
       }
     }
 
