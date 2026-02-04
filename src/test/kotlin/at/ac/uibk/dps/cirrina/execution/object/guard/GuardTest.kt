@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`.guard
 
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.Guard
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -11,7 +11,7 @@ class GuardTest {
 
   @Test
   fun testGuard() {
-    InMemoryContext().use { context ->
+    ContextInMemory().use { context ->
       context.create("v", 5)
       val extent = Extent.of(context)
 

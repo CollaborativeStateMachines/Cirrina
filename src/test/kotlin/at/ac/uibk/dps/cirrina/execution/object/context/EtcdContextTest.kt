@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.provider.EtcdContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextEtcd
 import org.junit.jupiter.api.Assumptions.assumeTrue
 
 class EtcdContextTest : ContextTest() {
@@ -13,6 +13,6 @@ class EtcdContextTest : ContextTest() {
         "skipping Etcd persistent context test: ETCD_CONTEXT_URL not set",
       )
 
-      return EtcdContext(listOf(etcdServerUrl)).apply { awaitReady(10_000).getOrThrow() }
+      return ContextEtcd(listOf(etcdServerUrl)).apply { awaitReady(10_000).getOrThrow() }
     }
 }

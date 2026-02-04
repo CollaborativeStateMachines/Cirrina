@@ -135,7 +135,7 @@ constructor(
       .also { duration ->
         completionTimer.record(duration.toJavaDuration())
 
-        logger.info { "all state machines terminated in $duration" }
+        logger.info { "runtime terminated in $duration" }
       }
   }
 

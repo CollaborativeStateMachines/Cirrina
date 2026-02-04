@@ -15,7 +15,7 @@ import io.zenoh.sample.Sample
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
-class ZenohEventHandler() : EventHandler() {
+class EventHandlerZenoh() : EventHandler() {
   private val session: Session
 
   private val activeSubscriptions = ConcurrentHashMap<String, Subscriber<Unit>>()

@@ -7,35 +7,10 @@ import java.util.LinkedHashSet
 import org.apache.commons.jexl3.*
 import org.apache.commons.jexl3.introspection.JexlPermissions
 
-class Stdlib {
-  companion object {
-    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
-
-    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
-  }
-}
-
-object JexlProvider {
-  private const val CACHE_SIZE = 1024
-
-  val engine: JexlEngine =
-    JexlBuilder()
-      .arithmetic(CsmlArithmetic(true))
-      .features(JexlFeatures().sideEffectGlobal(true).sideEffect(true))
-      .cache(CACHE_SIZE)
-      .namespaces(mapOf("math" to Math::class.java, "std" to Stdlib::class.java))
-      .permissions(JexlPermissions.UNRESTRICTED)
-      .strict(true)
-      .silent(false)
-      .antish(false)
-      .safe(false)
-      .create()
-}
-
-class JexlExpression(source: String) : Expression(source) {
+class ExpressionJexl(source: String) : Expression(source) {
   private val jexlScript: JexlScript =
     try {
-      JexlProvider.engine.createScript(source)
+      Provider.engine.createScript(source)
     } catch (e: Exception) {
       error("could not parse expression '$source': ${e.localizedMessage}")
     }
@@ -55,6 +30,31 @@ class JexlExpression(source: String) : Expression(source) {
     }
 
     override fun has(key: String): Boolean = extent.has(key)
+  }
+}
+
+private object Provider {
+  private const val CACHE_SIZE = 1024
+
+  val engine: JexlEngine =
+    JexlBuilder()
+      .arithmetic(CsmlArithmetic(true))
+      .features(JexlFeatures().sideEffectGlobal(true).sideEffect(true))
+      .cache(CACHE_SIZE)
+      .namespaces(mapOf("math" to Math::class.java, "std" to Stdlib::class.java))
+      .permissions(JexlPermissions.UNRESTRICTED)
+      .strict(true)
+      .silent(false)
+      .antish(false)
+      .safe(false)
+      .create()
+}
+
+class Stdlib {
+  companion object {
+    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
+
+    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
   }
 }
 

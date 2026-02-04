@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.execution.provider.JexlExpression
+import at.ac.uibk.dps.cirrina.execution.provider.ExpressionJexl
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class Expression(val source: String) {
@@ -11,6 +11,6 @@ abstract class Expression(val source: String) {
   companion object {
     private val cache = ConcurrentHashMap<String, Expression>()
 
-    fun from(source: String): Expression = cache.computeIfAbsent(source) { JexlExpression(it) }
+    fun from(source: String): Expression = cache.computeIfAbsent(source) { ExpressionJexl(it) }
   }
 }

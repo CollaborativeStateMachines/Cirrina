@@ -1,7 +1,7 @@
 import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 
-class InMemoryEventHandler : EventHandler() {
+class EventHandlerInMemory : EventHandler() {
   override fun send(event: Event) {
     propagate(event)
   }

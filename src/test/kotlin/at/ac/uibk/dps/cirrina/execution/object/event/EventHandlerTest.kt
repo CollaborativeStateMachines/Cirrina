@@ -7,7 +7,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -27,7 +27,7 @@ abstract class EventHandlerTest {
     createEventHandler().use { eventHandler ->
       val count = 5
 
-      val context = InMemoryContext()
+      val context = ContextInMemory()
       val extent = Extent.of(context)
 
       val receivedEvents = CopyOnWriteArrayList<Event>()

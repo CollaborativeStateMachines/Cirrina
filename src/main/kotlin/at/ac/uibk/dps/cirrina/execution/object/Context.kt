@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 
 data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolean = false) {
   init {
@@ -42,7 +42,7 @@ interface Context : AutoCloseable {
 
   companion object {
     fun from(description: Map<String, String>?): Context {
-      val ctx = InMemoryContext()
+      val ctx = ContextInMemory()
       description?.forEach { (name, expr) ->
         val expression = Expression.from(expr)
         val value = expression.execute(Extent.empty())

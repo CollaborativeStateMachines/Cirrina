@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`.expression
 
 import at.ac.uibk.dps.cirrina.execution.`object`.Expression
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.nio.ByteBuffer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.assertThrows
 class ExpressionTest {
 
   private fun withExpressionContext(block: ContextScope.() -> Unit) =
-    InMemoryContext().use { context -> ContextScope(context, Extent.of(context)).block() }
+    ContextInMemory().use { context -> ContextScope(context, Extent.of(context)).block() }
 
   @Test
   fun testBasicExpressions() = withExpressionContext {
@@ -120,7 +120,7 @@ class ExpressionTest {
     }
   }
 
-  class ContextScope(val context: InMemoryContext, val extent: Extent) {
+  class ContextScope(val context: ContextInMemory, val extent: Extent) {
 
     fun String.eval(): Any? = Expression.from(this).execute(extent)
 

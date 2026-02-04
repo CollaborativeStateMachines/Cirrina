@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
@@ -130,7 +130,7 @@ internal constructor(
 
     val evalExtent =
       extent.extend(
-        InMemoryContext().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
+        ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
       )
 
     return trySelect(candidates, evalExtent)?.also {
@@ -221,7 +221,7 @@ internal constructor(
 
   private fun checkTermination() {
     if (isTerminated()) {
-      logger.info { "state machine '$instanceName' terminated" }
+      logger.info { "'$this' terminated" }
       instanceObservation.stop()
       timeoutActionManager.shutdown()
       eventChannel.close()

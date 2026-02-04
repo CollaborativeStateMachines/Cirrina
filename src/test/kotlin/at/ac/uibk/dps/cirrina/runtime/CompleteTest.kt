@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.runtime
 
-import InMemoryEventHandler
+import EventHandlerInMemory
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.csm.Csml.Type
@@ -10,7 +10,7 @@ import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.execution.provider.Stdlib
 import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
@@ -25,8 +25,8 @@ class CompleteTest {
   fun testCompleteExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = InMemoryEventHandler()
-        val context = InMemoryContext()
+        val eventHandler = EventHandlerInMemory()
+        val context = ContextInMemory()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
           listOf(ContextVariable("v", (v.value as Int) + 1))

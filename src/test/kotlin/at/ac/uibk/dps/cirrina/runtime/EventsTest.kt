@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.runtime
 
-import InMemoryEventHandler
+import EventHandlerInMemory
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
@@ -8,7 +8,7 @@ import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.PERIPHERAL_SOURCE
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.time.Duration
 import kotlin.time.measureTime
 import kotlinx.coroutines.Dispatchers
@@ -25,8 +25,8 @@ class EventsTest {
   @Test
   fun testEventsExecute() = runBlocking {
     assertDoesNotThrow {
-      val eventHandler = InMemoryEventHandler()
-      val context = InMemoryContext()
+      val eventHandler = EventHandlerInMemory()
+      val context = ContextInMemory()
 
       val runtime =
         DaggerTestComponent.builder()
