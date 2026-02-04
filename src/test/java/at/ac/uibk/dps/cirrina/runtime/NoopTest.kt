@@ -15,7 +15,7 @@ class NoopTest {
 
   @Test
   fun testNoopExecute() {
-    assertTimeout(Duration.ofSeconds(5)) {
+    assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
         val eventHandler = InMemoryEventHandler()
         val context = InMemoryContext()

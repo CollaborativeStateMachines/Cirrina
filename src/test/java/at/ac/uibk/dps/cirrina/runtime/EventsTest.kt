@@ -9,11 +9,13 @@ import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
+import java.time.Duration
 import kotlin.time.measureTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertTimeout
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -42,8 +44,10 @@ class EventsTest {
           )
         }
 
-      val duration = measureTime { runtime.run() }
-      println("events execution: $duration")
+      assertTimeout(Duration.ofSeconds(10)) {
+        val duration = measureTime { runtime.run() }
+        println("events execution: $duration")
+      }
 
       eventJob.join()
 
