@@ -1,59 +1,32 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
-/** Abstract class for contexts. */
-abstract class Context() : AutoCloseable {
+import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 
-  /**
-   * Checks if a variable exists.
-   *
-   * @return true if the variable exists, false otherwise.
-   * @throws Exception if an internal error occurs.
-   */
-  abstract fun has(name: String): Boolean
+interface Context : AutoCloseable {
 
-  /**
-   * Retrieves a variable value.
-   *
-   * @return the value of the variable.
-   * @throws Exception if the variable does not exist or if an internal error occurs.
-   */
-  abstract fun get(name: String): Any?
+  fun has(name: String): Boolean
 
-  /**
-   * Creates a new variable.
-   *
-   * @return the size of the value.
-   * @throws Exception if the variable already exists or if an internal error occurs.
-   */
-  abstract fun create(name: String, value: Any?): Int
+  fun get(name: String): Any?
 
-  /**
-   * Assigns a value to an existing variable.
-   *
-   * @return the size of the value.
-   * @throws Exception if the variable does not exist or if an internal error occurs.
-   */
-  abstract fun assign(name: String, value: Any?): Int
+  fun create(name: String, value: Any?): Int
 
-  /**
-   * Deletes a variable.
-   *
-   * @throws Exception if the variable does not exist or if an internal error occurs.
-   */
-  abstract fun delete(name: String)
+  fun assign(name: String, value: Any?): Int
 
-  /**
-   * Deletes all variables.
-   *
-   * @throws Exception if the variable does not exist or if an internal error occurs.
-   */
-  abstract fun deleteAll()
+  fun delete(name: String)
 
-  /**
-   * Returns all variables.
-   *
-   * @return a list of all variables.
-   * @throws Exception if an internal error occurs.
-   */
-  abstract fun getAll(): List<ContextVariable>
+  fun deleteAll()
+
+  fun getAll(): List<ContextVariable>
+
+  companion object {
+    fun from(description: Map<String, String>?): Result<Context> = runCatching {
+      val ctx = InMemoryContext()
+      description?.forEach { (name, expr) ->
+        val expression = Expression.from(expr).getOrThrow()
+        val value = expression.execute(Extent.empty())
+        ctx.create(name, value)
+      }
+      ctx
+    }
+  }
 }

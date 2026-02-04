@@ -1,8 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariableBuilder
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
@@ -77,18 +76,8 @@ class HttpServiceImplementationTest {
           createService("/plus", method)
             .invoke(
               listOf(
-                ContextVariableBuilder.empty()
-                  .name("varOne")
-                  .value(5)
-                  .build()
-                  .getOrThrow()
-                  .evaluate(Extent.empty()),
-                ContextVariableBuilder.empty()
-                  .name("varTwo")
-                  .value(6)
-                  .build()
-                  .getOrThrow()
-                  .evaluate(Extent.empty()),
+                ContextVariable.eager("varOne", 5).evaluate(Extent.empty()),
+                ContextVariable.eager("varTwo", 6).evaluate(Extent.empty()),
               )
             )
         }

@@ -1,52 +1,44 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.transition
 
 import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
-import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.CommandExecutionContext
 import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
-import at.ac.uibk.dps.cirrina.spec.Transition
-import org.apache.commons.lang3.builder.ToStringBuilder
+import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import org.jgrapht.traverse.TopologicalOrderIterator
 
-/**
- * A representation of a state transition within a state machine.
- *
- * This class determines the target state based on whether the transition is a standard or an 'or'
- * (conditional) transition. It also manages the execution of actions associated with the
- * transition.
- *
- * @property transition the definition of the transition including action graphs and targets.
- * @property isOr indicates whether this transition represents an 'or' logic branch.
- */
-class Transition(private val transition: Transition, val isOr: Boolean) {
+class Transition
+@AssistedInject
+internal constructor(
+  @Assisted private val spec: TransitionSpec,
+  @Assisted val isOr: Boolean,
+  private val commandFactory: ActionCommandFactory,
+) {
 
-  private val sortedActions: List<Action> =
-    TopologicalOrderIterator(transition.actions).asSequence().toList()
-
-  init {
-    require(!isOr || transition.or != null) { "or transition must have a valid 'or' target state" }
+  @AssistedFactory
+  interface Factory {
+    fun create(spec: TransitionSpec, isOr: Boolean): Transition
   }
 
-  /** Indicates whether this is an internal transition (no target state change). */
+  private val sortedActions: List<Action> =
+    TopologicalOrderIterator(spec.actions).asSequence().toList()
+
+  init {
+    require(!isOr || spec.or != null) { "or transition must have a valid 'or' target state" }
+  }
+
   val isInternal: Boolean
-    get() = transition.to == null
+    get() = spec.to == null
 
-  /** The name of the target state this transition leads to, if any. */
   val targetStateName: String?
-    get() = if (isOr) transition.or else transition.to
+    get() = if (isOr) spec.or else spec.to
 
-  /**
-   * Retrieves the action commands associated with this transition.
-   *
-   * @param commandFactory the factory used to create the commands.
-   * @return the list of [ActionCommand]s mapped from the pre-sorted actions.
-   */
-  fun getActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    sortedActions.map { commandFactory.createActionCommand(it) }
+  fun getActionCommands(ctx: CommandExecutionContext): List<ActionCommand> =
+    sortedActions.map { commandFactory.create(it, ctx) }
 
   override fun toString(): String =
-    ToStringBuilder(this)
-      .append("internal", isInternal)
-      .append("target", targetStateName)
-      .append("or", isOr)
-      .toString()
+    "${this::class.simpleName}(internal=$isInternal, target=$targetStateName, or=$isOr)"
 }

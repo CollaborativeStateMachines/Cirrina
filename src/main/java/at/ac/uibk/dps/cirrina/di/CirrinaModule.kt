@@ -4,16 +4,14 @@ import at.ac.uibk.dps.cirrina.cirrina.Cirrina
 import at.ac.uibk.dps.cirrina.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.cirrina.EventProvider
 import at.ac.uibk.dps.cirrina.cirrina.PersistentContextProvider
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.ZenohEventHandler
-import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.utils.getBuildVersion
 import dagger.Module
 import dagger.Provides
@@ -59,16 +57,10 @@ class CirrinaModule {
 
   @Provides
   @Singleton
-  @Named("identifier")
-  fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
-
-  @Provides
-  @Singleton
   fun provideEventHandler(): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.ZENOH ->
         ZenohEventHandler().apply {
-          // Subscribe to global and peripheral events
           subscribe(GLOBAL_SOURCE)
           subscribe(PERIPHERAL_SOURCE)
         }
@@ -84,7 +76,6 @@ class CirrinaModule {
         EtcdContext(listOf(url)).apply {
           logger.info { "awaiting etcd connection..." }
 
-          // Wait for the connection to be established
           awaitReady(Cirrina.ETCD_CONNECTION_TIMEOUT)
         }
       }
@@ -110,7 +101,7 @@ class CirrinaModule {
 
   @Provides
   @Singleton
-  fun provideTracing(
+  fun provideObservationRegistry(
     @Named("identifier") identifier: String,
     meterRegistry: MeterRegistry,
   ): ObservationRegistry {
@@ -155,15 +146,17 @@ class CirrinaModule {
     }
   }
 
+  @Provides
+  @Singleton
+  @Named("identifier")
+  fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
+
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
 
   @Provides
   @Singleton
-  fun provideServiceImplementationSelector(): ServiceImplementationSelector =
-    URI(EnvironmentVariables.csmServiceBindingsUri.get())
-      .let(CsmParser::parseServiceImplementationBindings)
-      .let { ServiceImplementationBuilder.from(it.bindings).build().getOrThrow() }
-      .let(::RandomServiceImplementationSelector)
+  fun provideActionCommandFactory(meterRegistry: MeterRegistry): ActionCommandFactory =
+    ActionCommandFactoryImpl(meterRegistry)
 
   private fun createInfluxRegistry(url: String): InfluxMeterRegistry {
     val config =

@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 
 class Csml
@@ -10,6 +10,7 @@ private constructor(
   val instances: Map<String, String>,
   val instanceSubscriptions: Map<String, List<String>>,
   val instanceData: Map<String, List<ContextVariable>>,
+  val bindings: List<Csml.ServiceImplementationBinding>,
 ) {
 
   companion object {
@@ -18,10 +19,10 @@ private constructor(
 
       val instanceData =
         desc.instanceData.mapValues { (_, innerMap) ->
-          ContextBuilder.from(innerMap).inMemoryContext().build().getOrThrow().getAll()
+          Context.from(innerMap).getOrThrow().getAll()
         }
 
-      Csml(spec, desc.instances, desc.instanceSubscriptions, instanceData)
+      Csml(spec, desc.instances, desc.instanceSubscriptions, instanceData, desc.bindings)
     }
   }
 }

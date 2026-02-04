@@ -1,11 +1,12 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.event
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.expression.Expression
 import at.ac.uibk.dps.cirrina.utils.getInsecureUuid
 import kotlin.time.Clock
-import org.apache.commons.lang3.builder.ToStringBuilder
 
 data class Event(
   val topic: String,
@@ -16,31 +17,19 @@ data class Event(
   val id: String = getInsecureUuid().toString(),
   val createdTime: Long = Clock.System.now().epochSeconds,
 ) {
-  fun evaluateData(extent: Extent): Event {
-    val evaluatedData = data.map { variable -> variable.evaluate(extent) }
-    return copy(data = evaluatedData)
-  }
-
-  fun withData(data: List<ContextVariable>): Event {
-    return Event(topic, channel, data, target, source, id, createdTime)
-  }
-
-  fun withTarget(target: String): Event {
-    return Event(topic, channel, data, target, source, id, createdTime)
-  }
-
-  fun withSource(source: String): Event {
-    return Event(topic, channel, data, target, source, id, createdTime)
-  }
+  fun evaluateData(extent: Extent): Event = copy(data = data.map { it.evaluate(extent) })
 
   override fun toString(): String =
-    ToStringBuilder(this)
-      .append("source", source)
-      .append("topic", topic)
-      .append("channel", channel)
-      .toString()
+    "${this::class.simpleName}(source='$source', topic='$topic', channel=$channel)"
 
   companion object {
-    fun ensureHasEvaluatedData(event: Event, extent: Extent): Event = event.evaluateData(extent)
+    fun from(description: EventDescription): Result<Event> = runCatching {
+      val variables =
+        description.data.map { (name, exprSource) ->
+          val expression = Expression.from(exprSource).getOrThrow()
+          ContextVariable.lazy(name, expression)
+        }
+      Event(description.topic, description.channel, variables)
+    }
   }
 }

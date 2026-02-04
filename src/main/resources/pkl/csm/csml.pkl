@@ -25,6 +25,8 @@ instanceSubscriptions: Mapping<InstanceName, Listing<Subscription>>
 
 instanceData: Mapping<InstanceName, Context>
 
+bindings: Listing<ServiceImplementationBinding>
+
 /// The name of a state machine.
 typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
@@ -149,6 +151,25 @@ class ExternalDescription extends EventDescription {
 
 class GlobalDescription extends EventDescription {
   channel: EventChannel = "global"
+}
+
+typealias Type = "HTTP"
+
+abstract class ServiceImplementationBinding {
+  type: Type
+  name: String
+  `local`: Boolean
+}
+
+typealias HttpMethod = "GET"|"POST"
+
+class HttpServiceImplementationBinding extends ServiceImplementationBinding {
+  type: Type = "HTTP"
+  scheme: String
+  host: String
+  port: Int(isBetween(1, 65535))
+  endPoint: String
+  method: HttpMethod
 }
 
 // Alias definitions

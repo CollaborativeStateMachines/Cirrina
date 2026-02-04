@@ -15,18 +15,14 @@ class GuardTest {
       val extent = Extent.of(context)
 
       // Success case
-      assertDoesNotThrow {
-        GuardBuilder.from("v==5").build().onSuccess { guard -> guard.evaluate(extent) }
-      }
+      assertDoesNotThrow { Guard.from("v==5").onSuccess { guard -> guard.evaluate(extent) } }
 
       // Success case
-      assertDoesNotThrow {
-        GuardBuilder.from("v==6").build().onSuccess { guard -> guard.evaluate(extent) }
-      }
+      assertDoesNotThrow { Guard.from("v==6").onSuccess { guard -> guard.evaluate(extent) } }
 
       // Error case
       assertThrows<IllegalArgumentException> {
-        GuardBuilder.from("v").build().onSuccess { guard -> guard.evaluate(extent) }
+        Guard.from("v").onSuccess { guard -> guard.evaluate(extent) }
       }
     }
   }

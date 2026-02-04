@@ -45,15 +45,13 @@ abstract class EventHandlerTest {
 
       // Send <count> events
       repeat(count) { i ->
-        eventHandler.send(
-          Event.ensureHasEvaluatedData(
-              EventBuilder.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
-                .build()
-                .getOrThrow(),
-              extent,
-            )
-            .withSource("source")
-        )
+        val event =
+          Event.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
+            .getOrThrow()
+            .evaluateData(extent)
+            .copy(source = "source")
+
+        eventHandler.send(event)
       }
 
       // External and global events should be received
@@ -79,15 +77,13 @@ abstract class EventHandlerTest {
 
       // Send <count> events
       repeat(count) { i ->
-        eventHandler.send(
-          Event.ensureHasEvaluatedData(
-              EventBuilder.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
-                .build()
-                .getOrThrow(),
-              extent,
-            )
-            .withSource("source")
-        )
+        val event =
+          Event.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
+            .getOrThrow()
+            .evaluateData(extent)
+            .copy(source = "source")
+
+        eventHandler.send(event)
       }
 
       // Only global events should be received

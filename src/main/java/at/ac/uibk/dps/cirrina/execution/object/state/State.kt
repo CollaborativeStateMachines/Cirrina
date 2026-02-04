@@ -1,83 +1,50 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.state
 
-import at.ac.uibk.dps.cirrina.execution.command.ActionCommand
-import at.ac.uibk.dps.cirrina.execution.command.CommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.CommandExecutionContext
 import at.ac.uibk.dps.cirrina.execution.command.Scope
-import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
 import at.ac.uibk.dps.cirrina.execution.`object`.action.TimeoutAction
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextBuilder
+import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
-import at.ac.uibk.dps.cirrina.spec.State
-import org.apache.commons.lang3.builder.ToStringBuilder
+import at.ac.uibk.dps.cirrina.spec.State as StateSpec
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import org.jgrapht.Graph
 import org.jgrapht.traverse.TopologicalOrderIterator
 
-/**
- * A representation of a state within a [StateMachine] that serves as an execution [Scope].
- *
- * This class manages the static context associated with a state and provides methods to retrieve
- * action commands for different phases of the state's lifecycle (entry, while, exit).
- *
- * @property state the definition of the state containing action graphs and descriptions.
- * @property parentStateMachine the parent state machine providing the base scope and identifier.
- */
-class State(val state: State, private val parentStateMachine: StateMachine) : Scope {
+class State
+@AssistedInject
+internal constructor(
+  @Assisted val spec: StateSpec,
+  @Assisted private val parent: StateMachine,
+  private val commandFactory: ActionCommandFactory,
+) : Scope {
 
-  private val entryActions: List<Action> = state.entryActions.asTopologicalList()
-  private val whileActions: List<Action> = state.whileActions.asTopologicalList()
-  private val exitActions: List<Action> = state.exitActions.asTopologicalList()
-  private val timeoutActions: List<TimeoutAction> =
-    state.afterActions.asTopologicalList().filterIsInstance<TimeoutAction>()
+  @AssistedFactory
+  interface Factory {
+    fun create(spec: StateSpec, parent: StateMachine): State
+  }
 
-  /**
-   * The current extent of the state, created by extending the parent's extent with the state's
-   * static context.
-   */
-  override val extent: Extent by lazy { parentStateMachine.extent.extend(buildStaticContext()) }
+  private val entryActions = spec.entryActions.toTopologicalList()
+  private val whileActions = spec.whileActions.toTopologicalList()
+  private val exitActions = spec.exitActions.toTopologicalList()
+  val timeoutActions = spec.afterActions.toTopologicalList().filterIsInstance<TimeoutAction>()
 
-  /**
-   * Retrieves the entry action commands for this state.
-   *
-   * @param commandFactory the factory used to create the commands.
-   * @return the list of [ActionCommand]s.
-   */
-  fun getEntryActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    entryActions.map { commandFactory.createActionCommand(it) }
+  override val extent: Extent by lazy {
+    parent.extent.extend(Context.from(spec.staticContextDescription).getOrThrow())
+  }
 
-  /**
-   * Retrieves the while action commands for this state.
-   *
-   * @param commandFactory the factory used to create the commands.
-   * @return the list of [ActionCommand]s.
-   */
-  fun getWhileActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    whileActions.map { commandFactory.createActionCommand(it) }
+  fun getEntryActionCommands(ctx: CommandExecutionContext) =
+    entryActions.map { commandFactory.create(it, ctx) }
 
-  /**
-   * Retrieves the exit action commands for this state.
-   *
-   * @param commandFactory the factory used to create the commands.
-   * @return the list of [ActionCommand]s.
-   */
-  fun getExitActionCommands(commandFactory: CommandFactory): List<ActionCommand> =
-    exitActions.map { commandFactory.createActionCommand(it) }
+  fun getWhileActionCommands(ctx: CommandExecutionContext) =
+    whileActions.map { commandFactory.create(it, ctx) }
 
-  /**
-   * Retrieves the list of timeout actions defined for this state.
-   *
-   * @return a list of [TimeoutAction]s.
-   */
-  fun getTimeoutActionObjects(): List<TimeoutAction> = timeoutActions
+  fun getExitActionCommands(ctx: CommandExecutionContext) =
+    exitActions.map { commandFactory.create(it, ctx) }
 
-  private fun <V, E> Graph<V, E>.asTopologicalList(): List<V> =
+  private fun <V, E> Graph<V, E>.toTopologicalList(): List<V> =
     TopologicalOrderIterator(this).asSequence().toList()
-
-  private fun buildStaticContext() =
-    (state.staticContextDescription?.let { ContextBuilder.from(it) } ?: ContextBuilder.empty())
-      .inMemoryContext()
-      .build()
-      .getOrThrow()
-
-  override fun toString() = ToStringBuilder(this).append("name", state.name).toString()
 }

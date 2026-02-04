@@ -16,7 +16,6 @@ import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import kotlin.properties.Delegates
@@ -33,12 +32,14 @@ constructor(
   @Assisted val instanceName: String,
   @Assisted private val runtime: Runtime,
   @Assisted private val stateMachineSpec: StateMachineSpec,
+  @Assisted private val serviceImplementationSelector: ServiceImplementationSelector,
   @Assisted private val parentStateMachine: StateMachine? = null,
   @Assisted private val eventSubscriptions: List<String>? = null,
   @Assisted private val data: List<ContextVariable>? = null,
-  private val meterRegistry: MeterRegistry,
   private val observationRegistry: ObservationRegistry,
-  private val serviceImplementationSelector: ServiceImplementationSelector,
+  private val commandFactory: ActionCommandFactory,
+  private val stateFactory: State.Factory,
+  private val transitionFactory: Transition.Factory,
   eventHandler: EventHandler,
 ) : EventListener, Scope {
 
@@ -48,6 +49,7 @@ constructor(
       instanceName: String,
       runtime: Runtime,
       stateMachineSpec: StateMachineSpec,
+      serviceImplementationSelector: ServiceImplementationSelector,
       parentStateMachine: StateMachine?,
       eventSubscriptions: List<String>?,
       data: List<ContextVariable>?,
@@ -63,62 +65,41 @@ constructor(
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
-  private val stateInstances = stateMachineSpec.vertexSet().associate { it.name to State(it, this) }
+  private val stateInstances =
+    stateMachineSpec.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
   private val eventChannel = Channel<Event>(Channel.UNLIMITED)
   private var activeState: State? = null
 
   override val extent: Extent
-
   private val instanceObservation =
     Observation.start("stateMachine.instance", observationRegistry).apply {
       lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
     }
 
   init {
-    // Create a transient context for this state machine instance
-    val transientContext = buildTransientContext()
-
-    // Push the instance data into the transient context
+    val transientContext = Context.from(stateMachineSpec.transientContextDescription).getOrThrow()
     data?.forEach { transientContext.create(it.name, it.value) }
 
-    // Build the extent by either extending the parent's extent or the runtime's root extent with
-    // this instance's transient context
-    extent =
-      parentStateMachine?.extent?.extend(transientContext)
-        ?: runtime.extent.extend(transientContext)
-
-    // Subscribe to events from the parent state machine, if any
+    extent = (parentStateMachine?.extent ?: runtime.extent).extend(transientContext)
     eventSubscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
 
-    // Register the state machine instance with the runtime
     runtime.phaser.register()
-
-    // Start a coroutine to process events
     launchEventProcessor()
   }
 
-  private fun launchEventProcessor() {
-    coroutineScope.launch {
-      for (event in eventChannel) {
-        processEvent(event)
-      }
-    }
-  }
+  private fun launchEventProcessor() =
+    coroutineScope.launch { for (event in eventChannel) processEvent(event) }
 
-  fun start() {
+  fun start() =
     instanceObservation.observe {
       val initial =
         stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
-
       doEnter(initial, null)?.let { step(it, null) }
     }
-  }
 
   override fun onReceiveEvent(event: Event) {
-    if (event.isValid()) {
-      eventChannel.trySend(event)
-    }
+    if (event.isValid()) eventChannel.trySend(event)
   }
 
   private fun processEvent(event: Event) {
@@ -129,34 +110,21 @@ constructor(
       .lowCardinalityKeyValue("event.topic", event.topic)
       .parentObservation(instanceObservation)
       .observe {
-        // Attempt local state transition
         handleEvent(event)?.let { transition -> step(transition, event) }
-
-        // If the event is internal, tunnel it down to nested instances
-        if (event.channel == EventChannel.INTERNAL) {
+        if (event.channel == EventChannel.INTERNAL)
           stateMachineEventHandler.propagateToNested(event)
-        }
       }
   }
 
   private fun Event.isValid(): Boolean {
-    // If a target is specified, it must match this instance name
-    if (!target.isEmpty() && target != instanceName) {
+    if (target.isNotEmpty() && target != instanceName) return false
+    if (channel != EventChannel.INTERNAL && source.isEmpty()) return false
+    if (channel == EventChannel.EXTERNAL && eventSubscriptions?.contains(source) == false)
       return false
-    }
-    // External events must have a source
-    if (channel != EventChannel.INTERNAL && source.isEmpty()) {
-      logger.warn { "$this received event '$topic' with unspecified source" }
-      return false
-    }
-    // External events must match active subscriptions
-    if (channel == EventChannel.EXTERNAL && eventSubscriptions?.contains(source) == false) {
-      return false
-    }
     return true
   }
 
-  private tailrec fun step(transition: Transition, event: Event?) {
+  private fun step(transition: Transition, event: Event?) {
     if (transition.isInternal) {
       doTransition(transition, event)
       return
@@ -168,21 +136,18 @@ constructor(
     doExit(current, event)
     doTransition(transition, event)
 
-    val next = doEnter(target, event)
-    if (next != null) step(next, event)
+    doEnter(target, event)?.let { step(it, event) }
   }
 
   private fun handleEvent(event: Event): Transition? {
     val current = activeState ?: return null
     val candidates =
-      stateMachineSpec.getOnTransitionsFromStateByEventName(current.state, event.topic)
+      stateMachineSpec.getOnTransitionsFromStateByEventName(current.spec, event.topic)
     if (candidates.isEmpty()) return null
 
     val evalExtent =
       extent.extend(
-        event.data.fold(InMemoryContext()) { context, it ->
-          context.apply { create(VAR_PREFIX + it.name, it.value) }
-        }
+        InMemoryContext().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
       )
 
     return trySelect(candidates, evalExtent)?.also {
@@ -190,71 +155,49 @@ constructor(
     }
   }
 
-  private fun doEnter(state: State, event: Event?): Transition? {
-    return Observation.createNotStarted("stateMachine.enter", observationRegistry)
+  private fun doEnter(state: State, event: Event?): Transition? =
+    Observation.createNotStarted("stateMachine.enter", observationRegistry)
       .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
-      .lowCardinalityKeyValue("state.name", state.state.name)
-      .lowCardinalityKeyValue("event.topic", event?.topic ?: "none")
+      .lowCardinalityKeyValue("state.name", state.spec.name)
       .observe<Transition?> {
-        // Change the active state
         activeState = state
 
-        val factory = createFactory(state, event)
+        execute(state.getEntryActionCommands(createContext(state, event)))
+        execute(state.getWhileActionCommands(createContext(state, event, isWhile = true)))
 
-        // Execute entry and while actions
-        execute(state.getEntryActionCommands(factory))
-        execute(state.getWhileActionCommands(createFactory(state, event, true)))
-
-        // Start timeout actions
-        state.getTimeoutActionObjects().forEach(::startTimeout)
-
-        // Check termination
+        state.timeoutActions.forEach(::startTimeout)
         checkTermination()
 
-        // Proceed if not terminated
         if (!isTerminated()) {
-          trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.state), extent)
+          trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.spec), extent)
         } else null
       }
-  }
 
-  private fun doExit(state: State, event: Event?) {
-    return Observation.createNotStarted("stateMachine.exit", observationRegistry)
-      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
-      .lowCardinalityKeyValue("state.name", state.state.name)
-      .lowCardinalityKeyValue("event.topic", event?.topic ?: "none")
+  private fun doExit(state: State, event: Event?) =
+    Observation.createNotStarted("stateMachine.exit", observationRegistry)
+      .lowCardinalityKeyValue("state.name", state.spec.name)
       .observe {
-        // Stop all timeout actions
         timeoutActionManager.stopAll()
-
-        // Execute exit actions
-        execute(state.getExitActionCommands(createFactory(state, event)))
+        execute(state.getExitActionCommands(createContext(state, event)))
       }
-  }
 
-  private fun doTransition(transition: Transition, event: Event?) {
-    return Observation.createNotStarted("stateMachine.transition", observationRegistry)
-      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
-      .lowCardinalityKeyValue("event.topic", event?.topic ?: "none")
-      .observe {
-        // Execute transition actions, if the transition is an or we skip the transitions
-        if (!transition.isOr) {
-          execute(transition.getActionCommands(createFactory(this, event)))
-        }
+  private fun doTransition(transition: Transition, event: Event?) =
+    Observation.createNotStarted("stateMachine.transition", observationRegistry).observe {
+      if (!transition.isOr) {
+        execute(transition.getActionCommands(createContext(this, event)))
       }
-  }
+    }
 
   private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
     val selected =
       transitions.mapNotNull { tc ->
         val result = tc.evaluate(evalExtent)
         when {
-          result -> Transition(tc, isOr = false)
-          tc.or != null -> Transition(tc, isOr = true)
+          result -> transitionFactory.create(tc, isOr = false)
+          tc.or != null -> transitionFactory.create(tc, isOr = true)
           else -> null
         }
       }
-
     return when (selected.size) {
       0 -> null
       1 -> selected.first()
@@ -276,7 +219,7 @@ constructor(
   private fun startTimeout(timeout: TimeoutAction) {
     val delay = timeout.delay.execute(extent) as? Number ?: error("non-numeric delay")
     timeoutActionManager.start(timeout.name, delay) {
-      val command = createFactory(this, null).createActionCommand(timeout.`do`)
+      val command = commandFactory.create(timeout.`do`, createContext(this, null))
       execute(listOf(command as? ActionRaiseCommand ?: error("must be raise")))
     }
   }
@@ -284,44 +227,33 @@ constructor(
   private fun stopTimeout(name: String) = timeoutActionManager.stop(name)
 
   private fun isTerminated(): Boolean =
-    parentStateMachine?.isTerminated() == true || activeState?.state?.terminal == true
+    parentStateMachine?.isTerminated() == true || activeState?.spec?.terminal == true
 
   private fun checkTermination() {
     if (isTerminated()) {
       logger.info { "state machine '$instanceName' terminated" }
-
       instanceObservation.stop()
       timeoutActionManager.shutdown()
-
-      // Close the channel and cancel scope
       eventChannel.close()
       coroutineScope.cancel()
       runtime.phaser.arriveAndDeregister()
     }
   }
 
-  private fun buildTransientContext(): Context =
-    stateMachineSpec.transientContextDescription?.let {
-      ContextBuilder.from(it).inMemoryContext().build().getOrThrow()
-    } ?: ContextBuilder.empty().inMemoryContext().build().getOrThrow()
-
-  private fun createFactory(scope: Scope, event: Event?, isWhile: Boolean = false) =
-    CommandFactory(
-      ExecutionContext(
-        scope,
-        serviceImplementationSelector,
-        stateMachineEventHandler,
-        coroutineScope,
-        event,
-        isWhile,
-      ),
-      meterRegistry,
+  private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
+    CommandExecutionContext(
+      scope,
+      serviceImplementationSelector,
+      stateMachineEventHandler,
+      coroutineScope,
+      event,
+      isWhile,
     )
 
   override fun toString() = "StateMachine(name='$instanceName')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun sendEvent(event: Event) = eventHandler.send(event.withSource(instanceName))
+    fun sendEvent(event: Event) = eventHandler.send(event.copy(source = instanceName))
 
     fun propagateToParent(event: Event) {
       parentStateMachine?.stateMachineEventHandler?.propagateToParent(event)
@@ -331,7 +263,7 @@ constructor(
     fun propagateToNested(event: Event) {
       nestedStateMachineInstanceNames.forEach { name ->
         runtime.findStateMachineInstance(name)?.onReceiveEvent(event)
-          ?: error("Nested state machine instance '$name' missing")
+          ?: error("nested state machine instance '$name' missing")
       }
     }
   }

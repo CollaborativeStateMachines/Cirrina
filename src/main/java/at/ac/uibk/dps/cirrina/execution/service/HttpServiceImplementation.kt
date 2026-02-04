@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
@@ -18,63 +18,58 @@ class HttpServiceImplementation(
   private val host: String,
   private val port: Int,
   private val endPoint: String,
-  private val method: ServiceImplementationBindings.HttpMethod,
+  private val method: HttpMethod,
   name: String,
   local: Boolean,
 ) : ServiceImplementation(name, local) {
 
-  private val virtualExecutor = Executors.newVirtualThreadPerTaskExecutor()
+  private val httpClient: HttpClient =
+    HttpClient.newBuilder().executor(Executors.newVirtualThreadPerTaskExecutor()).build()
 
-  private val httpClient: HttpClient = HttpClient.newBuilder().executor(virtualExecutor).build()
+  override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> {
+    require(input.none { it.isLazy }) { "all variables must be evaluated before conversion" }
 
-  override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> =
-    input
-      .apply {
-        require(none { it.isLazy }) {
-          "All variables need to be evaluated before service input can be converted to bytes"
-        }
-      }
-      .let { vars -> serializeInput(vars) }
-      .let { payload ->
-        HttpRequest.newBuilder()
-          .version(HttpClient.Version.HTTP_1_1)
-          .header("Content-Type", "application/x-protobuf")
-          .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
-          .uri(URI(scheme, null, host, port, endPoint, null, null))
-          .build()
-      }
-      .let { request ->
-        httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
-      }
-      .let { response -> handleResponse(response) }
+    val payload = serializeInput(input)
+    val uri = URI(scheme, null, host, port, endPoint, null, null)
 
-  private fun serializeInput(input: List<ContextVariable>): ByteArray =
-    input
-      .takeIf { it.isNotEmpty() }
-      ?.let { vars ->
-        ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(vars.map { ContextVariableExchange(it).toProto() })
-          .build()
-          .toByteArray()
-      } ?: byteArrayOf()
+    val request =
+      HttpRequest.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .header("Content-Type", "application/x-protobuf")
+        .method(method.toString(), HttpRequest.BodyPublishers.ofByteArray(payload))
+        .uri(uri)
+        .build()
 
-  private fun handleResponse(response: HttpResponse<ByteArray>): List<ContextVariable> =
-    response
-      .takeIf { it.statusCode() == HttpURLConnection.HTTP_OK }
-      ?.body()
-      ?.takeIf { it.isNotEmpty() }
-      ?.let { payload ->
-        try {
-          ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
-            ContextVariableExchange.fromProto(it)
-          }
-        } catch (e: InvalidProtocolBufferException) {
-          error("Unexpected HTTP service invocation value type: ${e.message}")
-        }
+    val response = httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).await()
+
+    return handleResponse(response)
+  }
+
+  private fun serializeInput(input: List<ContextVariable>): ByteArray {
+    if (input.isEmpty()) return byteArrayOf()
+
+    return ContextVariableProtos.ContextVariables.newBuilder()
+      .addAllData(input.map { ContextVariableExchange(it).toProto() })
+      .build()
+      .toByteArray()
+  }
+
+  private fun handleResponse(response: HttpResponse<ByteArray>): List<ContextVariable> {
+    val statusCode = response.statusCode()
+
+    if (statusCode != HttpURLConnection.HTTP_OK) {
+      error("http error ($statusCode)")
+    }
+
+    val body = response.body()
+    if (body == null || body.isEmpty()) return emptyList()
+
+    return try {
+      ContextVariableProtos.ContextVariables.parseFrom(body).dataList.map {
+        ContextVariableExchange.fromProto(it)
       }
-      ?: if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-        error("HTTP error (${response.statusCode()})")
-      } else {
-        emptyList()
-      }
+    } catch (_: InvalidProtocolBufferException) {
+      error("unexpected http service response format")
+    }
+  }
 }
