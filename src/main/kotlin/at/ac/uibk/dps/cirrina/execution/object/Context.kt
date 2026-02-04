@@ -38,14 +38,14 @@ interface Context : AutoCloseable {
   fun getAll(): List<ContextVariable>
 
   companion object {
-    fun from(description: Map<String, String>?): Result<Context> = runCatching {
+    fun from(description: Map<String, String>?): Context {
       val ctx = InMemoryContext()
       description?.forEach { (name, expr) ->
-        val expression = Expression.from(expr).getOrThrow()
+        val expression = Expression.from(expr)
         val value = expression.execute(Extent.empty())
         ctx.create(name, value)
       }
-      ctx
+      return ctx
     }
   }
 }

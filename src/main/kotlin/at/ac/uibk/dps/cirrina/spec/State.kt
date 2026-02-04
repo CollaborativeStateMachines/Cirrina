@@ -42,11 +42,11 @@ private constructor(
     }
 
     private fun resolveActions(descriptions: List<ActionDescription>): List<Action> =
-      descriptions.map { Action.create(it).getOrThrow() }
+      descriptions.map { Action.create(it) }
 
     private fun resolveAfterActions(descriptions: Map<String, ActionDescription>): List<Action> =
       descriptions
-        .map { (name, desc) -> Action.create(desc, name).getOrThrow() }
+        .map { (name, desc) -> Action.create(desc, name) }
         .also { actions ->
           require(actions.all { it is TimeoutAction }) {
             "all 'after' actions must be timeout actions"

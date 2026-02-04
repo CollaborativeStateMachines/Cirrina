@@ -31,8 +31,8 @@ private constructor(
         Transition(
           event,
           description.to,
-          description.iif?.let { Guard.from(it).getOrThrow() },
-          description.`do`.map { Action.create(it).getOrThrow() },
+          description.iif?.let { Guard.from(it) },
+          description.`do`.map { Action.create(it) },
           description.or,
         )
       }

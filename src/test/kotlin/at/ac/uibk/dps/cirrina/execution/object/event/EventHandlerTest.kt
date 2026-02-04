@@ -50,7 +50,6 @@ abstract class EventHandlerTest {
       repeat(count) { i ->
         val event =
           Event.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
-            .getOrThrow()
             .evaluateData(extent)
             .copy(source = "source")
 
@@ -82,7 +81,6 @@ abstract class EventHandlerTest {
       repeat(count) { i ->
         val event =
           Event.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
-            .getOrThrow()
             .evaluateData(extent)
             .copy(source = "source")
 

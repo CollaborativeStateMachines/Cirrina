@@ -18,7 +18,7 @@ private constructor(val persistentContextVariables: List<ContextVariable>) :
     fun create(
       description: CollaborativeStateMachineDescription
     ): Result<CollaborativeStateMachine> = runCatching {
-      val variables = Context.from(description.persistent).getOrThrow().getAll()
+      val variables = Context.from(description.persistent).getAll()
 
       val spec = CollaborativeStateMachine(variables)
 

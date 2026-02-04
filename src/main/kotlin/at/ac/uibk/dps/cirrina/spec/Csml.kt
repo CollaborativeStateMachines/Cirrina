@@ -17,9 +17,7 @@ private constructor(
       val spec = CollaborativeStateMachine.create(desc.collaborativeStateMachine).getOrThrow()
 
       val instanceData =
-        desc.instanceData.mapValues { (_, innerMap) ->
-          Context.from(innerMap).getOrThrow().getAll()
-        }
+        desc.instanceData.mapValues { (_, innerMap) -> Context.from(innerMap).getAll() }
 
       Csml(spec, desc.instances, desc.instanceSubscriptions, instanceData, desc.bindings)
     }

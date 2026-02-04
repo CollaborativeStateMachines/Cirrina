@@ -25,56 +25,50 @@ class ActionGraph private constructor() :
 
 sealed interface Action {
   companion object {
-    fun create(description: ActionDescription, name: String? = null): Result<Action> = runCatching {
+    fun create(description: ActionDescription, name: String? = null): Action =
       when (description) {
-        is EvalDescription -> Expression.from(description.expression).map(::EvalAction).getOrThrow()
+        is EvalDescription -> EvalAction(Expression.from(description.expression))
 
         is InvokeDescription ->
           InvokeAction(
             description.type,
             description.mode,
-            buildVariables(description.input).getOrThrow(),
-            buildEvents(description.raises).getOrThrow(),
+            buildVariables(description.input),
+            buildEvents(description.raises),
           )
 
         is MatchDescription ->
           MatchAction(
-            Expression.from(description.value).getOrThrow(),
-            description.cases.associate {
-              Expression.from(it.of).getOrThrow() to create(it.then).getOrThrow()
-            },
-            description.default?.let { create(it).getOrThrow() },
+            Expression.from(description.value),
+            description.cases.associate { Expression.from(it.of) to create(it.then) },
+            description.default?.let { create(it) },
           )
 
         is RaiseDescription ->
           RaiseAction(
-            Event.from(description.event).getOrThrow(),
-            description.target?.let { Expression.from(it).getOrThrow() },
+            Event.from(description.event),
+            description.target?.let { Expression.from(it) },
           )
 
         is TimeoutDescription ->
           TimeoutAction(
             name ?: error("timeout action name required"),
-            Expression.from(description.delay).getOrThrow(),
-            create(description.`do`).getOrThrow(),
+            Expression.from(description.delay),
+            create(description.`do`),
           )
 
         is ResetDescription -> TimeoutResetAction(description.name)
 
         else -> error("unknown type: ${description.javaClass.simpleName}")
       }
-    }
 
-    private fun buildVariables(context: Map<String, String>) = runCatching {
+    private fun buildVariables(context: Map<String, String>) =
       context.map { (k, v) ->
-        val expression = Expression.from(v).getOrThrow()
+        val expression = Expression.from(v)
         ContextVariable.lazy(k, expression)
       }
-    }
 
-    private fun buildEvents(events: List<EventDescription>) = runCatching {
-      events.map { Event.from(it).getOrThrow() }
-    }
+    private fun buildEvents(events: List<EventDescription>) = events.map { Event.from(it) }
   }
 }
 

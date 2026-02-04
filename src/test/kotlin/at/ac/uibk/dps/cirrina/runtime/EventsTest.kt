@@ -39,7 +39,6 @@ class EventsTest {
           delay(1000)
           eventHandler.send(
             Event.from(Csml.EventDescription("pe1", EventChannel.PERIPHERAL, mapOf()))
-              .getOrThrow()
               .copy(source = PERIPHERAL_SOURCE)
           )
         }

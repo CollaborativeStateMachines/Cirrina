@@ -59,7 +59,7 @@ internal constructor(
     }
 
   init {
-    val transientContext = Context.from(stateMachineSpec.transientContextDescription).getOrThrow()
+    val transientContext = Context.from(stateMachineSpec.transientContextDescription)
     data?.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parentStateMachine?.extent ?: runtime.extent).extend(transientContext)

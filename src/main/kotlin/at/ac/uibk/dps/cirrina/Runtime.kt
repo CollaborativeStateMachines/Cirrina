@@ -83,9 +83,7 @@ constructor(
     }
 
     serviceImplementationSelector =
-      RandomServiceImplementationSelector(
-        ServiceImplementation.from(csmlSpec.bindings).getOrThrow()
-      )
+      RandomServiceImplementationSelector(ServiceImplementation.from(csmlSpec.bindings))
 
     stateMachineInstances =
       csmlSpec.instances
