@@ -7,12 +7,12 @@ import at.ac.uibk.dps.cirrina.csm.Csml.Type
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
-import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
+import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.Stdlib
+import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.*

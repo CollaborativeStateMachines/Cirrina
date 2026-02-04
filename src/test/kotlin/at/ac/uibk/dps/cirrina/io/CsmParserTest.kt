@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.io
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
-import at.ac.uibk.dps.cirrina.utils.TestUtils.resourceUri
+import at.ac.uibk.dps.cirrina.util.TestUtils.resourceUri
 import java.net.URI
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

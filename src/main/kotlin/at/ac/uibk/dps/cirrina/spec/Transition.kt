@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
-import at.ac.uibk.dps.cirrina.execution.`object`.action.Action
-import at.ac.uibk.dps.cirrina.execution.`object`.action.ActionGraph
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.guard.Guard
+import at.ac.uibk.dps.cirrina.execution.`object`.Action
+import at.ac.uibk.dps.cirrina.execution.`object`.ActionGraph
+import at.ac.uibk.dps.cirrina.execution.`object`.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.Guard
 import org.jgrapht.graph.DefaultEdge
 
 class Transition
@@ -15,7 +15,6 @@ private constructor(
   val `do`: List<Action>,
   val or: String?,
 ) : DefaultEdge() {
-
   val actions: ActionGraph = ActionGraph.create(`do`)
 
   fun evaluate(extent: Extent): Boolean = iif?.evaluate(extent) ?: true

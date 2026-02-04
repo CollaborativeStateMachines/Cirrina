@@ -1,13 +1,13 @@
 package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
-import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.EventListener
+import at.ac.uibk.dps.cirrina.execution.`object`.Extent
+import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
@@ -41,13 +41,11 @@ constructor(
   meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
 ) : EventListener {
-
   companion object {
     const val RING_BUFFER_SIZE = 1024
   }
 
   val stateMachineInstances: Map<String, StateMachine>
-
   val serviceImplementationSelector: ServiceImplementationSelector
 
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()

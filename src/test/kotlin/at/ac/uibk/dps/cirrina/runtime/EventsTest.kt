@@ -6,9 +6,9 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.PERIPHERAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
 import java.time.Duration
 import kotlin.time.measureTime
 import kotlinx.coroutines.Dispatchers

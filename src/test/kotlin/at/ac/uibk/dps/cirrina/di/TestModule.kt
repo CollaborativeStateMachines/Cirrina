@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.di
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
-import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactory
-import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactoryImpl
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
+import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import dagger.Module
 import dagger.Provides
 import io.micrometer.core.instrument.MeterRegistry

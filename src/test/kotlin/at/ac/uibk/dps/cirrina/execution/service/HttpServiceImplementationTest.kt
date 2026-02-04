@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
+import at.ac.uibk.dps.cirrina.execution.util.ContextVariableExchange
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress

@@ -1,7 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.expression
 
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.`object`.Expression
+import at.ac.uibk.dps.cirrina.execution.`object`.Extent
+import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
 import java.nio.ByteBuffer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

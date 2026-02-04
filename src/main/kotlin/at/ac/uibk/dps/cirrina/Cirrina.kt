@@ -1,14 +1,13 @@
 package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.di.DaggerCirrinaComponent
-import at.ac.uibk.dps.cirrina.utils.getBuildVersion
+import at.ac.uibk.dps.cirrina.util.getBuildVersion
 import java.util.logging.LogManager
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
 class Cirrina {
-
   fun run() {
 
     val component = DaggerCirrinaComponent.create()

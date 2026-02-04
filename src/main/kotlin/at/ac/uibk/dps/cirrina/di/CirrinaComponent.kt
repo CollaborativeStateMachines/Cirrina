@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.di
 
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.cirrina.di.CirrinaModule
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import dagger.Component
 import io.micrometer.core.instrument.MeterRegistry
 import jakarta.inject.Named

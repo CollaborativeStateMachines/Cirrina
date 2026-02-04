@@ -4,7 +4,7 @@ import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals

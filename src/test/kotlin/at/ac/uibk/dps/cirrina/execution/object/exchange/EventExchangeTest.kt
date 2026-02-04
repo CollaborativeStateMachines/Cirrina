@@ -1,8 +1,9 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.exchange
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.execution.util.EventExchange
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
