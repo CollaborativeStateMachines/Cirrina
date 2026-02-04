@@ -2,7 +2,6 @@ package at.ac.uibk.dps.cirrina.util
 
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.util.ContextVariableExchange
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
@@ -15,23 +14,6 @@ object TestUtils {
       TestUtils::class.java.classLoader.getResource(path)
         ?: throw IllegalArgumentException("resource not found: $path")
     return Paths.get(url.toURI()).toUri()
-  }
-
-  fun mockPersistentContext(
-    createBlock: InMemoryContext.() -> Unit = {},
-    assignBlock: (superAssign: (String, Any?) -> Int, name: String, value: Any?) -> Int =
-      { superAssign, name, value ->
-        superAssign(name, value)
-      },
-  ): InMemoryContext {
-    val mockPersistentContext =
-      object : InMemoryContext() {
-        override fun assign(name: String, value: Any?): Int {
-          return assignBlock({ n, v -> super.assign(n, v) }, name, value)
-        }
-      }
-    mockPersistentContext.createBlock()
-    return mockPersistentContext
   }
 
   fun mockHttpServer(handlerBlock: (List<ContextVariable>) -> List<ContextVariable>): HttpServer {
