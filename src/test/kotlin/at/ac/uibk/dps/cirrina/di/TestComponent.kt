@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.di
 
-import at.ac.uibk.dps.cirrina.cirrina.Runtime
+import at.ac.uibk.dps.cirrina.Runtime
 import dagger.Component
 import jakarta.inject.Singleton
 

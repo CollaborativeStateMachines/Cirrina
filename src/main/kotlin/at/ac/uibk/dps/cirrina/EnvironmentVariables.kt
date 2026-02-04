@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.cirrina
+package at.ac.uibk.dps.cirrina
 
 enum class EventProvider {
   ZENOH

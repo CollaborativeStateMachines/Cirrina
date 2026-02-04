@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.event
 
-import at.ac.uibk.dps.cirrina.cirrina.EnvironmentVariables
+import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventExchange
 import io.zenoh.Config
