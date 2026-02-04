@@ -21,7 +21,6 @@ class Cirrina {
           component.persistentContext().use { _ -> component.runtime().run() }
         }
 
-        // Flush the metrics
         component.meterRegistry().close()
       }
       .onFailure { ex -> logger.error(ex) { "a fatal error occurred during runtime execution" } }

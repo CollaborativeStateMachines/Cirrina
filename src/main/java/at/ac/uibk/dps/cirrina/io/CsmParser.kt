@@ -36,12 +36,8 @@ object CsmParser {
   }
 
   fun parseCsml(uri: URI): Csml {
-    try {
-      evaluator().use { evaluator ->
-        return evaluator.evaluate(ModuleSource.uri(uri)).`as`(Csml::class.java)
-      }
-    } catch (_: Exception) {
-      error("parsing error")
+    evaluator().use { evaluator ->
+      return evaluator.evaluate(ModuleSource.uri(uri)).`as`(Csml::class.java)
     }
   }
 }
