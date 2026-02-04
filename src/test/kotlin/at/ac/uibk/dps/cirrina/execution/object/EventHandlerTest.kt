@@ -1,19 +1,11 @@
-package at.ac.uibk.dps.cirrina.execution.`object`.event
+package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription
-import at.ac.uibk.dps.cirrina.execution.`object`.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.GLOBAL_SOURCE
-import at.ac.uibk.dps.cirrina.execution.`object`.EventListener
-import at.ac.uibk.dps.cirrina.execution.`object`.Extent
+import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlin.use
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
@@ -22,8 +14,8 @@ abstract class EventHandlerTest {
   protected abstract fun createEventHandler(): EventHandler
 
   @ParameterizedTest
-  @EnumSource(EventChannel::class)
-  fun testEventHandlerSendReceive(channel: EventChannel) {
+  @EnumSource(Csml.EventChannel::class)
+  fun testEventHandlerSendReceive(channel: Csml.EventChannel) {
     createEventHandler().use { eventHandler ->
       val count = 5
 
@@ -43,13 +35,13 @@ abstract class EventHandlerTest {
 
       eventHandler.listener = handlerListener
 
-      eventHandler.subscribe(GLOBAL_SOURCE)
+      eventHandler.subscribe(EventHandler.Companion.GLOBAL_SOURCE)
       eventHandler.subscribe("source")
 
       // Send <count> events
       repeat(count) { i ->
         val event =
-          Event.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
+          Event.from(Csml.EventDescription("e1", channel, mapOf("varName" to "$i")))
             .evaluateData(extent)
             .copy(source = "source")
 
@@ -57,18 +49,26 @@ abstract class EventHandlerTest {
       }
 
       // External and global events should be received
-      if (channel == EventChannel.EXTERNAL || channel == EventChannel.GLOBAL) {
+      if (channel == Csml.EventChannel.EXTERNAL || channel == Csml.EventChannel.GLOBAL) {
         val success = latch.await(5, TimeUnit.SECONDS)
-        assertTrue(success, "timed out waiting for external or global events")
-        assertEquals(count, receivedEvents.size)
+        Assertions.assertTrue(success, "timed out waiting for external or global events")
+        Assertions.assertEquals(count, receivedEvents.size)
         receivedEvents.forEachIndexed { index, event ->
           val variable = event.data.first()
-          assertEquals("varName", variable.name, "event data mismatch at index $index (name)")
-          assertEquals(index, variable.value, "event data mismatch at index $index (value)")
+          Assertions.assertEquals(
+            "varName",
+            variable.name,
+            "event data mismatch at index $index (name)",
+          )
+          Assertions.assertEquals(
+            index,
+            variable.value,
+            "event data mismatch at index $index (value)",
+          )
         }
       } else {
         Thread.sleep(500)
-        assertEquals(0, receivedEvents.size)
+        Assertions.assertEquals(0, receivedEvents.size)
       }
 
       // Clear and unsubscribe
@@ -80,7 +80,7 @@ abstract class EventHandlerTest {
       // Send <count> events
       repeat(count) { i ->
         val event =
-          Event.from(EventDescription("e1", channel, mapOf("varName" to "$i")))
+          Event.from(Csml.EventDescription("e1", channel, mapOf("varName" to "$i")))
             .evaluateData(extent)
             .copy(source = "source")
 
@@ -88,13 +88,13 @@ abstract class EventHandlerTest {
       }
 
       // Only global events should be received
-      if (channel == EventChannel.GLOBAL) {
+      if (channel == Csml.EventChannel.GLOBAL) {
         val success = latch.await(5, TimeUnit.SECONDS)
-        assertTrue(success, "timed out waiting for global events")
-        assertEquals(count, receivedEvents.size)
+        Assertions.assertTrue(success, "timed out waiting for global events")
+        Assertions.assertEquals(count, receivedEvents.size)
       } else {
         Thread.sleep(500)
-        assertEquals(
+        Assertions.assertEquals(
           0,
           receivedEvents.size,
           "events received for internal or external channel after unsubscribe",

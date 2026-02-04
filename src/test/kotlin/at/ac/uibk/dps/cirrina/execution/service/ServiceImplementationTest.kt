@@ -12,7 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 
-class HttpServiceImplementationTest {
+class ServiceImplementationTest {
 
   companion object {
     private lateinit var httpServer: HttpServer

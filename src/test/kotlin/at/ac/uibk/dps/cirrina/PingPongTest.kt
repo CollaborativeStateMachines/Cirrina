@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.runtime
+package at.ac.uibk.dps.cirrina
 
 import EventHandlerInMemory
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
