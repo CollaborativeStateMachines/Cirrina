@@ -39,9 +39,6 @@ object EnvironmentVariables {
 
   val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
 
-  val csmServiceBindingsUri =
-    EnvironmentVariable("CSM_SERVICE_BINDINGS_URL", "file:///app/services.pkl")
-
   val eventProvider =
     EnvironmentVariable(
       "EVENT_PROVIDER",

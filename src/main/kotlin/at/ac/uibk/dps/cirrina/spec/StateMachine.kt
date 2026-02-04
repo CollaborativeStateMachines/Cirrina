@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
-import at.ac.uibk.dps.cirrina.execution.`object`.action.EventRaisingAction
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.EventRaisingAction
 import org.jgrapht.graph.DirectedPseudograph
 
 class StateMachine
@@ -12,7 +12,6 @@ internal constructor(
   val nestedStateMachinesSpecs: List<StateMachine>,
   val transientContextDescription: Map<String, String>?,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
-
   val initialState: State by lazy {
     vertexSet().firstOrNull { it.initial }
       ?: error("state machine '$name' must have an initial state")

@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.data
 
-import at.ac.uibk.dps.cirrina.utils.TestUtils.resourceUri
+import at.ac.uibk.dps.cirrina.util.TestUtils.resourceUri
 import java.net.URI
 
 object DefaultDescriptions {

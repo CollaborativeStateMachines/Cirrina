@@ -1,5 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`.context
 
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import at.ac.uibk.dps.cirrina.execution.provider.EtcdContext
 import org.junit.jupiter.api.Assumptions.assumeTrue
 
 class EtcdContextTest : ContextTest() {

@@ -1,8 +1,8 @@
 package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 
 class Csml
 private constructor(
@@ -12,7 +12,6 @@ private constructor(
   val instanceData: Map<String, List<ContextVariable>>,
   val bindings: List<Csml.ServiceImplementationBinding>,
 ) {
-
   companion object {
     fun create(desc: Csml): Result<at.ac.uibk.dps.cirrina.spec.Csml> = runCatching {
       val spec = CollaborativeStateMachine.create(desc.collaborativeStateMachine).getOrThrow()

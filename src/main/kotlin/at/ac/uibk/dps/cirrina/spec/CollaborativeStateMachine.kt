@@ -2,15 +2,14 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.CollaborativeStateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import org.jgrapht.graph.DirectedPseudograph
 
 class CollaborativeStateMachine
 private constructor(val persistentContextVariables: List<ContextVariable>) :
   DirectedPseudograph<StateMachine, Event>(Event::class.java) {
-
   fun findStateMachineClassByName(name: String): StateMachine? {
     return vertexSet().singleOrNull { it.name == name }
   }

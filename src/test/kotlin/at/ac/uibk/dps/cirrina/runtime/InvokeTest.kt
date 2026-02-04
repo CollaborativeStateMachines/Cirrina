@@ -4,9 +4,9 @@ import InMemoryEventHandler
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
-import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -2,9 +2,12 @@ package at.ac.uibk.dps.cirrina.execution.`object`.event
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription
-import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
-import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.GLOBAL_SOURCE
+import at.ac.uibk.dps.cirrina.execution.`object`.EventListener
+import at.ac.uibk.dps.cirrina.execution.`object`.Extent
+import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
