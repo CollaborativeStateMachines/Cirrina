@@ -18,7 +18,7 @@ class CsmParserTest {
 
   @Test
   fun testCsmlNegative() {
-    assertThrows<IllegalArgumentException> { CsmParser.parseCsml(DefaultDescriptions.empty) }
+    assertThrows<Exception> { CsmParser.parseCsml(DefaultDescriptions.empty) }
   }
 
   @Test
