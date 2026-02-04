@@ -1,10 +1,10 @@
 package at.ac.uibk.dps.cirrina.runtime
 
-import InMemoryEventHandler
+import EventHandlerInMemory
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Test
@@ -17,8 +17,8 @@ class NoopTest {
   fun testNoopExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = InMemoryEventHandler()
-        val context = InMemoryContext()
+        val eventHandler = EventHandlerInMemory()
+        val context = ContextInMemory()
 
         val runtime =
           DaggerTestComponent.builder()

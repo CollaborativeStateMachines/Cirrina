@@ -20,7 +20,7 @@ abstract class ServiceImplementation(val name: String, val isLocal: Boolean) {
   abstract suspend fun invoke(input: List<ContextVariable>): List<ContextVariable>
 
   companion object {
-    fun from(binding: ServiceImplementationBinding): Result<ServiceImplementation> = runCatching {
+    fun from(binding: ServiceImplementationBinding) =
       when (binding) {
         is HttpServiceImplementationBinding ->
           HttpServiceImplementation(
@@ -34,13 +34,9 @@ abstract class ServiceImplementation(val name: String, val isLocal: Boolean) {
           )
         else -> error("unexpected service binding type: ${binding::class.simpleName}")
       }
-    }
 
-    fun from(
-      bindings: List<ServiceImplementationBinding>
-    ): Result<Map<String, List<ServiceImplementation>>> = runCatching {
-      bindings.map { from(it).getOrThrow() }.groupBy { it.name }
-    }
+    fun from(bindings: List<ServiceImplementationBinding>) =
+      bindings.map { from(it) }.groupBy { it.name }
   }
 }
 

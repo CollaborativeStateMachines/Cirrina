@@ -20,7 +20,7 @@ internal constructor(
   val timeoutActions = spec.afterActions.toTopologicalList().filterIsInstance<TimeoutAction>()
 
   override val extent: Extent by lazy {
-    parent.extent.extend(Context.from(spec.staticContextDescription).getOrThrow())
+    parent.extent.extend(Context.from(spec.staticContextDescription))
   }
 
   fun getEntryActionCommands(ctx: CommandExecutionContext) =

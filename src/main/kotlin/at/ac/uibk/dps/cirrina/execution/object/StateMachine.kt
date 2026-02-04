@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
@@ -59,7 +59,7 @@ internal constructor(
     }
 
   init {
-    val transientContext = Context.from(stateMachineSpec.transientContextDescription).getOrThrow()
+    val transientContext = Context.from(stateMachineSpec.transientContextDescription)
     data?.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parentStateMachine?.extent ?: runtime.extent).extend(transientContext)
@@ -111,7 +111,9 @@ internal constructor(
       return
     }
 
-    val target = stateInstances[transition.targetStateName] ?: error("target not found")
+    val target =
+      stateInstances[transition.targetStateName]
+        ?: error("target state '${transition.targetStateName}' not found")
     val current = activeState ?: error("no active state to transition from")
 
     doExit(current, event)
@@ -128,7 +130,7 @@ internal constructor(
 
     val evalExtent =
       extent.extend(
-        InMemoryContext().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
+        ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
       )
 
     return trySelect(candidates, evalExtent)?.also {
@@ -182,7 +184,7 @@ internal constructor(
     return when (selected.size) {
       0 -> null
       1 -> selected.first()
-      else -> error("non-determinism detected in $this")
+      else -> error("non-determinism detected with selected transitions '$selected'")
     }
   }
 
@@ -198,10 +200,17 @@ internal constructor(
   }
 
   private fun startTimeout(timeout: TimeoutAction) {
-    val delay = timeout.delay.execute(extent) as? Number ?: error("non-numeric delay")
+    val delay =
+      timeout.delay.execute(extent) as? Number
+        ?: error("timeout delay '${timeout.delay}' is non-numeric")
     timeoutActionManager.start(timeout.name, delay) {
-      val command = commandFactory.create(timeout.`do`, createContext(this, null))
-      execute(listOf(command as? ActionRaiseCommand ?: error("must be raise")))
+      val action = timeout.`do`
+      val command = commandFactory.create(action, createContext(this, null))
+      execute(
+        listOf(
+          command as? ActionRaiseCommand ?: error("timeout action '$action' must be a raise action")
+        )
+      )
     }
   }
 
@@ -212,7 +221,7 @@ internal constructor(
 
   private fun checkTermination() {
     if (isTerminated()) {
-      logger.info { "state machine '$instanceName' terminated" }
+      logger.info { "'$this' terminated" }
       instanceObservation.stop()
       timeoutActionManager.shutdown()
       eventChannel.close()

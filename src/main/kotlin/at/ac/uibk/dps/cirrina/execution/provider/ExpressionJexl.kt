@@ -7,15 +7,33 @@ import java.util.LinkedHashSet
 import org.apache.commons.jexl3.*
 import org.apache.commons.jexl3.introspection.JexlPermissions
 
-class Stdlib {
-  companion object {
-    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
+class ExpressionJexl(source: String) : Expression(source) {
+  private val jexlScript: JexlScript =
+    try {
+      Provider.engine.createScript(source)
+    } catch (e: Exception) {
+      error("could not parse expression '$source': ${e.localizedMessage}")
+    }
 
-    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
+  override fun execute(extent: Extent): Any? =
+    try {
+      jexlScript.execute(ExtentJexlContext(extent))
+    } catch (e: Exception) {
+      error("failed to execute expression '$source': ${e.localizedMessage}")
+    }
+
+  private class ExtentJexlContext(private val extent: Extent) : JexlContext {
+    override fun get(key: String): Any = extent.resolve(key)
+
+    override fun set(key: String, value: Any?) {
+      extent.set(key, value)
+    }
+
+    override fun has(key: String): Boolean = extent.has(key)
   }
 }
 
-object JexlProvider {
+private object Provider {
   private const val CACHE_SIZE = 1024
 
   val engine: JexlEngine =
@@ -32,29 +50,11 @@ object JexlProvider {
       .create()
 }
 
-class JexlExpression(source: String) : Expression(source) {
-  private val jexlScript: JexlScript =
-    try {
-      JexlProvider.engine.createScript(source)
-    } catch (_: Exception) {
-      error("could not parse expression '$source'")
-    }
+class Stdlib {
+  companion object {
+    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
 
-  override fun execute(extent: Extent): Any? =
-    try {
-      jexlScript.execute(ExtentJexlContext(extent))
-    } catch (_: Exception) {
-      error("failed to execute expression '$source'")
-    }
-
-  private class ExtentJexlContext(private val extent: Extent) : JexlContext {
-    override fun get(key: String): Any = extent.resolve(key)
-
-    override fun set(key: String, value: Any?) {
-      extent.set(key, value)
-    }
-
-    override fun has(key: String): Boolean = extent.has(key)
+    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
   }
 }
 

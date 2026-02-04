@@ -17,16 +17,16 @@ data class Event(
   fun evaluateData(extent: Extent): Event = copy(data = data.map { it.evaluate(extent) })
 
   override fun toString(): String =
-    "${this::class.simpleName}(source='$source', topic='$topic', channel=$channel)"
+    "${this::class.simpleName}(source='$source', topic='$topic', channel='$channel')"
 
   companion object {
-    fun from(description: EventDescription): Result<Event> = runCatching {
+    fun from(description: EventDescription): Event {
       val variables =
         description.data.map { (name, exprSource) ->
-          val expression = Expression.from(exprSource).getOrThrow()
+          val expression = Expression.from(exprSource)
           ContextVariable.lazy(name, expression)
         }
-      Event(description.topic, description.channel, variables)
+      return Event(description.topic, description.channel, variables)
     }
   }
 }

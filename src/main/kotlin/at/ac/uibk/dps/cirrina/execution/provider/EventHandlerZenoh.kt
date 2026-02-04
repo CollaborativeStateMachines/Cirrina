@@ -14,11 +14,8 @@ import io.zenoh.pubsub.Subscriber
 import io.zenoh.sample.Sample
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import mu.KotlinLogging
 
-private val logger = KotlinLogging.logger {}
-
-class ZenohEventHandler() : EventHandler() {
+class EventHandlerZenoh() : EventHandler() {
   private val session: Session
 
   private val activeSubscriptions = ConcurrentHashMap<String, Subscriber<Unit>>()
@@ -40,7 +37,7 @@ class ZenohEventHandler() : EventHandler() {
 
     val payload = ZBytes.from(bytes)
 
-    session.put(keyExpr, payload)
+    session.put(keyExpr, payload).onFailure { error("failed to send event '$event'") }
   }
 
   override fun subscribe(source: String) {
@@ -51,7 +48,7 @@ class ZenohEventHandler() : EventHandler() {
 
       session
         .declareSubscriber(selector, callback = { sample: Sample -> handleIncoming(sample) })
-        .getOrThrow()
+        .getOrElse { error("failed to subscribe to '$source'") }
     }
   }
 
@@ -61,7 +58,7 @@ class ZenohEventHandler() : EventHandler() {
         val event = EventExchange.fromBytes(bytes).event
         propagate(event)
       }
-      .onFailure { e -> logger.error(e) { "failed to handle sample from ${sample.keyExpr}" } }
+      .onFailure { error("failed to handle sample from '${sample.keyExpr}'") }
   }
 
   override fun unsubscribe(source: String) {

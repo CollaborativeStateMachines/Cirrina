@@ -10,8 +10,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.PERIPHERAL_SOURCE
-import at.ac.uibk.dps.cirrina.execution.provider.EtcdContext
-import at.ac.uibk.dps.cirrina.execution.provider.ZenohEventHandler
+import at.ac.uibk.dps.cirrina.execution.provider.ContextEtcd
+import at.ac.uibk.dps.cirrina.execution.provider.EventHandlerZenoh
 import at.ac.uibk.dps.cirrina.util.getBuildVersion
 import dagger.Module
 import dagger.Provides
@@ -60,7 +60,7 @@ class CirrinaModule {
   fun provideEventHandler(): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.ZENOH ->
-        ZenohEventHandler().apply {
+        EventHandlerZenoh().apply {
           subscribe(GLOBAL_SOURCE)
           subscribe(PERIPHERAL_SOURCE)
         }
@@ -73,7 +73,7 @@ class CirrinaModule {
       PersistentContextProvider.ETCD -> {
         val url = EnvironmentVariables.etcdContextUrl.get() ?: return null
 
-        EtcdContext(listOf(url)).apply {
+        ContextEtcd(listOf(url)).apply {
           logger.info { "awaiting etcd connection..." }
 
           awaitReady(Cirrina.ETCD_CONNECTION_TIMEOUT)

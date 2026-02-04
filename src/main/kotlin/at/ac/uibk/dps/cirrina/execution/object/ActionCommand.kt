@@ -8,10 +8,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 
-interface Scope {
-  val extent: Extent
-}
-
 data class CommandExecutionContext(
   val scope: Scope,
   val serviceImplementationSelector: ServiceImplementationSelector,
@@ -23,15 +19,6 @@ data class CommandExecutionContext(
 
 interface ActionCommandFactory {
   fun create(action: Action, commandExecutionContext: CommandExecutionContext): ActionCommand
-}
-
-abstract class ActionCommand
-internal constructor(
-  protected val commandExecutionContext: CommandExecutionContext,
-  protected val commandFactory: ActionCommandFactory,
-  protected val meterRegistry: MeterRegistry,
-) {
-  abstract fun execute(): List<ActionCommand>
 }
 
 class ActionCommandFactoryImpl(private val meterRegistry: MeterRegistry) : ActionCommandFactory {
@@ -47,8 +34,21 @@ class ActionCommandFactoryImpl(private val meterRegistry: MeterRegistry) : Actio
       is TimeoutAction -> ActionTimeoutCommand(action, commandExecutionContext, this, meterRegistry)
       is TimeoutResetAction ->
         ActionTimeoutResetCommand(action, commandExecutionContext, this, meterRegistry)
-      else -> error("Unexpected action type: ${action::class.simpleName}")
+      else -> error("unknown action type: ${action::class.simpleName}")
     }
+}
+
+interface Scope {
+  val extent: Extent
+}
+
+abstract class ActionCommand
+internal constructor(
+  protected val commandExecutionContext: CommandExecutionContext,
+  protected val commandFactory: ActionCommandFactory,
+  protected val meterRegistry: MeterRegistry,
+) {
+  abstract fun execute(): List<ActionCommand>
 }
 
 class ActionEvalCommand

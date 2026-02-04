@@ -4,7 +4,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import java.util.concurrent.ConcurrentHashMap
 
-class InMemoryContext() : Context {
+class ContextInMemory() : Context {
   private val values = ConcurrentHashMap<String, Any?>()
 
   override fun has(name: String): Boolean = values.containsKey(name)

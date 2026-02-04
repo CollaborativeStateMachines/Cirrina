@@ -83,9 +83,7 @@ constructor(
     }
 
     serviceImplementationSelector =
-      RandomServiceImplementationSelector(
-        ServiceImplementation.from(csmlSpec.bindings).getOrThrow()
-      )
+      RandomServiceImplementationSelector(ServiceImplementation.from(csmlSpec.bindings))
 
     stateMachineInstances =
       csmlSpec.instances
@@ -105,7 +103,15 @@ constructor(
 
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->
-        stateMachineInstances.values.forEach { it.onReceiveEvent(envelope.event!!) }
+        stateMachineInstances.values.forEach {
+          try {
+            it.onReceiveEvent(envelope.event!!)
+          } catch (e: Exception) {
+            logger.error(e) {
+              "error in processing event for state machine instance '${it.instanceName}'"
+            }
+          }
+        }
       }
     )
     disruptor.start()
@@ -129,7 +135,7 @@ constructor(
       .also { duration ->
         completionTimer.record(duration.toJavaDuration())
 
-        logger.info { "all state machines terminated in $duration" }
+        logger.info { "runtime terminated in $duration" }
       }
   }
 

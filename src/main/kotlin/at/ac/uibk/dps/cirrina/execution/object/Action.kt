@@ -25,56 +25,50 @@ class ActionGraph private constructor() :
 
 sealed interface Action {
   companion object {
-    fun create(description: ActionDescription, name: String? = null): Result<Action> = runCatching {
+    fun create(description: ActionDescription, name: String? = null): Action =
       when (description) {
-        is EvalDescription -> Expression.from(description.expression).map(::EvalAction).getOrThrow()
+        is EvalDescription -> EvalAction(Expression.from(description.expression))
 
         is InvokeDescription ->
           InvokeAction(
             description.type,
             description.mode,
-            buildVariables(description.input).getOrThrow(),
-            buildEvents(description.raises).getOrThrow(),
+            buildVariables(description.input),
+            buildEvents(description.raises),
           )
 
         is MatchDescription ->
           MatchAction(
-            Expression.from(description.value).getOrThrow(),
-            description.cases.associate {
-              Expression.from(it.of).getOrThrow() to create(it.then).getOrThrow()
-            },
-            description.default?.let { create(it).getOrThrow() },
+            Expression.from(description.value),
+            description.cases.associate { Expression.from(it.of) to create(it.then) },
+            description.default?.let { create(it) },
           )
 
         is RaiseDescription ->
           RaiseAction(
-            Event.from(description.event).getOrThrow(),
-            description.target?.let { Expression.from(it).getOrThrow() },
+            Event.from(description.event),
+            description.target?.let { Expression.from(it) },
           )
 
         is TimeoutDescription ->
           TimeoutAction(
             name ?: error("timeout action name required"),
-            Expression.from(description.delay).getOrThrow(),
-            create(description.`do`).getOrThrow(),
+            Expression.from(description.delay),
+            create(description.`do`),
           )
 
         is ResetDescription -> TimeoutResetAction(description.name)
 
-        else -> error("unknown type: ${description.javaClass.simpleName}")
+        else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
-    }
 
-    private fun buildVariables(context: Map<String, String>) = runCatching {
+    private fun buildVariables(context: Map<String, String>) =
       context.map { (k, v) ->
-        val expression = Expression.from(v).getOrThrow()
+        val expression = Expression.from(v)
         ContextVariable.lazy(k, expression)
       }
-    }
 
-    private fun buildEvents(events: List<EventDescription>) = runCatching {
-      events.map { Event.from(it).getOrThrow() }
-    }
+    private fun buildEvents(events: List<EventDescription>) = events.map { Event.from(it) }
   }
 }
 
@@ -82,7 +76,9 @@ interface EventRaisingAction : Action {
   fun raises(): List<Event>
 }
 
-class EvalAction internal constructor(val expression: Expression) : Action
+class EvalAction internal constructor(val expression: Expression) : Action {
+  override fun toString() = "EvalAction(expression='$expression')"
+}
 
 class InvokeAction
 internal constructor(
@@ -92,6 +88,9 @@ internal constructor(
   val raises: List<Event>,
 ) : EventRaisingAction {
   override fun raises(): List<Event> = raises
+
+  override fun toString() =
+    "InvokeAction(type='$type', mode='$mode', input='$input', raises='$raises')"
 }
 
 class MatchAction
@@ -104,11 +103,15 @@ internal constructor(
     (cases.values + listOfNotNull(default)).filterIsInstance<EventRaisingAction>().flatMap {
       it.raises()
     }
+
+  override fun toString() = "MatchAction(value='$value', cases='$cases', default='$default')"
 }
 
 class RaiseAction internal constructor(val event: Event, val target: Expression?) :
   EventRaisingAction {
   override fun raises(): List<Event> = listOf(event)
+
+  override fun toString() = "RaiseAction(event='$event', target='$target')"
 }
 
 class TimeoutAction
@@ -116,6 +119,10 @@ internal constructor(val name: String, val delay: Expression, val `do`: Action) 
   EventRaisingAction {
   override fun raises(): List<Event> =
     (`do` as? RaiseAction)?.let { listOf(it.event) } ?: emptyList()
+
+  override fun toString() = "TimeoutAction(name='$name', delay='$delay', do='${`do`}')"
 }
 
-class TimeoutResetAction internal constructor(val action: String) : Action
+class TimeoutResetAction internal constructor(val action: String) : Action {
+  override fun toString() = "TimeoutResetAction(action='$action')"
+}

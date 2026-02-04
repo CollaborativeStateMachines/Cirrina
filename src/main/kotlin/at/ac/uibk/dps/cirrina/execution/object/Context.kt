@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.execution.provider.InMemoryContext
+import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 
 data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolean = false) {
   init {
@@ -14,6 +14,9 @@ data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolea
           ?: error("variable '$name' is marked lazy but value is not an expression")
       copy(value = expression.execute(extent), isLazy = false)
     } else this
+
+  override fun toString(): String =
+    "ContextVariable(name='$name', value='$value', isLazy='$isLazy')"
 
   companion object {
     fun lazy(name: String, expression: Expression) = ContextVariable(name, expression, true)
@@ -38,14 +41,14 @@ interface Context : AutoCloseable {
   fun getAll(): List<ContextVariable>
 
   companion object {
-    fun from(description: Map<String, String>?): Result<Context> = runCatching {
-      val ctx = InMemoryContext()
+    fun from(description: Map<String, String>?): Context {
+      val ctx = ContextInMemory()
       description?.forEach { (name, expr) ->
-        val expression = Expression.from(expr).getOrThrow()
+        val expression = Expression.from(expr)
         val value = expression.execute(Extent.empty())
         ctx.create(name, value)
       }
-      ctx
+      return ctx
     }
   }
 }

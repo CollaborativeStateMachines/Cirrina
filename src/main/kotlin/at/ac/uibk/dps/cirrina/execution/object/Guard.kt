@@ -7,8 +7,9 @@ class Guard private constructor(val expression: Expression) {
     return result
   }
 
+  override fun toString(): String = "Guard(expression='$expression')"
+
   companion object {
-    fun from(expressionDescription: String): Result<Guard> =
-      Expression.from(expressionDescription).map(::Guard)
+    fun from(expressionDescription: String) = Guard(Expression.from(expressionDescription))
   }
 }
