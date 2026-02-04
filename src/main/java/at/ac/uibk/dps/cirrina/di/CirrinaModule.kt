@@ -4,6 +4,8 @@ import at.ac.uibk.dps.cirrina.cirrina.Cirrina
 import at.ac.uibk.dps.cirrina.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.cirrina.EventProvider
 import at.ac.uibk.dps.cirrina.cirrina.PersistentContextProvider
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactory
+import at.ac.uibk.dps.cirrina.execution.command.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.context.EtcdContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
@@ -68,7 +70,6 @@ class CirrinaModule {
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.ZENOH ->
         ZenohEventHandler().apply {
-          // Subscribe to global and peripheral events
           subscribe(GLOBAL_SOURCE)
           subscribe(PERIPHERAL_SOURCE)
         }
@@ -84,7 +85,6 @@ class CirrinaModule {
         EtcdContext(listOf(url)).apply {
           logger.info { "awaiting etcd connection..." }
 
-          // Wait for the connection to be established
           awaitReady(Cirrina.ETCD_CONNECTION_TIMEOUT)
         }
       }
@@ -156,6 +156,11 @@ class CirrinaModule {
   }
 
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
+
+  @Provides
+  @Singleton
+  fun provideActionCommandFactory(meterRegistry: MeterRegistry): ActionCommandFactory =
+    ActionCommandFactoryImpl(meterRegistry)
 
   @Provides
   @Singleton

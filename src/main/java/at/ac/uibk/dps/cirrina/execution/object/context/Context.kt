@@ -28,7 +28,5 @@ interface Context : AutoCloseable {
       }
       ctx
     }
-
-    fun empty(): Result<Context> = Result.success(InMemoryContext())
   }
 }
