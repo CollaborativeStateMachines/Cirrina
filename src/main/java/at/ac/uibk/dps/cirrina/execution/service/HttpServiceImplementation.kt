@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
@@ -18,7 +18,7 @@ class HttpServiceImplementation(
   private val host: String,
   private val port: Int,
   private val endPoint: String,
-  private val method: ServiceImplementationBindings.HttpMethod,
+  private val method: HttpMethod,
   name: String,
   local: Boolean,
 ) : ServiceImplementation(name, local) {
@@ -31,7 +31,7 @@ class HttpServiceImplementation(
     input
       .apply {
         require(none { it.isLazy }) {
-          "All variables need to be evaluated before service input can be converted to bytes"
+          "all variables need to be evaluated before service input can be converted to bytes"
         }
       }
       .let { vars -> serializeInput(vars) }
@@ -68,12 +68,12 @@ class HttpServiceImplementation(
           ContextVariableProtos.ContextVariables.parseFrom(payload).dataList.map {
             ContextVariableExchange.fromProto(it)
           }
-        } catch (e: InvalidProtocolBufferException) {
-          error("Unexpected HTTP service invocation value type: ${e.message}")
+        } catch (_: InvalidProtocolBufferException) {
+          error("unexpected http service invocation value type")
         }
       }
       ?: if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-        error("HTTP error (${response.statusCode()})")
+        error("http error (${response.statusCode()})")
       } else {
         emptyList()
       }

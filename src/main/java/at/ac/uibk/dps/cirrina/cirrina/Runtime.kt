@@ -8,6 +8,9 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.statemachine.StateMachine
+import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
@@ -45,6 +48,8 @@ constructor(
 
   val stateMachineInstances: Map<String, StateMachine>
 
+  val serviceImplementationSelector: ServiceImplementationSelector
+
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
   val phaser: Phaser = Phaser(1)
@@ -65,13 +70,11 @@ constructor(
   var completionTimer: Timer = meterRegistry.timer("runtime.completionTime")
 
   init {
-    // Resolve the collaborative state machine class
     val csmlSpec =
       CsmlSpec.create(CsmParser.parseCsml(csmMainUri))
         .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
-    // Create all persistent variables
     persistentContext?.let { context ->
       csmlSpec.collaborativeStateMachineSpec.persistentContextVariables.forEach { variable ->
         runCatching { context.create(variable.name, variable.value) }
@@ -81,7 +84,11 @@ constructor(
       }
     }
 
-    // Build the state machine instances
+    serviceImplementationSelector =
+      RandomServiceImplementationSelector(
+        ServiceImplementation.from(csmlSpec.bindings).getOrThrow()
+      )
+
     stateMachineInstances =
       csmlSpec.instances
         .flatMap { (instanceName, stateMachineClass) ->
@@ -96,10 +103,8 @@ constructor(
         }
         .associateBy { it.instanceName }
 
-    // Subscribe to all external events according to the subscriptions
     csmlSpec.instanceSubscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
 
-    // Create the event handler
     disruptor.handleEventsWith(
       LmaxEventHandler { envelope, _, _ ->
         stateMachineInstances.values.forEach { it.onReceiveEvent(envelope.event!!) }
@@ -107,7 +112,6 @@ constructor(
     )
     disruptor.start()
 
-    // Register the event handler
     eventHandler.listener = this
   }
 
@@ -118,10 +122,8 @@ constructor(
     measureTime {
         stateMachineInstances.values.forEach { it.start() }
 
-        // Release the initial party...
         phaser.arriveAndDeregister()
 
-        // and wait for all machines to deregister
         while (phaser.registeredParties > 0) {
           phaser.awaitAdvance(phaser.phase)
         }
@@ -141,13 +143,18 @@ constructor(
     data: List<ContextVariable>?,
   ): List<StateMachine> =
     stateMachineFactory
-      // Create a state machine instance...
-      .create(instanceName, this, stateMachineSpec, parentInstance, eventSubscriptions, data)
-      // with the parent instance...
+      .create(
+        instanceName,
+        this,
+        stateMachineSpec,
+        serviceImplementationSelector,
+        parentInstance,
+        eventSubscriptions,
+        data,
+      )
       .let { currentInstance ->
         stateMachineSpec.nestedStateMachinesSpecs
           .flatMapIndexed { index, nestedStateMachineClass ->
-            // build the nested state machine instances...
             buildInstances(
               nestedStateMachineClass,
               "${currentInstance.instanceName}.$index@${nestedStateMachineClass.name}",
@@ -157,11 +164,9 @@ constructor(
             )
           }
           .let { nestedInstances ->
-            // add the nested instance names to the parent instance...
             currentInstance.apply {
               nestedStateMachineInstanceNames = nestedInstances.map { it.instanceName }
             }
-            // and return the parent instance and the nested instances
             listOf(currentInstance) + nestedInstances
           }
       }

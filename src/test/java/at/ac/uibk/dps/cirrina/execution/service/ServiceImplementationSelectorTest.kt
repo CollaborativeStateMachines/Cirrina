@@ -1,7 +1,9 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
+import at.ac.uibk.dps.cirrina.csm.Csml.InvocationMode
+import at.ac.uibk.dps.cirrina.csm.Csml.Type
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -12,73 +14,72 @@ class ServiceImplementationSelectorTest {
   @Test
   fun testSelectMatchingServices() {
     RandomServiceImplementationSelector(
-        ServiceImplementationBuilder.from(
+        ServiceImplementation.from(
             listOf(
-              ServiceImplementationBindings.HttpServiceImplementationBinding(
+              HttpServiceImplementationBinding(
                 "A",
                 true,
-                ServiceImplementationBindings.Type.HTTP,
+                Type.HTTP,
                 "http",
                 "localhost",
                 12345,
                 "",
-                ServiceImplementationBindings.HttpMethod.GET,
+                HttpMethod.GET,
               ),
-              ServiceImplementationBindings.HttpServiceImplementationBinding(
+              HttpServiceImplementationBinding(
                 "A",
                 false,
-                ServiceImplementationBindings.Type.HTTP,
+                Type.HTTP,
                 "http",
                 "localhost",
                 12345,
                 "",
-                ServiceImplementationBindings.HttpMethod.GET,
+                HttpMethod.GET,
               ),
-              ServiceImplementationBindings.HttpServiceImplementationBinding(
+              HttpServiceImplementationBinding(
                 "B",
                 false,
-                ServiceImplementationBindings.Type.HTTP,
+                Type.HTTP,
                 "http",
                 "localhost",
                 12345,
                 "",
-                ServiceImplementationBindings.HttpMethod.GET,
+                HttpMethod.GET,
               ),
-              ServiceImplementationBindings.HttpServiceImplementationBinding(
+              HttpServiceImplementationBinding(
                 "B",
                 false,
-                ServiceImplementationBindings.Type.HTTP,
+                Type.HTTP,
                 "http",
                 "localhost",
                 12345,
                 "",
-                ServiceImplementationBindings.HttpMethod.GET,
+                HttpMethod.GET,
               ),
-              ServiceImplementationBindings.HttpServiceImplementationBinding(
+              HttpServiceImplementationBinding(
                 "C",
                 true,
-                ServiceImplementationBindings.Type.HTTP,
+                Type.HTTP,
                 "http",
                 "localhost",
                 12345,
                 "",
-                ServiceImplementationBindings.HttpMethod.GET,
+                HttpMethod.GET,
               ),
             )
           )
-          .build()
           .getOrThrow()
       )
       .let { serviceImplementationSelector ->
         assertDoesNotThrow {
           // Success case
           assertNotNull(
-            serviceImplementationSelector.select("A", Csml.InvocationMode.REMOTE),
+            serviceImplementationSelector.select("A", InvocationMode.REMOTE),
             "selector should find a remote implementation for service 'A'",
           )
 
           // Missing service case
-          assertNull(serviceImplementationSelector.select("D", Csml.InvocationMode.REMOTE))
+          assertNull(serviceImplementationSelector.select("D", InvocationMode.REMOTE))
         }
       }
   }

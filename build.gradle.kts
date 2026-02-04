@@ -24,10 +24,7 @@ java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
 pkl {
   javaCodeGenerators {
     register("pklGenJava") {
-      sourceModules.addAll(
-        "src/main/resources/pkl/csm/csml.pkl",
-        "src/main/resources/pkl/csm/bindings.pkl",
-      )
+      sourceModules.addAll("src/main/resources/pkl/csm/csml.pkl")
       generateGetters.set(true)
       generateJavadoc.set(true)
     }

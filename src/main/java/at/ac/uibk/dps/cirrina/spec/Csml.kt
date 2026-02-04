@@ -10,6 +10,7 @@ private constructor(
   val instances: Map<String, String>,
   val instanceSubscriptions: Map<String, List<String>>,
   val instanceData: Map<String, List<ContextVariable>>,
+  val bindings: List<Csml.ServiceImplementationBinding>,
 ) {
 
   companion object {
@@ -21,7 +22,7 @@ private constructor(
           Context.from(innerMap).getOrThrow().getAll()
         }
 
-      Csml(spec, desc.instances, desc.instanceSubscriptions, instanceData)
+      Csml(spec, desc.instances, desc.instanceSubscriptions, instanceData, desc.bindings)
     }
   }
 }

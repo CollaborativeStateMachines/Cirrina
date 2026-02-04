@@ -1,7 +1,6 @@
 package at.ac.uibk.dps.cirrina.io
 
 import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import java.net.URI
 import org.pkl.config.java.ConfigEvaluator
 import org.pkl.config.java.ConfigEvaluatorBuilder
@@ -41,20 +40,8 @@ object CsmParser {
       evaluator().use { evaluator ->
         return evaluator.evaluate(ModuleSource.uri(uri)).`as`(Csml::class.java)
       }
-    } catch (e: Exception) {
-      throw IllegalArgumentException("parsing error", e)
-    }
-  }
-
-  fun parseServiceImplementationBindings(uri: URI): ServiceImplementationBindings {
-    try {
-      evaluator().use { evaluator ->
-        return evaluator
-          .evaluate(ModuleSource.uri(uri))
-          .`as`(ServiceImplementationBindings::class.java)
-      }
-    } catch (e: Exception) {
-      throw IllegalArgumentException("parsing error", e)
+    } catch (_: Exception) {
+      error("parsing error")
     }
   }
 }

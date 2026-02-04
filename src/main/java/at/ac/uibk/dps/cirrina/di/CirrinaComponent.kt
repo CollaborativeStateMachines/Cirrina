@@ -13,8 +13,6 @@ import jakarta.inject.Singleton
 @Component(modules = [CirrinaModule::class])
 interface CirrinaComponent {
 
-  @Named("identifier") fun identifier(): String
-
   fun eventHandler(): EventHandler
 
   fun persistentContext(): Context?
@@ -22,4 +20,6 @@ interface CirrinaComponent {
   fun meterRegistry(): MeterRegistry
 
   fun runtime(): Runtime
+
+  @Named("identifier") fun identifier(): String
 }

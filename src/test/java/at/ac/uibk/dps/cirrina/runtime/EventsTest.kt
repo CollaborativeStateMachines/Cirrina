@@ -9,8 +9,6 @@ import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.event.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
-import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import kotlin.time.measureTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -28,14 +26,9 @@ class EventsTest {
       val eventHandler = InMemoryEventHandler()
       val context = InMemoryContext()
 
-      val selector =
-        RandomServiceImplementationSelector(
-          ServiceImplementationBuilder.from(emptyList()).build().getOrThrow()
-        )
-
       val runtime =
         DaggerTestComponent.builder()
-          .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.events))
+          .testModule(TestModule(eventHandler, context, DefaultDescriptions.events))
           .build()
           .runtime()
 

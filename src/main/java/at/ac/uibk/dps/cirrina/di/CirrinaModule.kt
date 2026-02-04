@@ -12,10 +12,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.GLOBAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.`object`.event.ZenohEventHandler
-import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.utils.getBuildVersion
 import dagger.Module
 import dagger.Provides
@@ -58,11 +54,6 @@ private val logger = KotlinLogging.logger {}
 
 @Module
 class CirrinaModule {
-
-  @Provides
-  @Singleton
-  @Named("identifier")
-  fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
 
   @Provides
   @Singleton
@@ -110,7 +101,7 @@ class CirrinaModule {
 
   @Provides
   @Singleton
-  fun provideTracing(
+  fun provideObservationRegistry(
     @Named("identifier") identifier: String,
     meterRegistry: MeterRegistry,
   ): ObservationRegistry {
@@ -155,20 +146,17 @@ class CirrinaModule {
     }
   }
 
+  @Provides
+  @Singleton
+  @Named("identifier")
+  fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
+
   @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
 
   @Provides
   @Singleton
   fun provideActionCommandFactory(meterRegistry: MeterRegistry): ActionCommandFactory =
     ActionCommandFactoryImpl(meterRegistry)
-
-  @Provides
-  @Singleton
-  fun provideServiceImplementationSelector(): ServiceImplementationSelector =
-    URI(EnvironmentVariables.csmServiceBindingsUri.get())
-      .let(CsmParser::parseServiceImplementationBindings)
-      .let { ServiceImplementationBuilder.from(it.bindings).build().getOrThrow() }
-      .let(::RandomServiceImplementationSelector)
 
   private fun createInfluxRegistry(url: String): InfluxMeterRegistry {
     val config =

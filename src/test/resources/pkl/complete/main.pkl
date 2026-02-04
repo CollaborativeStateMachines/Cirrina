@@ -11,3 +11,14 @@ collaborativeStateMachine {
 instances {
   ["complete"] = "completeStateMachine"
 }
+bindings {
+  new HttpServiceImplementationBinding {
+    name = "increment"
+    `local` = true
+    scheme = "http"
+    host = "localhost"
+    port = 8000
+    endPoint = "/increment"
+    method = "GET"
+  }
+}

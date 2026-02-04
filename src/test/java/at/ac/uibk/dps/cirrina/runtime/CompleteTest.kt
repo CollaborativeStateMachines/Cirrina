@@ -1,7 +1,9 @@
 package at.ac.uibk.dps.cirrina.runtime
 
 import InMemoryEventHandler
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
+import at.ac.uibk.dps.cirrina.csm.Csml.Type
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
@@ -10,8 +12,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.expression.Stdlib
-import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime
@@ -33,26 +33,9 @@ class CompleteTest {
         }
 
         try {
-          val service =
-            ServiceImplementationBindings.HttpServiceImplementationBinding(
-              "increment",
-              true,
-              ServiceImplementationBindings.Type.HTTP,
-              "http",
-              "localhost",
-              8000,
-              "/increment",
-              ServiceImplementationBindings.HttpMethod.GET,
-            )
-
-          val selector =
-            RandomServiceImplementationSelector(
-              ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
-            )
-
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.complete))
+              .testModule(TestModule(eventHandler, context, DefaultDescriptions.complete))
               .build()
               .runtime()
 
@@ -161,31 +144,25 @@ class CompleteTest {
   @Test
   fun testServiceImplementationBindings() {
     val service =
-      ServiceImplementationBindings.HttpServiceImplementationBinding(
+      HttpServiceImplementationBinding(
         "increment",
         true,
-        ServiceImplementationBindings.Type.HTTP,
+        Type.HTTP,
         "http",
         "localhost",
         8000,
         "/increment",
-        ServiceImplementationBindings.HttpMethod.GET,
+        HttpMethod.GET,
       )
 
     assertEquals("copy", service.withName("copy").name)
-    assertEquals(
-      ServiceImplementationBindings.Type.HTTP,
-      service.withType(ServiceImplementationBindings.Type.HTTP).type,
-    )
+    assertEquals(Type.HTTP, service.withType(Type.HTTP).type)
     assertFalse(service.withLocal(false).isLocal)
     assertEquals("otherScheme", service.withScheme("otherScheme").scheme)
     assertEquals("otherHost", service.withHost("otherHost").host)
     assertEquals(8080, service.withPort(8080).port)
     assertEquals("/somethingElse", service.withEndPoint("/somethingElse").endPoint)
-    assertEquals(
-      ServiceImplementationBindings.HttpMethod.POST,
-      service.withMethod(ServiceImplementationBindings.HttpMethod.POST).method,
-    )
+    assertEquals(HttpMethod.POST, service.withMethod(HttpMethod.POST).method)
 
     val otherService = service.withName("otherService")
     assertEquals(service, service)

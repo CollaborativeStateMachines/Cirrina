@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableExchange

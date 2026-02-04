@@ -1,14 +1,11 @@
 package at.ac.uibk.dps.cirrina.runtime
 
 import InMemoryEventHandler
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.context.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.context.InMemoryContext
-import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationBuilder
 import at.ac.uibk.dps.cirrina.utils.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime
@@ -32,26 +29,9 @@ class InvokeTest {
         }
 
         try {
-          val service =
-            ServiceImplementationBindings.HttpServiceImplementationBinding(
-              "increment",
-              true,
-              ServiceImplementationBindings.Type.HTTP,
-              "http",
-              "localhost",
-              8000,
-              "/increment",
-              ServiceImplementationBindings.HttpMethod.GET,
-            )
-
-          val selector =
-            RandomServiceImplementationSelector(
-              ServiceImplementationBuilder.from(listOf(service)).build().getOrThrow()
-            )
-
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(TestModule(eventHandler, context, selector, DefaultDescriptions.invoke))
+              .testModule(TestModule(eventHandler, context, DefaultDescriptions.invoke))
               .build()
               .runtime()
 

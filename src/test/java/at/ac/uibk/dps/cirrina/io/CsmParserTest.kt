@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.io
 
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpMethod
-import at.ac.uibk.dps.cirrina.csm.ServiceImplementationBindings.HttpServiceImplementationBinding
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
+import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.utils.TestUtils.resourceUri
 import java.net.URI
@@ -31,20 +31,8 @@ class CsmParserTest {
   }
 
   @Test
-  fun testServiceImplementationBindingsUri() {
-    CsmParser.parseServiceImplementationBindings(
-      URI(
-        "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/test/resources/pkl/serviceImplementation/services.pkl"
-      )
-    )
-  }
-
-  @Test
   fun testServiceImplementationBindings() {
-    val services =
-      CsmParser.parseServiceImplementationBindings(
-        resourceUri("pkl/serviceImplementation/services.pkl")
-      )
+    val services = CsmParser.parseCsml(resourceUri("pkl/noop/main.pkl"))
 
     assertEquals(2, services.bindings.size)
 
