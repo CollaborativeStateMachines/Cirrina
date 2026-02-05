@@ -39,15 +39,13 @@ import io.opentelemetry.sdk.resources.Resource
 import io.opentelemetry.sdk.trace.SdkTracerProvider
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor
 import io.opentelemetry.semconv.ServiceAttributes
-import jakarta.inject.Named
 import jakarta.inject.Qualifier
 import jakarta.inject.Singleton
 import java.net.URI
 import java.time.Duration
 import java.util.UUID
-import mu.KotlinLogging
 
-private val logger = KotlinLogging.logger {}
+@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Identifier
 
 @Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class CsmMain
 
@@ -97,7 +95,7 @@ class CirrinaModule {
   @Provides
   @Singleton
   fun provideObservationRegistry(
-    @Named("identifier") identifier: String,
+    @Identifier identifier: String,
     meterRegistry: MeterRegistry,
   ): ObservationRegistry {
     val observationRegistry = ObservationRegistry.create()
@@ -141,12 +139,12 @@ class CirrinaModule {
     }
   }
 
+  @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
+
   @Provides
   @Singleton
-  @Named("identifier")
-  fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
-
-  @Provides @CsmMain fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
+  @CsmMain
+  fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
 
   @Provides
   @Singleton

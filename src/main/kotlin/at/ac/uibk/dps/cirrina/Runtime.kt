@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
+import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.Event
@@ -34,6 +35,7 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
+  @Identifier private val identifier: String,
   private val eventHandler: EventHandler,
   private val stateMachineFactory: StateMachine.Factory,
   persistentContext: Context?,
@@ -122,6 +124,18 @@ constructor(
     stateMachineInstances[stateMachineObjectName]
 
   fun run() = runBlocking {
+    val barrier = EnvironmentVariables.csmBarrier.get()
+    val parties = EnvironmentVariables.csmParties.get()
+
+    if (barrier != null && parties != null) {
+      logger.info { "waiting for barrier '$barrier' with '$parties' parties" }
+
+      eventHandler.register(barrier, identifier)
+      eventHandler.wait(barrier, parties)
+
+      logger.info { "barrier reached" }
+    }
+
     measureTime {
         stateMachineInstances.values.forEach { it.start() }
 

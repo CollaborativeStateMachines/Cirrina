@@ -14,6 +14,8 @@ import io.zenoh.pubsub.Subscriber
 import io.zenoh.sample.Sample
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class EventHandlerZenoh() : EventHandler() {
   private val session: Session
@@ -26,7 +28,7 @@ class EventHandlerZenoh() : EventHandler() {
         Config.fromFile(File(uri)).getOrThrow()
       } ?: Config.default()
 
-    this.session = Zenoh.open(config).getOrThrow()
+    session = Zenoh.open(config).getOrThrow()
   }
 
   override fun send(event: Event) {
@@ -64,6 +66,54 @@ class EventHandlerZenoh() : EventHandler() {
   override fun unsubscribe(source: String) {
     val selectorString = "$source/**"
     activeSubscriptions.remove(selectorString)?.close()
+  }
+
+  override fun register(group: String, member: String) {
+    val key = "liveness/$group/$member"
+    val keyExpr = KeyExpr.tryFrom(key).getOrThrow()
+
+    session.liveliness().declareToken(keyExpr).onFailure {
+      error("failed to register liveness '$group/$member'")
+    }
+  }
+
+  override fun wait(group: String, parties: Int) {
+    val key = "liveness/$group/**"
+    val keyExpr = KeyExpr.tryFrom(key).getOrThrow()
+    val discoveredMembers = ConcurrentHashMap.newKeySet<String>()
+    val latch = CountDownLatch(parties)
+
+    val sub =
+      session
+        .liveliness()
+        .declareSubscriber(
+          KeyExpr.tryFrom(key).getOrThrow(),
+          callback = { sample ->
+            if (discoveredMembers.add(sample.keyExpr.toString())) {
+              latch.countDown()
+            }
+          },
+        )
+        .getOrElse({ error("failed to subscribe to liveness '$group'") })
+
+    session
+      .liveliness()
+      .get(
+        keyExpr,
+        callback = { reply ->
+          reply.result.onSuccess { sample ->
+            if (discoveredMembers.add(sample.keyExpr.toString())) {
+              latch.countDown()
+            }
+          }
+        },
+      )
+      .onFailure { error("failed to get liveness '$group'") }
+
+    if (!latch.await(30, TimeUnit.SECONDS)) {
+      error("timeout: ${discoveredMembers.size}/$parties members.")
+    }
+    sub.close()
   }
 
   private fun getZenohPath(event: Event): String? {

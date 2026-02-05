@@ -26,8 +26,6 @@ class Cirrina {
   }
 
   companion object {
-    const val ETCD_CONNECTION_TIMEOUT = 1000L
-
     init {
       configureLogging()
     }

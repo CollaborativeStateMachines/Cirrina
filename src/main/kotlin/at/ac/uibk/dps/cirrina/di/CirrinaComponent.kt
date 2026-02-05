@@ -2,11 +2,11 @@ package at.ac.uibk.dps.cirrina.di
 
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.cirrina.di.CirrinaModule
+import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import dagger.Component
 import io.micrometer.core.instrument.MeterRegistry
-import jakarta.inject.Named
 import jakarta.inject.Singleton
 
 @Singleton
@@ -21,5 +21,5 @@ interface CirrinaComponent {
 
   fun runtime(): Runtime
 
-  @Named("identifier") fun identifier(): String
+  @Identifier fun identifier(): String
 }

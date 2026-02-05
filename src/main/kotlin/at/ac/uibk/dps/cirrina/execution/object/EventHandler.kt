@@ -20,6 +20,10 @@ abstract class EventHandler() : AutoCloseable {
 
   abstract fun unsubscribe(source: String)
 
+  abstract fun register(group: String, member: String)
+
+  abstract fun wait(group: String, parties: Int)
+
   fun registerHandler(handler: PropagationHandler) {
     handlers.add(handler)
   }
