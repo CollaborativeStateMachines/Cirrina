@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.di
 
 import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
+import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
@@ -12,6 +13,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.micrometer.observation.ObservationRegistry
 import jakarta.inject.Singleton
 import java.net.URI
+import java.util.UUID
 
 @Module
 class TestModule(
@@ -27,6 +29,8 @@ class TestModule(
   @Provides fun provideMeterRegistry(): MeterRegistry = SimpleMeterRegistry()
 
   @Provides fun provideObservationRegistry(): ObservationRegistry = ObservationRegistry.create()
+
+  @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
 
   @Provides @CsmMain fun provideCsmMain() = mainUri
 

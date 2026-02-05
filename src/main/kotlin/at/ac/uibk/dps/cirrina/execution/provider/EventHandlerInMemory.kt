@@ -10,5 +10,9 @@ class EventHandlerInMemory : EventHandler() {
 
   override fun unsubscribe(source: String) {}
 
+  override fun register(barrier: String, member: String) {}
+
+  override fun wait(barrier: String, n: Int) {}
+
   override fun close() {}
 }
