@@ -25,15 +25,10 @@ abstract class EventHandlerTest {
       val receivedEvents = CopyOnWriteArrayList<Event>()
       var latch = CountDownLatch(count)
 
-      val handlerListener =
-        object : EventListener {
-          override fun onReceiveEvent(event: Event) {
-            receivedEvents.add(event)
-            latch.countDown()
-          }
-        }
-
-      eventHandler.listener = handlerListener
+      eventHandler.registerHandler {
+        receivedEvents.add(it)
+        latch.countDown()
+      }
 
       eventHandler.subscribe(EventHandler.Companion.GLOBAL_SOURCE)
       eventHandler.subscribe("source")

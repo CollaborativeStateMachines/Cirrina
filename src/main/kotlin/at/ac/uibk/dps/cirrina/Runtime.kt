@@ -5,7 +5,6 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
-import at.ac.uibk.dps.cirrina.execution.`object`.EventListener
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
@@ -40,7 +39,7 @@ constructor(
   persistentContext: Context?,
   meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
-) : EventListener {
+) {
   companion object {
     const val RING_BUFFER_SIZE = 1024
   }
@@ -105,7 +104,7 @@ constructor(
       LmaxEventHandler { envelope, _, _ ->
         stateMachineInstances.values.forEach {
           try {
-            it.onReceiveEvent(envelope.event!!)
+            it.pushEvent(envelope.event!!)
           } catch (e: Exception) {
             logger.error(e) {
               "error in processing event for state machine instance '${it.instanceName}'"
@@ -116,7 +115,7 @@ constructor(
     )
     disruptor.start()
 
-    eventHandler.listener = this
+    eventHandler.registerHandler { disruptor.publishEvent { envelope, _ -> envelope.event = it } }
   }
 
   fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
@@ -174,8 +173,4 @@ constructor(
             listOf(currentInstance) + nestedInstances
           }
       }
-
-  override fun onReceiveEvent(event: Event) {
-    disruptor.publishEvent { envelope, _ -> envelope.event = event }
-  }
 }
