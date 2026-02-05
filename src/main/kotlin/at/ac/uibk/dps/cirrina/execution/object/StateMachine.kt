@@ -36,7 +36,7 @@ internal constructor(
   private val stateFactory: State.Factory,
   private val transitionFactory: Transition.Factory,
   eventHandler: EventHandler,
-) : EventListener, Scope {
+) : Scope {
   var nestedStateMachineInstanceNames: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
       if (old.isNotEmpty()) error("nestedStateMachineInstanceNames is already set")
@@ -69,9 +69,6 @@ internal constructor(
     launchEventProcessor()
   }
 
-  private fun launchEventProcessor() =
-    coroutineScope.launch { for (event in eventChannel) processEvent(event) }
-
   fun start() =
     instanceObservation.observe {
       val initial =
@@ -79,9 +76,26 @@ internal constructor(
       doEnter(initial, null)?.let { step(it, null) }
     }
 
-  override fun onReceiveEvent(event: Event) {
+  private fun isTerminated(): Boolean =
+    parentStateMachine?.isTerminated() == true || activeState?.spec?.terminal == true
+
+  private fun checkTermination() {
+    if (isTerminated()) {
+      logger.info { "'$this' terminated" }
+      instanceObservation.stop()
+      timeoutActionManager.shutdown()
+      eventChannel.close()
+      coroutineScope.cancel()
+      runtime.phaser.arriveAndDeregister()
+    }
+  }
+
+  fun pushEvent(event: Event) {
     if (event.isValid()) eventChannel.trySend(event)
   }
+
+  private fun launchEventProcessor() =
+    coroutineScope.launch { for (event in eventChannel) processEvent(event) }
 
   private fun processEvent(event: Event) {
     if (isTerminated()) return
@@ -95,6 +109,22 @@ internal constructor(
         if (event.channel == EventChannel.INTERNAL)
           stateMachineEventHandler.propagateToNested(event)
       }
+  }
+
+  private fun handleEvent(event: Event): Transition? {
+    val current = activeState ?: return null
+    val candidates =
+      stateMachineSpec.getOnTransitionsFromStateByEventName(current.spec, event.topic)
+    if (candidates.isEmpty()) return null
+
+    val evalExtent =
+      extent.extend(
+        ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
+      )
+
+    return trySelect(candidates, evalExtent)?.also {
+      event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }
+    }
   }
 
   private fun Event.isValid(): Boolean {
@@ -122,19 +152,20 @@ internal constructor(
     doEnter(target, event)?.let { step(it, event) }
   }
 
-  private fun handleEvent(event: Event): Transition? {
-    val current = activeState ?: return null
-    val candidates =
-      stateMachineSpec.getOnTransitionsFromStateByEventName(current.spec, event.topic)
-    if (candidates.isEmpty()) return null
-
-    val evalExtent =
-      extent.extend(
-        ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
-      )
-
-    return trySelect(candidates, evalExtent)?.also {
-      event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }
+  private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
+    val selected =
+      transitions.mapNotNull { tc ->
+        val result = tc.evaluate(evalExtent)
+        when {
+          result -> transitionFactory.create(tc, isOr = false)
+          tc.or != null -> transitionFactory.create(tc, isOr = true)
+          else -> null
+        }
+      }
+    return when (selected.size) {
+      0 -> null
+      1 -> selected.first()
+      else -> error("non-determinism detected with selected transitions '$selected'")
     }
   }
 
@@ -171,23 +202,6 @@ internal constructor(
       }
     }
 
-  private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
-    val selected =
-      transitions.mapNotNull { tc ->
-        val result = tc.evaluate(evalExtent)
-        when {
-          result -> transitionFactory.create(tc, isOr = false)
-          tc.or != null -> transitionFactory.create(tc, isOr = true)
-          else -> null
-        }
-      }
-    return when (selected.size) {
-      0 -> null
-      1 -> selected.first()
-      else -> error("non-determinism detected with selected transitions '$selected'")
-    }
-  }
-
   private tailrec fun execute(commands: List<ActionCommand>) {
     if (commands.isEmpty()) return
     val nextBatch =
@@ -198,6 +212,16 @@ internal constructor(
       }
     execute(nextBatch)
   }
+
+  private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
+    CommandExecutionContext(
+      scope,
+      serviceImplementationSelector,
+      stateMachineEventHandler,
+      coroutineScope,
+      event,
+      isWhile,
+    )
 
   private fun startTimeout(timeout: TimeoutAction) {
     val delay =
@@ -216,43 +240,18 @@ internal constructor(
 
   private fun stopTimeout(name: String) = timeoutActionManager.stop(name)
 
-  private fun isTerminated(): Boolean =
-    parentStateMachine?.isTerminated() == true || activeState?.spec?.terminal == true
-
-  private fun checkTermination() {
-    if (isTerminated()) {
-      logger.info { "'$this' terminated" }
-      instanceObservation.stop()
-      timeoutActionManager.shutdown()
-      eventChannel.close()
-      coroutineScope.cancel()
-      runtime.phaser.arriveAndDeregister()
-    }
-  }
-
-  private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
-    CommandExecutionContext(
-      scope,
-      serviceImplementationSelector,
-      stateMachineEventHandler,
-      coroutineScope,
-      event,
-      isWhile,
-    )
-
   override fun toString() = "StateMachine(name='$instanceName')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
     fun sendEvent(event: Event) = eventHandler.send(event.copy(source = instanceName))
 
     fun propagateToParent(event: Event) {
-      parentStateMachine?.stateMachineEventHandler?.propagateToParent(event)
-        ?: onReceiveEvent(event)
+      parentStateMachine?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
     }
 
     fun propagateToNested(event: Event) {
       nestedStateMachineInstanceNames.forEach { name ->
-        runtime.findStateMachineInstance(name)?.onReceiveEvent(event)
+        runtime.findStateMachineInstance(name)?.pushEvent(event)
           ?: error("nested state machine instance '$name' missing")
       }
     }

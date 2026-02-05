@@ -1,18 +1,18 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import java.lang.AutoCloseable
+import java.util.concurrent.CopyOnWriteArrayList
 
-interface EventListener {
-  fun onReceiveEvent(event: Event)
-}
+typealias PropagationHandler = (Event) -> Unit
 
-abstract class EventHandler : AutoCloseable {
+abstract class EventHandler() : AutoCloseable {
+
   companion object {
     const val GLOBAL_SOURCE = "global"
     const val PERIPHERAL_SOURCE = "peripheral"
   }
 
-  var listener: EventListener? = null
+  private val handlers: CopyOnWriteArrayList<PropagationHandler> = CopyOnWriteArrayList()
 
   abstract fun send(event: Event)
 
@@ -20,7 +20,11 @@ abstract class EventHandler : AutoCloseable {
 
   abstract fun unsubscribe(source: String)
 
-  protected open fun propagate(event: Event) {
-    listener?.onReceiveEvent(event)
+  fun registerHandler(handler: PropagationHandler) {
+    handlers.add(handler)
+  }
+
+  protected fun propagate(event: Event) {
+    handlers.forEach { it(event) }
   }
 }
