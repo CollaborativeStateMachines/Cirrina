@@ -4,7 +4,6 @@ import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
 import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine
@@ -14,11 +13,6 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
-import com.lmax.disruptor.BusySpinWaitStrategy
-import com.lmax.disruptor.EventHandler as LmaxEventHandler
-import com.lmax.disruptor.dsl.Disruptor
-import com.lmax.disruptor.dsl.ProducerType
-import com.lmax.disruptor.util.DaemonThreadFactory
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
@@ -42,29 +36,12 @@ constructor(
   meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
 ) {
-  companion object {
-    const val RING_BUFFER_SIZE = 1024
-  }
-
   val stateMachineInstances: Map<String, StateMachine>
   val serviceImplementationSelector: ServiceImplementationSelector
 
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
   val phaser: Phaser = Phaser(1)
-
-  private class EventEnvelope {
-    var event: Event? = null
-  }
-
-  private val disruptor =
-    Disruptor(
-      { EventEnvelope() },
-      RING_BUFFER_SIZE,
-      DaemonThreadFactory.INSTANCE,
-      ProducerType.MULTI,
-      BusySpinWaitStrategy(),
-    )
 
   var completionTimer: Timer = meterRegistry.timer("runtime.completionTime")
 
@@ -102,22 +79,9 @@ constructor(
 
     csmlSpec.instanceSubscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
 
-    disruptor.handleEventsWith(
-      LmaxEventHandler { envelope, _, _ ->
-        stateMachineInstances.values.forEach {
-          try {
-            it.pushEvent(envelope.event!!)
-          } catch (e: Exception) {
-            logger.error(e) {
-              "error in processing event for state machine instance '${it.instanceName}'"
-            }
-          }
-        }
-      }
-    )
-    disruptor.start()
-
-    eventHandler.registerHandler { disruptor.publishEvent { envelope, _ -> envelope.event = it } }
+    stateMachineInstances.values.forEach { instance ->
+      eventHandler.registerHandler(instance::pushEvent)
+    }
   }
 
   fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =

@@ -31,7 +31,6 @@ dependencies {
   kapt("com.google.dagger:dagger-compiler:2.59")
 
   implementation("com.google.guava:guava:33.4.0-jre")
-  implementation("com.lmax:disruptor:4.0.0")
   implementation("org.apache.commons:commons-jexl3:3.3")
   implementation("org.jgrapht:jgrapht-core:1.5.2")
 
