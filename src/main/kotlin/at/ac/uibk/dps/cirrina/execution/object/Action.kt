@@ -40,7 +40,9 @@ sealed interface Action {
         is MatchDescription ->
           MatchAction(
             Expression.from(description.value),
-            description.cases.associate { Expression.from(it.of) to create(it.then) },
+            description.cases.associate {
+              Expression.from(it.of) to it.then.map { desc -> create(desc) }
+            },
             description.default?.let { create(it) },
           )
 
@@ -96,7 +98,7 @@ internal constructor(
 class MatchAction
 internal constructor(
   val value: Expression,
-  val cases: Map<Expression, Action>,
+  val cases: Map<Expression, List<Action>>,
   val default: Action? = null,
 ) : EventRaisingAction {
   override fun raises(): List<Event> =

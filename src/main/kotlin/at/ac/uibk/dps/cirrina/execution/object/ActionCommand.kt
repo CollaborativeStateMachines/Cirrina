@@ -118,10 +118,10 @@ internal constructor(
     val extent = commandExecutionContext.scope.extent
     val matchValue = matchAction.value.execute(extent)
 
-    val selectedActions =
+    val selectedActions: List<Action> =
       matchAction.cases.entries
         .filter { (expression, _) -> expression.execute(extent) == matchValue }
-        .map { it.value }
+        .flatMap { it.value }
         .ifEmpty { listOfNotNull(matchAction.default) }
 
     return selectedActions.map { commandFactory.create(it, commandExecutionContext) }
