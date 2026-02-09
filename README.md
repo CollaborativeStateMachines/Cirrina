@@ -5,7 +5,7 @@
 </div>
 <br>
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.md) [![Build](https://github.com/UIBK-DPS-DC/Cirrina/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/UIBK-DPS-DC/Cirrina/actions/workflows/build.yml?event=push) [![Docker Image Version (tag)](https://img.shields.io/docker/v/marlonetheredgeuibk/cirrina/unstable?color=red)](https://hub.docker.com/repository/docker/marlonetheredgeuibk/cirrina/tags/unstable/) [![Docker Image Version (tag)](https://img.shields.io/docker/v/marlonetheredgeuibk/cirrina/stable?color=blue)](https://hub.docker.com/repository/docker/marlonetheredgeuibk/cirrina/tags/stable/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE.md) [![Build](https://github.com/UIBK-DPS-DC/Cirrina/actions/workflows/build.yml/badge.svg?event=push)](https://github.com/UIBK-DPS-DC/Cirrina/actions/workflows/build.yml?event=push) [![Docker Image Version (tag)](https://img.shields.io/docker/v/collaborativestatemachines/cirrina/unstable?color=red)](https://hub.docker.com/repository/docker/collaborativestatemachines/cirrina/tags/unstable/) [![Docker Image Version (tag)](https://img.shields.io/docker/v/collaborativestatemachines/cirrina/stable?color=blue)](https://hub.docker.com/repository/docker/collaborativestatemachines/cirrina/tags/stable/)
 
 Cirrina, a distributed Collaborative State Machines (CSM) runtime for the Cloud-Edge-IoT continuum.
 Collaborative State Machines is a state machine-based programming model for the Cloud-Edge-IoT
