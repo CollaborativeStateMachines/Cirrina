@@ -122,7 +122,7 @@ class ResetDescription extends ActionDescription {
 
 class CaseDescription {
   of: Expression
-  then: ActionDescription
+  then: Listing<ActionDescription>
 }
 
 class MatchDescription extends ActionDescription {
