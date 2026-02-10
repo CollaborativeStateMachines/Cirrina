@@ -16,9 +16,11 @@ import kotlin.collections.get
 import kotlin.properties.Delegates
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.onFailure
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
+
 private const val VAR_PREFIX = "$"
 
 class StateMachine
@@ -39,7 +41,7 @@ internal constructor(
 ) : Scope {
   var nestedStateMachineInstanceNames: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
-      if (old.isNotEmpty()) error("nestedStateMachineInstanceNames is already set")
+      if (old.isNotEmpty()) error("nested instance names is already set")
       true
     }
 
@@ -49,6 +51,7 @@ internal constructor(
   private val stateInstances =
     stateMachineSpec.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
+  private val started = CompletableDeferred<Unit>()
   private val eventChannel = Channel<Event>(Channel.UNLIMITED)
   private var activeState: State? = null
 
@@ -63,39 +66,59 @@ internal constructor(
     data?.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parentStateMachine?.extent ?: runtime.extent).extend(transientContext)
+
     eventSubscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
 
     runtime.phaser.register()
-    launchEventProcessor()
   }
 
-  fun start() =
+  fun start() {
+    logger.info { "'$this' entering initial state" }
+
     instanceObservation.observe {
       val initial =
         stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
       doEnter(initial, null)?.let { step(it, null) }
+
+      started.complete(Unit)
     }
+
+    logger.info { "'$this' starting event processor" }
+    processEvents()
+  }
 
   private fun isTerminated(): Boolean =
     parentStateMachine?.isTerminated() == true || activeState?.spec?.terminal == true
 
-  private fun checkTermination() {
+  private fun handleTermination() {
     if (isTerminated()) {
       logger.info { "'$this' terminated" }
+
       instanceObservation.stop()
       timeoutActionManager.shutdown()
+
       eventChannel.close()
       coroutineScope.cancel()
+
       runtime.phaser.arriveAndDeregister()
     }
   }
 
   fun pushEvent(event: Event) {
-    if (event.isValid()) eventChannel.trySend(event)
+    if (event.isValid())
+      eventChannel.trySend(event).onFailure { logger.error { "failed to push event" } }
   }
 
-  private fun launchEventProcessor() =
-    coroutineScope.launch { for (event in eventChannel) processEvent(event) }
+  private fun processEvents() =
+    coroutineScope.launch {
+      started.await()
+
+      for (event in eventChannel) try {
+        processEvent(event)
+      } catch (e: Exception) {
+        logger.error(e) { "failed to process event" }
+      }
+    }
 
   private fun processEvent(event: Event) {
     if (isTerminated()) return
@@ -106,13 +129,14 @@ internal constructor(
       .parentObservation(instanceObservation)
       .observe {
         handleEvent(event)?.let { transition -> step(transition, event) }
+
         if (event.channel == EventChannel.INTERNAL)
           stateMachineEventHandler.propagateToNested(event)
       }
   }
 
   private fun handleEvent(event: Event): Transition? {
-    val current = activeState ?: return null
+    val current = activeState ?: error("received event '$event' before entering initial state")
     val candidates =
       stateMachineSpec.getOnTransitionsFromStateByEventName(current.spec, event.topic)
     if (candidates.isEmpty()) return null
@@ -132,6 +156,7 @@ internal constructor(
     if (channel != EventChannel.INTERNAL && source.isEmpty()) return false
     if (channel == EventChannel.EXTERNAL && eventSubscriptions?.contains(source) == false)
       return false
+
     return true
   }
 
@@ -180,7 +205,8 @@ internal constructor(
         execute(state.getWhileActionCommands(createContext(state, event, isWhile = true)))
 
         state.timeoutActions.forEach(::startTimeout)
-        checkTermination()
+
+        handleTermination()
 
         if (!isTerminated()) {
           trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.spec), extent)
@@ -192,6 +218,7 @@ internal constructor(
       .lowCardinalityKeyValue("state.name", state.spec.name)
       .observe {
         timeoutActionManager.stopAll()
+
         execute(state.getExitActionCommands(createContext(state, event)))
       }
 
@@ -204,13 +231,13 @@ internal constructor(
 
   private tailrec fun execute(commands: List<ActionCommand>) {
     if (commands.isEmpty()) return
-    val nextBatch =
+    val next =
       commands.flatMap { command ->
         command.execute().also {
           if (command is TimeoutResetActionCommand) stopTimeout(command.timeoutResetAction.action)
         }
       }
-    execute(nextBatch)
+    execute(next)
   }
 
   private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
@@ -227,9 +254,11 @@ internal constructor(
     val delay =
       timeout.delay.execute(extent) as? Number
         ?: error("timeout delay '${timeout.delay}' is non-numeric")
+
     timeoutActionManager.start(timeout.name, delay) {
       val action = timeout.`do`
       val command = commandFactory.create(action, createContext(this, null))
+
       execute(
         listOf(
           command as? RaiseActionCommand ?: error("timeout action '$action' must be a raise action")

@@ -88,15 +88,18 @@ constructor(
   fun run() = runBlocking {
     val parties = EnvironmentVariables.csmParties.get()
     if (parties != null) {
-      logger.info { "waiting for '$parties' parties..." }
+      logger.info { "waiting for '$parties' parties" }
+
       eventHandler.waitForParties(parties)
-      logger.info { "complete" }
+
+      logger.info { "all parties are available" }
     }
 
     measureTime {
         stateMachineInstances.values.forEach { it.start() }
 
         phaser.arriveAndDeregister()
+
         while (phaser.registeredParties > 0) {
           phaser.awaitAdvance(phaser.phase)
         }
