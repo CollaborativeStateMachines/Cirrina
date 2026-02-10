@@ -39,7 +39,6 @@ sealed interface Action {
 
         is MatchDescription ->
           MatchAction(
-            Expression.from(description.value),
             description.cases.associate {
               Expression.from(it.of) to it.then.map { desc -> create(desc) }
             },
@@ -60,6 +59,8 @@ sealed interface Action {
           )
 
         is ResetDescription -> TimeoutResetAction(description.name)
+
+        is LogDescription -> LogAction(Expression.from(description.message))
 
         else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
@@ -96,17 +97,14 @@ internal constructor(
 }
 
 class MatchAction
-internal constructor(
-  val value: Expression,
-  val cases: Map<Expression, List<Action>>,
-  val default: Action? = null,
-) : EventRaisingAction {
+internal constructor(val cases: Map<Expression, List<Action>>, val default: Action? = null) :
+  EventRaisingAction {
   override fun raises(): List<Event> =
     (cases.values + listOfNotNull(default)).filterIsInstance<EventRaisingAction>().flatMap {
       it.raises()
     }
 
-  override fun toString() = "MatchAction(value='$value', cases='$cases', default='$default')"
+  override fun toString() = "MatchAction(cases='$cases', default='$default')"
 }
 
 class RaiseAction internal constructor(val event: Event, val target: Expression?) :
@@ -128,3 +126,5 @@ internal constructor(val name: String, val delay: Expression, val `do`: Action) 
 class TimeoutResetAction internal constructor(val action: String) : Action {
   override fun toString() = "TimeoutResetAction(action='$action')"
 }
+
+class LogAction internal constructor(val message: Expression) : Action

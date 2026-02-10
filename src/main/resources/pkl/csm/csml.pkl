@@ -126,9 +126,12 @@ class CaseDescription {
 }
 
 class MatchDescription extends ActionDescription {
-  value: Expression
   cases: Listing<CaseDescription>
   default: ActionDescription?
+}
+
+class LogDescription extends ActionDescription {
+  message: Expression
 }
 
 typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
@@ -188,13 +191,12 @@ typealias Transition = TransitionDescription
 typealias Action = ActionDescription
 typealias Eval = EvalDescription
 typealias Invoke = InvokeDescription
-
 typealias Case = CaseDescription
 typealias Match = MatchDescription
-
 typealias Raise = RaiseDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
+typealias Log = LogDescription
 
 // Event aliases
 typealias Event = EventDescription
