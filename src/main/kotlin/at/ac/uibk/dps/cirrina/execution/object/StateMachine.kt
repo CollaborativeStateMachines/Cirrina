@@ -207,7 +207,7 @@ internal constructor(
     val nextBatch =
       commands.flatMap { command ->
         command.execute().also {
-          if (command is ActionTimeoutResetCommand) stopTimeout(command.timeoutResetAction.action)
+          if (command is TimeoutResetActionCommand) stopTimeout(command.timeoutResetAction.action)
         }
       }
     execute(nextBatch)
@@ -232,7 +232,7 @@ internal constructor(
       val command = commandFactory.create(action, createContext(this, null))
       execute(
         listOf(
-          command as? ActionRaiseCommand ?: error("timeout action '$action' must be a raise action")
+          command as? RaiseActionCommand ?: error("timeout action '$action' must be a raise action")
         )
       )
     }

@@ -8,6 +8,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 
+private val logger = KotlinLogging.logger {}
+
 data class CommandExecutionContext(
   val scope: Scope,
   val serviceImplementationSelector: ServiceImplementationSelector,
@@ -27,13 +29,14 @@ class ActionCommandFactoryImpl(private val meterRegistry: MeterRegistry) : Actio
     commandExecutionContext: CommandExecutionContext,
   ): ActionCommand =
     when (action) {
-      is EvalAction -> ActionEvalCommand(action, commandExecutionContext, this, meterRegistry)
-      is InvokeAction -> ActionInvokeCommand(action, commandExecutionContext, this, meterRegistry)
-      is MatchAction -> ActionMatchCommand(action, commandExecutionContext, this, meterRegistry)
-      is RaiseAction -> ActionRaiseCommand(action, commandExecutionContext, this, meterRegistry)
-      is TimeoutAction -> ActionTimeoutCommand(action, commandExecutionContext, this, meterRegistry)
+      is EvalAction -> EvalActionCommand(action, commandExecutionContext, this, meterRegistry)
+      is InvokeAction -> InvokeActionCommand(action, commandExecutionContext, this, meterRegistry)
+      is MatchAction -> MatchActionCommand(action, commandExecutionContext, this, meterRegistry)
+      is RaiseAction -> RaiseActionCommand(action, commandExecutionContext, this, meterRegistry)
+      is TimeoutAction -> TimeoutActionCommand(action, commandExecutionContext, this, meterRegistry)
       is TimeoutResetAction ->
-        ActionTimeoutResetCommand(action, commandExecutionContext, this, meterRegistry)
+        TimeoutResetActionCommand(action, commandExecutionContext, this, meterRegistry)
+      is LogAction -> LogActionCommand(action, commandExecutionContext, this, meterRegistry)
       else -> error("unknown action type: ${action::class.simpleName}")
     }
 }
@@ -51,7 +54,7 @@ internal constructor(
   abstract fun execute(): List<ActionCommand>
 }
 
-class ActionEvalCommand
+class EvalActionCommand
 internal constructor(
   private val evalAction: EvalAction,
   commandExecutionContext: CommandExecutionContext,
@@ -62,7 +65,7 @@ internal constructor(
     evalAction.expression.execute(commandExecutionContext.scope.extent).run { emptyList() }
 }
 
-class ActionInvokeCommand
+class InvokeActionCommand
 internal constructor(
   private val invokeAction: InvokeAction,
   commandExecutionContext: CommandExecutionContext,
@@ -107,7 +110,7 @@ internal constructor(
   }
 }
 
-class ActionMatchCommand
+class MatchActionCommand
 internal constructor(
   private val matchAction: MatchAction,
   commandExecutionContext: CommandExecutionContext,
@@ -128,7 +131,7 @@ internal constructor(
   }
 }
 
-class ActionRaiseCommand
+class RaiseActionCommand
 internal constructor(
   private val raiseAction: RaiseAction,
   commandExecutionContext: CommandExecutionContext,
@@ -150,7 +153,7 @@ internal constructor(
   }
 }
 
-class ActionTimeoutCommand
+class TimeoutActionCommand
 internal constructor(
   private val timeoutAction: TimeoutAction,
   commandExecutionContext: CommandExecutionContext,
@@ -161,7 +164,7 @@ internal constructor(
     listOf(commandFactory.create(timeoutAction.`do`, commandExecutionContext))
 }
 
-class ActionTimeoutResetCommand
+class TimeoutResetActionCommand
 internal constructor(
   val timeoutResetAction: TimeoutResetAction,
   commandExecutionContext: CommandExecutionContext,
@@ -169,4 +172,20 @@ internal constructor(
   meterRegistry: MeterRegistry,
 ) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
   override fun execute(): List<ActionCommand> = emptyList()
+}
+
+class LogActionCommand
+internal constructor(
+  private val logAction: LogAction,
+  commandExecutionContext: CommandExecutionContext,
+  commandFactory: ActionCommandFactory,
+  meterRegistry: MeterRegistry,
+) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
+  override fun execute(): List<ActionCommand> {
+    logAction.message.execute(commandExecutionContext.scope.extent).toString().also {
+      logger.info(it)
+    }
+
+    return emptyList()
+  }
 }

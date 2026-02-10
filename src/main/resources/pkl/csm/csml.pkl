@@ -131,6 +131,10 @@ class MatchDescription extends ActionDescription {
   default: ActionDescription?
 }
 
+class LogDescription extends ActionDescription {
+  message: Expression
+}
+
 typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 typealias EventChannel = "internal"|"external"|"global"|"peripheral"
@@ -188,13 +192,12 @@ typealias Transition = TransitionDescription
 typealias Action = ActionDescription
 typealias Eval = EvalDescription
 typealias Invoke = InvokeDescription
-
 typealias Case = CaseDescription
 typealias Match = MatchDescription
-
 typealias Raise = RaiseDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
+typealias Log = LogDescription
 
 // Event aliases
 typealias Event = EventDescription

@@ -61,6 +61,8 @@ sealed interface Action {
 
         is ResetDescription -> TimeoutResetAction(description.name)
 
+        is LogDescription -> LogAction(Expression.from(description.message))
+
         else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
 
@@ -128,3 +130,5 @@ internal constructor(val name: String, val delay: Expression, val `do`: Action) 
 class TimeoutResetAction internal constructor(val action: String) : Action {
   override fun toString() = "TimeoutResetAction(action='$action')"
 }
+
+class LogAction internal constructor(val message: Expression) : Action
