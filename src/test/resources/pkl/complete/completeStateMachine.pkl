@@ -37,10 +37,9 @@ sm = new csml.StateMachine {
         new csml.Eval { expression = "v = x" }
         new csml.Eval { expression = "d = d - 1" }
         new csml.Match {
-          value = "d"
           cases {
             new csml.Case {
-              of = "0"; then { new csml.Raise { event = new csml.Internal { topic = "e3" } } }
+              of = "d == 0"; then { new csml.Raise { event = new csml.Internal { topic = "e3" } } }
             }
           }
           default = new csml.Raise { event = new csml.Internal { topic = "e4" } }

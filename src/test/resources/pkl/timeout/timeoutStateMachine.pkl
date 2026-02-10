@@ -14,14 +14,10 @@ sm = new csml.StateMachine {
           to = "a"
           do {
             new csml.Match {
-              value = "v < 10"
               cases {
-                new csml.Case { of = "true"; then { new csml.Eval { expression = "v = v + 1" } } }
-                new csml.Case {
-                  of = "false"
-                  then { new csml.Raise { event = new csml.Internal { topic = "tob" } } }
-                }
+                new csml.Case { of = "v < 10"; then { new csml.Eval { expression = "v = v + 1" } } }
               }
+              default = new csml.Raise { event = new csml.Internal { topic = "tob" } }
             }
           }
         }

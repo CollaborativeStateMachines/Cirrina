@@ -119,11 +119,10 @@ internal constructor(
 ) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
   override fun execute(): List<ActionCommand> {
     val extent = commandExecutionContext.scope.extent
-    val matchValue = matchAction.value.execute(extent)
 
     val selectedActions: List<Action> =
       matchAction.cases.entries
-        .filter { (expression, _) -> expression.execute(extent) == matchValue }
+        .filter { (expression, _) -> expression.execute(extent) == true }
         .flatMap { it.value }
         .ifEmpty { listOfNotNull(matchAction.default) }
 
