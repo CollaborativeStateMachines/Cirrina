@@ -1,7 +1,9 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import TimeoutActionManager
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
@@ -11,7 +13,6 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.get
 import kotlin.properties.Delegates
 import kotlinx.coroutines.*
@@ -300,39 +301,30 @@ internal constructor(
   }
 }
 
-class TimeoutActionManager(private val coroutineScope: CoroutineScope) {
-
-  private val timeoutJobs = ConcurrentHashMap<String, Job>()
-
-  fun start(actionName: String, delayInMs: Number, task: suspend () -> Unit) {
-    check(coroutineScope.isActive) { "cannot start action '$actionName' on a shut down manager" }
-
-    require(!timeoutJobs.containsKey(actionName)) { "duplicate timeout action name '$actionName'" }
-
-    coroutineScope
-      .launch {
-        while (isActive) {
-          delay(delayInMs.toLong())
-
-          runCatching { task() }
-            .onFailure { e -> logger.error(e) { "timeout action '$actionName' failed" } }
-        }
+fun Factory.createHierarchy(
+  name: String,
+  specification: StateMachineSpec,
+  runtime: Runtime,
+  selector: ServiceImplementationSelector,
+  parent: StateMachine? = null,
+  subscriptions: List<String>? = null,
+  data: List<ContextVariable>? = null,
+): List<StateMachine> =
+  create(name, specification, runtime, selector, parent, subscriptions, data).let { current ->
+    specification.nestedStateMachines
+      .flatMapIndexed { index, nestedClass ->
+        createHierarchy(
+          "${current.name}.$index@${nestedClass.name}",
+          nestedClass,
+          runtime,
+          selector,
+          current,
+          null,
+          null,
+        )
       }
-      .also { timeoutJobs[actionName] = it }
+      .let { nestedInstances ->
+        current.apply { nested = nestedInstances.map { it.name } }
+        listOf(current) + nestedInstances
+      }
   }
-
-  fun stop(actionName: String) {
-    timeoutJobs.remove(actionName)?.cancel()
-      ?: error("expected exactly one timeout action with the name '$actionName'")
-  }
-
-  fun stopAll() {
-    timeoutJobs.values.forEach { it.cancel() }
-    timeoutJobs.clear()
-  }
-
-  fun shutdown() {
-    stopAll()
-    coroutineScope.cancel()
-  }
-}
