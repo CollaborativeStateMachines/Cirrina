@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina
 
-import EventHandlerInMemory
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.csm.Csml.Type
@@ -8,10 +7,11 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
+import at.ac.uibk.dps.cirrina.execution.`object`.Stdlib
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
-import at.ac.uibk.dps.cirrina.execution.provider.Stdlib
 import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime
@@ -25,7 +25,7 @@ class CompleteTest {
   fun testCompleteExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = EventHandlerInMemory()
+        val eventHandler = EventHandler()
         val context = ContextInMemory()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")

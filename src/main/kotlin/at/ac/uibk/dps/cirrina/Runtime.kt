@@ -86,15 +86,6 @@ constructor(
     stateMachineInstances[stateMachineObjectName]
 
   fun run() = runBlocking {
-    val parties = EnvironmentVariables.csmParties.get()
-    if (parties != null) {
-      logger.info { "waiting for '$parties' parties" }
-
-      eventHandler.waitForParties(parties)
-
-      logger.info { "all parties are available" }
-    }
-
     measureTime {
         stateMachineInstances.values.forEach { it.start() }
 

@@ -18,6 +18,22 @@ internal constructor(
       ?: error("state machine '$name' must have an initial state")
   }
 
+  val inputEvents: List<String> by lazy {
+    val localEvents = edgeSet().mapNotNull { it.event }
+    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.inputEvents }
+    (localEvents + nestedEvents).distinct()
+  }
+
+  val outputEvents: List<Event> by lazy {
+    val localEvents =
+      (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
+          edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
+        .flatMap { it.raises() }
+
+    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.outputEvents }
+    (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
+  }
+
   private val stateNames: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
 
   private val alwaysTransitions: Map<State, List<Transition>> by lazy {
@@ -37,22 +53,6 @@ internal constructor(
 
   fun getAlwaysTransitionsFromState(fromState: State): List<Transition> =
     alwaysTransitions[fromState].orEmpty()
-
-  val inputEvents: List<String> by lazy {
-    val localEvents = edgeSet().mapNotNull { it.event }
-    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.inputEvents }
-    (localEvents + nestedEvents).distinct()
-  }
-
-  val outputEvents: List<Event> by lazy {
-    val localEvents =
-      (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
-          edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
-        .flatMap { it.raises() }
-
-    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.outputEvents }
-    (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
-  }
 
   companion object {
     fun create(description: StateMachineDescription, name: String = ""): Result<StateMachine> =

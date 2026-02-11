@@ -6,17 +6,18 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
 abstract class EventHandlerTest {
 
-  protected abstract fun createEventHandler(group: String, member: String): EventHandler
+  fun createEventHandler(): EventHandler = EventHandler()
 
   @ParameterizedTest
   @EnumSource(Csml.EventChannel::class)
   fun testEventHandlerSendReceive(channel: Csml.EventChannel) {
-    createEventHandler("group", "member").use { eventHandler ->
+    createEventHandler().use { eventHandler ->
       val count = 5
 
       val context = ContextInMemory()
@@ -30,7 +31,7 @@ abstract class EventHandlerTest {
         latch.countDown()
       }
 
-      eventHandler.subscribe(EventHandler.Companion.GLOBAL_SOURCE)
+      eventHandler.subscribe(EventHandler.GLOBAL_SOURCE)
       eventHandler.subscribe("source")
 
       // Send <count> events
@@ -50,16 +51,8 @@ abstract class EventHandlerTest {
         Assertions.assertEquals(count, receivedEvents.size)
         receivedEvents.forEachIndexed { index, event ->
           val variable = event.data.first()
-          Assertions.assertEquals(
-            "varName",
-            variable.name,
-            "event data mismatch at index $index (name)",
-          )
-          Assertions.assertEquals(
-            index,
-            variable.value,
-            "event data mismatch at index $index (value)",
-          )
+          assertEquals("varName", variable.name, "event data mismatch at index $index (name)")
+          assertEquals(index, variable.value, "event data mismatch at index $index (value)")
         }
       } else {
         Thread.sleep(500)

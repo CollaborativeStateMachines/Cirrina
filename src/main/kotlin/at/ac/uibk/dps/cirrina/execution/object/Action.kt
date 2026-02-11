@@ -27,7 +27,7 @@ sealed interface Action {
   companion object {
     fun create(description: ActionDescription, name: String? = null): Action =
       when (description) {
-        is EvalDescription -> EvalAction(Expression.from(description.expression))
+        is EvalDescription -> EvalAction(Expression.create(description.expression))
 
         is InvokeDescription ->
           InvokeAction(
@@ -40,7 +40,7 @@ sealed interface Action {
         is MatchDescription ->
           MatchAction(
             description.cases.associate {
-              Expression.from(it.of) to it.then.map { desc -> create(desc) }
+              Expression.create(it.of) to it.then.map { desc -> create(desc) }
             },
             description.default?.let { create(it) },
           )
@@ -48,26 +48,26 @@ sealed interface Action {
         is RaiseDescription ->
           RaiseAction(
             Event.from(description.event),
-            description.target?.let { Expression.from(it) },
+            description.target?.let { Expression.create(it) },
           )
 
         is TimeoutDescription ->
           TimeoutAction(
             name ?: error("timeout action name required"),
-            Expression.from(description.delay),
+            Expression.create(description.delay),
             create(description.`do`),
           )
 
         is ResetDescription -> TimeoutResetAction(description.name)
 
-        is LogDescription -> LogAction(Expression.from(description.message))
+        is LogDescription -> LogAction(Expression.create(description.message))
 
         else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
 
     private fun buildVariables(context: Map<String, String>) =
       context.map { (k, v) ->
-        val expression = Expression.from(v)
+        val expression = Expression.create(v)
         ContextVariable.lazy(k, expression)
       }
 

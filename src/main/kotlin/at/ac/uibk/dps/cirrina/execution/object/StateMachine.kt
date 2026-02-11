@@ -105,8 +105,8 @@ internal constructor(
   }
 
   fun pushEvent(event: Event) {
-    if (event.isValid())
-      eventChannel.trySend(event).onFailure { logger.error { "failed to push event" } }
+    if (event.isValid() && !isTerminated())
+      eventChannel.trySend(event).onFailure { logger.error(it) { "failed to push event" } }
   }
 
   private fun processEvents() =

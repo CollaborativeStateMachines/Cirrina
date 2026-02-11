@@ -1,16 +1,12 @@
 package at.ac.uibk.dps.cirrina.cirrina.di
 
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
-import at.ac.uibk.dps.cirrina.EventProvider
 import at.ac.uibk.dps.cirrina.PersistentContextProvider
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.GLOBAL_SOURCE
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler.Companion.PERIPHERAL_SOURCE
 import at.ac.uibk.dps.cirrina.execution.provider.ContextEtcd
-import at.ac.uibk.dps.cirrina.execution.provider.EventHandlerZenoh
 import at.ac.uibk.dps.cirrina.util.getBuildVersion
 import dagger.Module
 import dagger.Provides
@@ -52,16 +48,7 @@ import java.util.UUID
 @Module
 class CirrinaModule {
 
-  @Provides
-  @Singleton
-  fun provideEventHandler(@Identifier identifier: String): EventHandler =
-    when (EnvironmentVariables.eventProvider.get()) {
-      EventProvider.ZENOH ->
-        EventHandlerZenoh(EnvironmentVariables.csmGroup.get(), identifier).apply {
-          subscribe(GLOBAL_SOURCE)
-          subscribe(PERIPHERAL_SOURCE)
-        }
-    }
+  @Provides @Singleton fun provideEventHandler(): EventHandler = EventHandler()
 
   @Provides
   @Singleton
