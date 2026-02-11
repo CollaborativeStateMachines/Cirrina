@@ -65,7 +65,7 @@ constructor(
       csmlSpec.instances
         .flatMap { (instanceName, stateMachineClass) ->
           buildInstances(
-            csmlSpec.collaborativeStateMachineSpec.findStateMachineClassByName(stateMachineClass)
+            csmlSpec.collaborativeStateMachineSpec.stateMachineClasses[stateMachineClass]
               ?: error("state machine class '$stateMachineClass' not found"),
             instanceName,
             null,
