@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.spec
 
+import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
 import at.ac.uibk.dps.cirrina.execution.`object`.Event
@@ -37,12 +38,20 @@ internal constructor(
   fun getAlwaysTransitionsFromState(fromState: State): List<Transition> =
     alwaysTransitions[fromState].orEmpty()
 
-  val inputEvents: List<String> by lazy { edgeSet().mapNotNull { it.event }.distinct() }
+  val inputEvents: List<String> by lazy {
+    val localEvents = edgeSet().mapNotNull { it.event }
+    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.inputEvents }
+    (localEvents + nestedEvents).distinct()
+  }
 
   val outputEvents: List<Event> by lazy {
-    (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
-        edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
-      .flatMap { it.raises() }
+    val localEvents =
+      (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
+          edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
+        .flatMap { it.raises() }
+
+    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.outputEvents }
+    (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
   }
 
   companion object {
