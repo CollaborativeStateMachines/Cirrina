@@ -98,6 +98,7 @@ constructor(
       }
   }
 
+  // TODO: Move out of here
   private fun buildInstances(
     name: String,
     specification: StateMachineSpec,

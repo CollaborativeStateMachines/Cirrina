@@ -150,6 +150,8 @@ internal constructor(
     }
   }
 
+  fun isSubscribedTo(other: String): Boolean = subscriptions?.contains(other) == true
+
   private fun Event.isValid(): Boolean {
     if (target.isNotEmpty() && target != name) return false
     if (channel != EventChannel.INTERNAL && source.isEmpty()) return false
