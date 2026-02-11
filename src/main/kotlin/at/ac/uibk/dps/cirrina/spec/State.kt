@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
+import at.ac.uibk.dps.cirrina.execution.graph.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.Action
-import at.ac.uibk.dps.cirrina.execution.`object`.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.TimeoutAction
 
 class State
