@@ -6,10 +6,10 @@ import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 
 class Csml
 private constructor(
-  val collaborativeStateMachineSpec: CollaborativeStateMachine,
+  val collaborativeStateMachine: CollaborativeStateMachine,
   val instances: Map<String, String>,
-  val instanceSubscriptions: Map<String, List<String>>,
-  val instanceData: Map<String, List<ContextVariable>>,
+  val subscriptions: Map<String, List<String>>,
+  val datas: Map<String, List<ContextVariable>>,
   val bindings: List<Csml.ServiceImplementationBinding>,
 ) {
   companion object {

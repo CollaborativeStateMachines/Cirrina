@@ -6,8 +6,8 @@ import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 
 class CollaborativeStateMachine
 private constructor(
-  val persistentContextVariables: List<ContextVariable>,
-  val stateMachineClasses: Map<String, StateMachine>,
+  val persistentContext: List<ContextVariable>,
+  val stateMachines: Map<String, StateMachine>,
 ) {
   companion object {
     fun create(

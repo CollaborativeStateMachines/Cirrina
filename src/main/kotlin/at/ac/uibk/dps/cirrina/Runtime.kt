@@ -34,23 +34,23 @@ constructor(
   meterRegistry: MeterRegistry,
   @CsmMain csmMainUri: URI,
 ) {
-  val stateMachineInstances: Map<String, StateMachine>
-  val serviceImplementationSelector: ServiceImplementationSelector
+  val instances: Map<String, StateMachine>
+  val selector: ServiceImplementationSelector
 
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
   val phaser: Phaser = Phaser(1)
 
-  var completionTimer: Timer = meterRegistry.timer("runtime.completionTime")
+  var completion: Timer = meterRegistry.timer("runtime.completionTime")
 
   init {
-    val csmlSpec =
+    val spec =
       CsmlSpec.create(CsmParser.parseCsml(csmMainUri))
         .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
     persistentContext?.let { context ->
-      csmlSpec.collaborativeStateMachineSpec.persistentContextVariables.forEach { variable ->
+      spec.collaborativeStateMachine.persistentContext.forEach { variable ->
         runCatching { context.create(variable.name, variable.value) }
           .onFailure {
             logger.warn { "variable '${variable.name}' already exists or failed to create" }
@@ -58,36 +58,33 @@ constructor(
       }
     }
 
-    serviceImplementationSelector =
-      RandomServiceImplementationSelector(ServiceImplementation.from(csmlSpec.bindings))
+    selector = RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings))
 
-    stateMachineInstances =
-      csmlSpec.instances
-        .flatMap { (instanceName, stateMachineClass) ->
+    instances =
+      spec.instances
+        .flatMap { (name, `class`) ->
           buildInstances(
-            csmlSpec.collaborativeStateMachineSpec.stateMachineClasses[stateMachineClass]
-              ?: error("state machine class '$stateMachineClass' not found"),
-            instanceName,
+            name,
+            spec.collaborativeStateMachine.stateMachines[`class`]
+              ?: error("state machine class '${`class`}' not found"),
             null,
-            csmlSpec.instanceSubscriptions[instanceName],
-            csmlSpec.instanceData[instanceName],
+            spec.subscriptions[name],
+            spec.datas[name],
           )
         }
-        .associateBy { it.instanceName }
+        .associateBy { it.name }
 
-    csmlSpec.instanceSubscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
+    spec.subscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
 
-    stateMachineInstances.values.forEach { instance ->
-      eventHandler.registerHandler(instance::pushEvent)
-    }
+    instances.values.forEach { instance -> eventHandler.registerHandler(instance::pushEvent) }
   }
 
   fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
-    stateMachineInstances[stateMachineObjectName]
+    instances[stateMachineObjectName]
 
   fun run() = runBlocking {
     measureTime {
-        stateMachineInstances.values.forEach { it.start() }
+        instances.values.forEach { it.start() }
 
         phaser.arriveAndDeregister()
 
@@ -96,44 +93,34 @@ constructor(
         }
       }
       .also { duration ->
-        completionTimer.record(duration.toJavaDuration())
+        completion.record(duration.toJavaDuration())
         logger.info { "runtime terminated in $duration" }
       }
   }
 
   private fun buildInstances(
-    stateMachineSpec: StateMachineSpec,
-    instanceName: String,
-    parentInstance: StateMachine?,
-    eventSubscriptions: List<String>?,
+    name: String,
+    specification: StateMachineSpec,
+    parent: StateMachine?,
+    subscriptions: List<String>?,
     data: List<ContextVariable>?,
   ): List<StateMachine> =
     stateMachineFactory
-      .create(
-        instanceName,
-        this,
-        stateMachineSpec,
-        serviceImplementationSelector,
-        parentInstance,
-        eventSubscriptions,
-        data,
-      )
-      .let { currentInstance ->
-        stateMachineSpec.nestedStateMachinesSpecs
-          .flatMapIndexed { index, nestedStateMachineClass ->
+      .create(name, specification, this, selector, parent, subscriptions, data)
+      .let { current ->
+        specification.nestedStateMachines
+          .flatMapIndexed { index, nestedClass ->
             buildInstances(
-              nestedStateMachineClass,
-              "${currentInstance.instanceName}.$index@${nestedStateMachineClass.name}",
-              currentInstance,
+              "${current.name}.$index@${nestedClass.name}",
+              nestedClass,
+              current,
               null,
               null,
             )
           }
           .let { nestedInstances ->
-            currentInstance.apply {
-              nestedStateMachineInstanceNames = nestedInstances.map { it.instanceName }
-            }
-            listOf(currentInstance) + nestedInstances
+            current.apply { nested = nestedInstances.map { it.name } }
+            listOf(current) + nestedInstances
           }
       }
 }

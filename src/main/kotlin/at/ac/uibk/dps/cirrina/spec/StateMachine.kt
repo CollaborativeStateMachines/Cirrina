@@ -10,17 +10,17 @@ import org.jgrapht.graph.DirectedPseudograph
 class StateMachine
 internal constructor(
   val name: String,
-  val nestedStateMachinesSpecs: List<StateMachine>,
-  val transientContextDescription: Map<String, String>?,
+  val nestedStateMachines: List<StateMachine>,
+  val transientContext: Map<String, String>?,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
-  val initialState: State by lazy {
+  val initial: State by lazy {
     vertexSet().firstOrNull { it.initial }
       ?: error("state machine '$name' must have an initial state")
   }
 
   val inputEvents: List<String> by lazy {
     val localEvents = edgeSet().mapNotNull { it.event }
-    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.inputEvents }
+    val nestedEvents = nestedStateMachines.flatMap { it.inputEvents }
     (localEvents + nestedEvents).distinct()
   }
 
@@ -30,7 +30,7 @@ internal constructor(
           edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
         .flatMap { it.raises() }
 
-    val nestedEvents = nestedStateMachinesSpecs.flatMap { it.outputEvents }
+    val nestedEvents = nestedStateMachines.flatMap { it.outputEvents }
     (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
   }
 
@@ -46,29 +46,27 @@ internal constructor(
     }
   }
 
-  fun getStateClassByName(stateName: String): State? = stateNames[stateName]
+  fun getStateClassByName(name: String): State? = stateNames[name]
 
-  fun getOnTransitionsFromStateByEventName(fromState: State, event: String): List<Transition> =
-    onTransitions[fromState]?.get(event).orEmpty()
+  fun getOnTransitionsFromStateByEventName(from: State, name: String): List<Transition> =
+    onTransitions[from]?.get(name).orEmpty()
 
-  fun getAlwaysTransitionsFromState(fromState: State): List<Transition> =
-    alwaysTransitions[fromState].orEmpty()
+  fun getAlwaysTransitionsFromState(from: State): List<Transition> =
+    alwaysTransitions[from].orEmpty()
 
   companion object {
-    fun create(description: StateMachineDescription, name: String = ""): Result<StateMachine> =
+    fun create(desc: StateMachineDescription, name: String = ""): Result<StateMachine> =
       runCatching {
         val nested =
-          description.stateMachines.map { (nestedName, desc) ->
-            create(desc, nestedName).getOrThrow()
-          }
+          desc.stateMachines.map { (nestedName, smDesc) -> create(smDesc, nestedName).getOrThrow() }
 
-        val spec = StateMachine(name, nested, description.transient)
+        val spec = StateMachine(name, nested, desc.transient)
 
-        description.states.forEach { (stateName, stateDesc) ->
+        desc.states.forEach { (stateName, stateDesc) ->
           spec.addVertex(State.create(stateDesc, stateName).getOrThrow())
         }
 
-        description.states.forEach { (sourceName, stateDesc) ->
+        desc.states.forEach { (sourceName, stateDesc) ->
           val source = spec.getStateClassByName(sourceName)!!
 
           stateDesc.on.forEach { (event, transDesc) -> buildGraph(spec, source, event, transDesc) }

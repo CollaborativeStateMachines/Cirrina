@@ -26,12 +26,12 @@ private const val VAR_PREFIX = "$"
 class StateMachine
 @AssistedInject
 internal constructor(
-  @Assisted val instanceName: String,
+  @Assisted val name: String,
+  @Assisted val specification: StateMachineSpec,
   @Assisted private val runtime: Runtime,
-  @Assisted private val stateMachineSpec: StateMachineSpec,
-  @Assisted private val serviceImplementationSelector: ServiceImplementationSelector,
-  @Assisted private val parentStateMachine: StateMachine? = null,
-  @Assisted private val eventSubscriptions: List<String>? = null,
+  @Assisted private val selector: ServiceImplementationSelector,
+  @Assisted private val parent: StateMachine? = null,
+  @Assisted private val subscriptions: List<String>? = null,
   @Assisted private val data: List<ContextVariable>? = null,
   private val observationRegistry: ObservationRegistry,
   private val commandFactory: ActionCommandFactory,
@@ -39,7 +39,7 @@ internal constructor(
   private val transitionFactory: Transition.Factory,
   eventHandler: EventHandler,
 ) : Scope {
-  var nestedStateMachineInstanceNames: List<String> by
+  var nested: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
       if (old.isNotEmpty()) error("nested instance names is already set")
       true
@@ -49,7 +49,7 @@ internal constructor(
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
   private val stateInstances =
-    stateMachineSpec.vertexSet().associate { it.name to stateFactory.create(it, this) }
+    specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
   private val started = CompletableDeferred<Unit>()
   private val eventChannel = Channel<Event>(Channel.UNLIMITED)
@@ -58,16 +58,16 @@ internal constructor(
   override val extent: Extent
   private val instanceObservation =
     Observation.start("stateMachine.instance", observationRegistry).apply {
-      lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+      lowCardinalityKeyValue("stateMachine.instanceName", name)
     }
 
   init {
-    val transientContext = Context.from(stateMachineSpec.transientContextDescription)
+    val transientContext = Context.from(specification.transientContext)
     data?.forEach { transientContext.create(it.name, it.value) }
 
-    extent = (parentStateMachine?.extent ?: runtime.extent).extend(transientContext)
+    extent = (parent?.extent ?: runtime.extent).extend(transientContext)
 
-    eventSubscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
+    subscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
 
     runtime.phaser.register()
   }
@@ -76,8 +76,7 @@ internal constructor(
     logger.info { "'$this' entering initial state" }
 
     instanceObservation.observe {
-      val initial =
-        stateInstances[stateMachineSpec.initialState.name] ?: error("initial state not found")
+      val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
       doEnter(initial, null)?.let { step(it, null) }
 
       started.complete(Unit)
@@ -88,7 +87,7 @@ internal constructor(
   }
 
   private fun isTerminated(): Boolean =
-    parentStateMachine?.isTerminated() == true || activeState?.spec?.terminal == true
+    parent?.isTerminated() == true || activeState?.specification?.terminal == true
 
   private fun handleTermination() {
     if (isTerminated()) {
@@ -124,7 +123,7 @@ internal constructor(
     if (isTerminated()) return
 
     Observation.createNotStarted("stateMachine.event", observationRegistry)
-      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
+      .lowCardinalityKeyValue("stateMachine.instanceName", name)
       .lowCardinalityKeyValue("event.topic", event.topic)
       .parentObservation(instanceObservation)
       .observe {
@@ -138,7 +137,7 @@ internal constructor(
   private fun handleEvent(event: Event): Transition? {
     val current = activeState ?: error("received event '$event' before entering initial state")
     val candidates =
-      stateMachineSpec.getOnTransitionsFromStateByEventName(current.spec, event.topic)
+      specification.getOnTransitionsFromStateByEventName(current.specification, event.topic)
     if (candidates.isEmpty()) return null
 
     val evalExtent =
@@ -152,10 +151,9 @@ internal constructor(
   }
 
   private fun Event.isValid(): Boolean {
-    if (target.isNotEmpty() && target != instanceName) return false
+    if (target.isNotEmpty() && target != name) return false
     if (channel != EventChannel.INTERNAL && source.isEmpty()) return false
-    if (channel == EventChannel.EXTERNAL && eventSubscriptions?.contains(source) == false)
-      return false
+    if (channel == EventChannel.EXTERNAL && subscriptions?.contains(source) == false) return false
 
     return true
   }
@@ -196,26 +194,26 @@ internal constructor(
 
   private fun doEnter(state: State, event: Event?): Transition? =
     Observation.createNotStarted("stateMachine.enter", observationRegistry)
-      .lowCardinalityKeyValue("stateMachine.instanceName", instanceName)
-      .lowCardinalityKeyValue("state.name", state.spec.name)
+      .lowCardinalityKeyValue("stateMachine.instanceName", name)
+      .lowCardinalityKeyValue("state.name", state.specification.name)
       .observe<Transition?> {
         activeState = state
 
         execute(state.getEntryActionCommands(createContext(state, event)))
         execute(state.getWhileActionCommands(createContext(state, event, isWhile = true)))
 
-        state.timeoutActions.forEach(::startTimeout)
+        state.timeout.forEach(::startTimeout)
 
         handleTermination()
 
         if (!isTerminated()) {
-          trySelect(stateMachineSpec.getAlwaysTransitionsFromState(state.spec), extent)
+          trySelect(specification.getAlwaysTransitionsFromState(state.specification), extent)
         } else null
       }
 
   private fun doExit(state: State, event: Event?) =
     Observation.createNotStarted("stateMachine.exit", observationRegistry)
-      .lowCardinalityKeyValue("state.name", state.spec.name)
+      .lowCardinalityKeyValue("state.name", state.specification.name)
       .observe {
         timeoutActionManager.stopAll()
 
@@ -243,7 +241,7 @@ internal constructor(
   private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
     CommandExecutionContext(
       scope,
-      serviceImplementationSelector,
+      selector,
       stateMachineEventHandler,
       coroutineScope,
       event,
@@ -269,17 +267,17 @@ internal constructor(
 
   private fun stopTimeout(name: String) = timeoutActionManager.stop(name)
 
-  override fun toString() = "StateMachine(name='$instanceName')"
+  override fun toString() = "StateMachine(name='$name')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun sendEvent(event: Event) = eventHandler.send(event.copy(source = instanceName))
+    fun sendEvent(event: Event) = eventHandler.send(event.copy(source = name))
 
     fun propagateToParent(event: Event) {
-      parentStateMachine?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
+      parent?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
     }
 
     fun propagateToNested(event: Event) {
-      nestedStateMachineInstanceNames.forEach { name ->
+      nested.forEach { name ->
         runtime.findStateMachineInstance(name)?.pushEvent(event)
           ?: error("nested state machine instance '$name' missing")
       }
@@ -289,12 +287,12 @@ internal constructor(
   @AssistedFactory
   interface Factory {
     fun create(
-      instanceName: String,
+      name: String,
+      specification: StateMachineSpec,
       runtime: Runtime,
-      stateMachineSpec: StateMachineSpec,
-      serviceImplementationSelector: ServiceImplementationSelector,
-      parentStateMachine: StateMachine?,
-      eventSubscriptions: List<String>?,
+      selector: ServiceImplementationSelector,
+      parent: StateMachine?,
+      subscriptions: List<String>?,
       data: List<ContextVariable>?,
     ): StateMachine
   }
