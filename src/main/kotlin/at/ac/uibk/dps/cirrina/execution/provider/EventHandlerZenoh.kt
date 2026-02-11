@@ -10,15 +10,19 @@ import io.zenoh.Session
 import io.zenoh.Zenoh
 import io.zenoh.bytes.ZBytes
 import io.zenoh.keyexpr.KeyExpr
+import io.zenoh.liveliness.LivelinessToken
 import io.zenoh.pubsub.Subscriber
 import io.zenoh.sample.Sample
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 
-class EventHandlerZenoh() : EventHandler() {
+class EventHandlerZenoh(group: String, member: String) : EventHandler(group, member) {
   private val session: Session
+
+  private val livenessToken: LivelinessToken
 
   private val activeSubscriptions = ConcurrentHashMap<String, Subscriber<Unit>>()
 
@@ -29,14 +33,22 @@ class EventHandlerZenoh() : EventHandler() {
       } ?: Config.default()
 
     session = Zenoh.open(config).getOrThrow()
+    livenessToken = registerLivenessToken(group, member)
+  }
+
+  private fun registerLivenessToken(group: String, member: String): LivelinessToken {
+    val key = "liveness/$group/$member"
+    val keyExpr = KeyExpr.tryFrom(key).getOrThrow()
+
+    return session.liveliness().declareToken(keyExpr).getOrElse {
+      error("failed to register liveness '$group/$member'")
+    }
   }
 
   override fun send(event: Event) {
     val pathString = getZenohPath(event) ?: return
-
     val keyExpr = KeyExpr.tryFrom(pathString).getOrThrow()
     val bytes = EventExchange(event).toBytes()
-
     val payload = ZBytes.from(bytes)
 
     session.put(keyExpr, payload).onFailure { error("failed to send event '$event'") }
@@ -68,52 +80,21 @@ class EventHandlerZenoh() : EventHandler() {
     activeSubscriptions.remove(selectorString)?.close()
   }
 
-  override fun register(group: String, member: String) {
-    val key = "liveness/$group/$member"
-    val keyExpr = KeyExpr.tryFrom(key).getOrThrow()
+  override fun waitForParties(parties: Int) = runBlocking {
+    val keyExpr = KeyExpr.tryFrom("liveness/$group/**").getOrThrow()
+    val discovered = ConcurrentHashMap.newKeySet<String>()
 
-    session.liveliness().declareToken(keyExpr).onFailure {
-      error("failed to register liveness '$group/$member'")
-    }
-  }
-
-  override fun wait(group: String, parties: Int) {
-    val key = "liveness/$group/**"
-    val keyExpr = KeyExpr.tryFrom(key).getOrThrow()
-    val discoveredMembers = ConcurrentHashMap.newKeySet<String>()
-    val latch = CountDownLatch(parties)
-
-    val sub =
-      session
-        .liveliness()
-        .declareSubscriber(
-          KeyExpr.tryFrom(key).getOrThrow(),
-          callback = { sample ->
-            if (discoveredMembers.add(sample.keyExpr.toString())) {
-              latch.countDown()
-            }
-          },
-        )
-        .getOrElse({ error("failed to subscribe to liveness '$group'") })
-
-    session
-      .liveliness()
-      .get(
-        keyExpr,
-        callback = { reply ->
-          reply.result.onSuccess { sample ->
-            if (discoveredMembers.add(sample.keyExpr.toString())) {
-              latch.countDown()
-            }
-          }
-        },
-      )
-      .onFailure { error("failed to get liveness '$group'") }
-
-    if (!latch.await(30, TimeUnit.SECONDS)) {
-      error("timeout: ${discoveredMembers.size}/$parties members.")
-    }
-    sub.close()
+    withTimeoutOrNull(30_000) {
+      while (discovered.size < parties) {
+        session
+          .liveliness()
+          .get(
+            keyExpr,
+            callback = { reply -> reply.result.onSuccess { discovered.add(it.keyExpr.toString()) } },
+          )
+        delay(100)
+      }
+    } ?: error("timeout: ${discovered.size}/$parties members")
   }
 
   private fun getZenohPath(event: Event): String? {
@@ -125,6 +106,7 @@ class EventHandlerZenoh() : EventHandler() {
   }
 
   override fun close() {
+    livenessToken.close()
     activeSubscriptions.values.forEach { it.close() }
     session.close()
   }

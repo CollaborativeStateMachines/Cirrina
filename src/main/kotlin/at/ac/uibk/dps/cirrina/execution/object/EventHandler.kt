@@ -5,7 +5,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 typealias PropagationHandler = (Event) -> Unit
 
-abstract class EventHandler() : AutoCloseable {
+abstract class EventHandler(protected val group: String, protected val member: String) :
+  AutoCloseable {
 
   companion object {
     const val GLOBAL_SOURCE = "global"
@@ -20,9 +21,7 @@ abstract class EventHandler() : AutoCloseable {
 
   abstract fun unsubscribe(source: String)
 
-  abstract fun register(group: String, member: String)
-
-  abstract fun wait(group: String, parties: Int)
+  abstract fun waitForParties(parties: Int)
 
   fun registerHandler(handler: PropagationHandler) {
     handlers.add(handler)

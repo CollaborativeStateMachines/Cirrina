@@ -11,12 +11,12 @@ import org.junit.jupiter.params.provider.EnumSource
 
 abstract class EventHandlerTest {
 
-  protected abstract fun createEventHandler(): EventHandler
+  protected abstract fun createEventHandler(group: String, member: String): EventHandler
 
   @ParameterizedTest
   @EnumSource(Csml.EventChannel::class)
   fun testEventHandlerSendReceive(channel: Csml.EventChannel) {
-    createEventHandler().use { eventHandler ->
+    createEventHandler("group", "member").use { eventHandler ->
       val count = 5
 
       val context = ContextInMemory()

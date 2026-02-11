@@ -54,10 +54,10 @@ class CirrinaModule {
 
   @Provides
   @Singleton
-  fun provideEventHandler(): EventHandler =
+  fun provideEventHandler(@Identifier identifier: String): EventHandler =
     when (EnvironmentVariables.eventProvider.get()) {
       EventProvider.ZENOH ->
-        EventHandlerZenoh().apply {
+        EventHandlerZenoh(EnvironmentVariables.csmGroup.get(), identifier).apply {
           subscribe(GLOBAL_SOURCE)
           subscribe(PERIPHERAL_SOURCE)
         }

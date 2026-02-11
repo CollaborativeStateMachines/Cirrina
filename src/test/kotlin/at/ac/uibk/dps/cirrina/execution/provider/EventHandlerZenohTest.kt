@@ -13,24 +13,21 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class EventHandlerZenohTest : EventHandlerTest() {
-  override fun createEventHandler(): EventHandler = EventHandlerZenoh()
+  override fun createEventHandler(group: String, member: String): EventHandler =
+    EventHandlerZenoh(group, member)
 
   @Test
   fun testRegisterWait() = runBlocking {
     val parties = 10
-    val group = "group"
     val completedParties = AtomicInteger(0)
 
     val jobs =
       (1..parties).map { i ->
         launch(Dispatchers.IO) {
-          createEventHandler().use { handler ->
-            val memberName = "member-$i"
-
+          createEventHandler("group", "member-$i").use { handler ->
             if (i > parties / 2) delay(100)
 
-            handler.register(group, memberName)
-            handler.wait(group, parties)
+            handler.waitForParties(parties)
 
             completedParties.incrementAndGet()
           }

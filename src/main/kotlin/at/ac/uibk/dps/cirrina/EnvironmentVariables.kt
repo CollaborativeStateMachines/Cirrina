@@ -39,7 +39,7 @@ object EnvironmentVariables {
 
   val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
 
-  val csmBarrier = EnvironmentVariable<String?>("CSM_BARRIER", null)
+  val csmGroup = EnvironmentVariable("CSM_GROUP", "cirrina")
   val csmParties = EnvironmentVariable("CSM_PARTIES", null, { it.toInt() })
 
   val eventProvider =
