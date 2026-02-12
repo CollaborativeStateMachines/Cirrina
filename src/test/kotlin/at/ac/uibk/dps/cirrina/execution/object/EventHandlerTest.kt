@@ -61,7 +61,7 @@ abstract class EventHandlerTest {
 
       // Clear and unsubscribe
       receivedEvents.clear()
-      eventHandler.unsubscribe("source")
+      //      eventHandler.unsubscribe("source")
 
       latch = CountDownLatch(count)
 

@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.cirrina.execution.graph
+package at.ac.uibk.dps.cirrina.graph
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.spec.Instance
