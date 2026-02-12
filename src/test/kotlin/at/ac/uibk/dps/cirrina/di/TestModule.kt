@@ -1,7 +1,8 @@
 package at.ac.uibk.dps.cirrina.di
 
-import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
 import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
+import at.ac.uibk.dps.cirrina.cirrina.di.Main
+import at.ac.uibk.dps.cirrina.cirrina.di.Run
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
@@ -20,8 +21,8 @@ class TestModule(
   private val eventHandler: EventHandler,
   private val context: Context,
   private val mainUri: URI,
+  private val run: List<String>,
 ) {
-
   @Provides fun provideEventHandler() = eventHandler
 
   @Provides fun provideContext() = context
@@ -32,7 +33,9 @@ class TestModule(
 
   @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
 
-  @Provides @CsmMain fun provideCsmMain() = mainUri
+  @Provides @Main fun provideMain() = mainUri
+
+  @Provides @Run fun provideRun() = run
 
   @Provides
   @Singleton

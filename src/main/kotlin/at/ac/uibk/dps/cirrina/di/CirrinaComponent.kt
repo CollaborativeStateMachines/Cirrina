@@ -12,7 +12,6 @@ import jakarta.inject.Singleton
 @Singleton
 @Component(modules = [CirrinaModule::class])
 interface CirrinaComponent {
-
   fun eventHandler(): EventHandler
 
   fun persistentContext(): Context?

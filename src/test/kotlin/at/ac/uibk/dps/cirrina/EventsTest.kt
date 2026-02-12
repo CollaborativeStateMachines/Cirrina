@@ -30,7 +30,14 @@ class EventsTest {
 
       val runtime =
         DaggerTestComponent.builder()
-          .testModule(TestModule(eventHandler, context, DefaultDescriptions.events))
+          .testModule(
+            TestModule(
+              eventHandler,
+              context,
+              DefaultDescriptions.events,
+              listOf("one", "two", "three", "four"),
+            )
+          )
           .build()
           .runtime()
 

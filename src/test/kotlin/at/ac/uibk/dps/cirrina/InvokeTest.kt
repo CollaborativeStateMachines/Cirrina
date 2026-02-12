@@ -31,7 +31,9 @@ class InvokeTest {
         try {
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(TestModule(eventHandler, context, DefaultDescriptions.invoke))
+              .testModule(
+                TestModule(eventHandler, context, DefaultDescriptions.invoke, listOf("invoke"))
+              )
               .build()
               .runtime()
 

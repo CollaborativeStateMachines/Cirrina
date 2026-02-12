@@ -33,9 +33,14 @@ object EnvironmentVariables {
 
   val zipkinTraceUrl = EnvironmentVariable<String?>("ZIPKIN_TRACE_URL", null)
 
-  val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
+  val mainUri = EnvironmentVariable("MAIN_URI", "file:///app/main.pkl")
 
-  val csmGroup = EnvironmentVariable("CSM_GROUP", "cirrina")
+  val run =
+    EnvironmentVariable(
+      "RUN",
+      emptyList(),
+      { value -> value.split(",").filter { it.isNotBlank() } },
+    )
 
   val contextProvider =
     EnvironmentVariable(

@@ -23,7 +23,9 @@ class TimeoutTest {
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(TestModule(eventHandler, context, DefaultDescriptions.timeout))
+            .testModule(
+              TestModule(eventHandler, context, DefaultDescriptions.timeout, listOf("timeout"))
+            )
             .build()
             .runtime()
 

@@ -23,7 +23,14 @@ class PingPongTest {
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(TestModule(eventHandler, context, DefaultDescriptions.pingPong))
+            .testModule(
+              TestModule(
+                eventHandler,
+                context,
+                DefaultDescriptions.pingPong,
+                listOf("ping", "pong"),
+              )
+            )
             .build()
             .runtime()
 

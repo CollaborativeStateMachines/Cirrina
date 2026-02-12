@@ -43,7 +43,9 @@ import java.util.UUID
 
 @Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Identifier
 
-@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class CsmMain
+@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Main
+
+@Qualifier @Retention(AnnotationRetention.RUNTIME) annotation class Run
 
 @Module
 class CirrinaModule {
@@ -128,10 +130,9 @@ class CirrinaModule {
 
   @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
 
-  @Provides
-  @Singleton
-  @CsmMain
-  fun provideCsmMain(): URI = URI(EnvironmentVariables.csmMainUri.get())
+  @Provides @Singleton @Main fun provideMain(): URI = URI(EnvironmentVariables.mainUri.get())
+
+  @Provides @Singleton @Run fun provideRun(): List<String> = EnvironmentVariables.run.get()
 
   @Provides
   @Singleton

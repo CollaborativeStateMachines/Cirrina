@@ -22,7 +22,7 @@ class NoopTest {
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(TestModule(eventHandler, context, DefaultDescriptions.noop))
+            .testModule(TestModule(eventHandler, context, DefaultDescriptions.noop, listOf("noop")))
             .build()
             .runtime()
 

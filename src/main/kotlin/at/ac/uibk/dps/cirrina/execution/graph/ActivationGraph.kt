@@ -11,7 +11,10 @@ class ActivationGraph :
     val target: String,
     val channel: EventChannel,
     val topic: String,
-  )
+  ) {
+    override fun toString() =
+      "Activation(source='$source', target='$target', channel='$channel', topic='$topic')"
+  }
 
   companion object {
     fun create(stateMachines: Collection<StateMachine>): ActivationGraph {

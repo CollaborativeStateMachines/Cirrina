@@ -35,7 +35,9 @@ class CompleteTest {
         try {
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(TestModule(eventHandler, context, DefaultDescriptions.complete))
+              .testModule(
+                TestModule(eventHandler, context, DefaultDescriptions.complete, listOf("complete"))
+              )
               .build()
               .runtime()
 

@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina
 
-import at.ac.uibk.dps.cirrina.cirrina.di.CsmMain
+import at.ac.uibk.dps.cirrina.cirrina.di.Main
+import at.ac.uibk.dps.cirrina.cirrina.di.Run
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
@@ -31,7 +32,8 @@ constructor(
   private val stateMachineFactory: StateMachine.Factory,
   persistentContext: Context?,
   meterRegistry: MeterRegistry,
-  @CsmMain csmMain: URI,
+  @Main main: URI,
+  @Run run: List<String>,
 ) {
   val instances: Map<String, StateMachine>
   val selector: ServiceImplementationSelector
@@ -43,11 +45,13 @@ constructor(
   var completion: Timer = meterRegistry.timer("runtime.completionTime")
 
   init {
+    // Parse the CSML specification
     val spec =
-      CsmlSpec.create(CsmParser.parseCsml(csmMain))
+      CsmlSpec.create(CsmParser.parseCsml(main))
         .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
+    // Populate the persistent context
     persistentContext?.let { context ->
       spec.collaborativeStateMachine.persistentContext.forEach { variable ->
         runCatching { context.create(variable.name, variable.value) }
@@ -57,10 +61,14 @@ constructor(
       }
     }
 
+    // Instantiate a service implementation selector, this can be extended to more selector
+    // implementations in the future
     selector = RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings))
 
+    // Create the state machines specified
     instances =
       spec.instances
+        .filterKeys { name -> name in run }
         .flatMap { (name, `class`) ->
           stateMachineFactory.createHierarchy(
             name,
@@ -75,9 +83,9 @@ constructor(
         }
         .associateBy { it.name }
 
-    spec.subscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
-
     instances.values.forEach { instance -> eventHandler.registerHandler(instance::pushEvent) }
+
+    spec.subscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
   }
 
   fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
@@ -85,10 +93,11 @@ constructor(
 
   fun run() = runBlocking {
     measureTime {
+        // Start all state machines
         instances.values.forEach { it.start() }
 
+        // Wait for all state machines to finish
         phaser.arriveAndDeregister()
-
         while (phaser.registeredParties > 0) {
           phaser.awaitAdvance(phaser.phase)
         }
