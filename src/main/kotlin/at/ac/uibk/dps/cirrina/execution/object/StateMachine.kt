@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.spec.Instance
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
@@ -29,11 +30,10 @@ class StateMachine
 internal constructor(
   @Assisted val name: String,
   @Assisted val specification: StateMachineSpec,
+  @Assisted val instance: Instance,
   @Assisted private val runtime: Runtime,
   @Assisted private val selector: ServiceImplementationSelector,
   @Assisted private val parent: StateMachine? = null,
-  @Assisted private val subscriptions: List<String>? = null,
-  @Assisted private val data: List<ContextVariable>? = null,
   private val observationRegistry: ObservationRegistry,
   private val commandFactory: ActionCommandFactory,
   private val stateFactory: State.Factory,
@@ -49,6 +49,7 @@ internal constructor(
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
+
   private val stateInstances =
     specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
@@ -57,6 +58,7 @@ internal constructor(
   private var activeState: State? = null
 
   override val extent: Extent
+
   private val instanceObservation =
     Observation.start("stateMachine.instance", observationRegistry).apply {
       lowCardinalityKeyValue("stateMachine.instanceName", name)
@@ -64,11 +66,13 @@ internal constructor(
 
   init {
     val transientContext = Context.from(specification.transientContext)
-    data?.forEach { transientContext.create(it.name, it.value) }
+
+    val instanceData = Context.from(instance.data).getAll()
+    instanceData.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parent?.extent ?: runtime.extent).extend(transientContext)
 
-    subscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
+    instance.subscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
 
     runtime.phaser.register()
   }
@@ -151,12 +155,10 @@ internal constructor(
     }
   }
 
-  fun isSubscribedTo(other: String): Boolean = subscriptions?.contains(other) == true
-
   private fun Event.isValid(): Boolean {
     if (target.isNotEmpty() && target != name) return false
     if (channel != EventChannel.INTERNAL && source.isEmpty()) return false
-    if (channel == EventChannel.EXTERNAL && subscriptions?.contains(source) == false) return false
+    if (channel == EventChannel.EXTERNAL && !instance.isSubscribedTo(source)) return false
 
     return true
   }
@@ -292,11 +294,10 @@ internal constructor(
     fun create(
       name: String,
       specification: StateMachineSpec,
+      instance: Instance,
       runtime: Runtime,
       selector: ServiceImplementationSelector,
       parent: StateMachine?,
-      subscriptions: List<String>?,
-      data: List<ContextVariable>?,
     ): StateMachine
   }
 }
@@ -305,22 +306,20 @@ fun Factory.createHierarchy(
   name: String,
   specification: StateMachineSpec,
   runtime: Runtime,
+  instance: Instance,
   selector: ServiceImplementationSelector,
-  parent: StateMachine? = null,
-  subscriptions: List<String>? = null,
-  data: List<ContextVariable>? = null,
+  parent: StateMachine?,
 ): List<StateMachine> =
-  create(name, specification, runtime, selector, parent, subscriptions, data).let { current ->
+  create(name, specification, instance, runtime, selector, parent).let { current ->
     specification.nestedStateMachines
-      .flatMapIndexed { index, nestedClass ->
+      .flatMapIndexed { index, nested ->
         createHierarchy(
-          "${current.name}.$index@${nestedClass.name}",
-          nestedClass,
-          runtime,
-          selector,
-          current,
-          null,
-          null,
+          name = "${current.name}.$index@${nested.name}",
+          specification = nested,
+          instance = instance,
+          runtime = runtime,
+          selector = selector,
+          parent = current,
         )
       }
       .let { nestedInstances ->

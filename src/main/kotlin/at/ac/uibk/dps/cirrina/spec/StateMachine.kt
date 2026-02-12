@@ -55,18 +55,20 @@ internal constructor(
     alwaysTransitions[from].orEmpty()
 
   companion object {
-    fun create(desc: StateMachineDescription, name: String = ""): Result<StateMachine> =
+    fun create(description: StateMachineDescription, name: String = ""): Result<StateMachine> =
       runCatching {
         val nested =
-          desc.stateMachines.map { (nestedName, smDesc) -> create(smDesc, nestedName).getOrThrow() }
+          description.stateMachines.map { (nestedName, smDesc) ->
+            create(smDesc, nestedName).getOrThrow()
+          }
 
-        val spec = StateMachine(name, nested, desc.transient)
+        val spec = StateMachine(name, nested, description.transient)
 
-        desc.states.forEach { (stateName, stateDesc) ->
+        description.states.forEach { (stateName, stateDesc) ->
           spec.addVertex(State.create(stateDesc, stateName).getOrThrow())
         }
 
-        desc.states.forEach { (sourceName, stateDesc) ->
+        description.states.forEach { (sourceName, stateDesc) ->
           val source = spec.getStateClassByName(sourceName)!!
 
           stateDesc.on.forEach { (event, transDesc) -> buildGraph(spec, source, event, transDesc) }

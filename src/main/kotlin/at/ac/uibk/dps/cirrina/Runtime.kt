@@ -17,7 +17,6 @@ import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
 import java.net.URI
 import java.util.concurrent.Phaser
-import kotlin.collections.component1
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.runBlocking
@@ -28,12 +27,12 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
+  @Run private val run: List<String>,
   private val eventHandler: EventHandler,
   private val stateMachineFactory: StateMachine.Factory,
   persistentContext: Context?,
   meterRegistry: MeterRegistry,
   @Main main: URI,
-  @Run run: List<String>,
 ) {
   val instances: Map<String, StateMachine>
   val selector: ServiceImplementationSelector
@@ -63,29 +62,26 @@ constructor(
 
     // Instantiate a service implementation selector, this can be extended to more selector
     // implementations in the future
-    selector = RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings))
+    selector =
+      RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings ?: emptyList()))
 
     // Create the state machines specified
     instances =
       spec.instances
-        .filterKeys { name -> name in run }
-        .flatMap { (name, `class`) ->
+        .filter { it.name in run }
+        .flatMap {
           stateMachineFactory.createHierarchy(
-            name,
-            spec.collaborativeStateMachine.stateMachines[`class`]
-              ?: error("state machine class '${`class`}' not found"),
-            this,
-            selector,
-            null,
-            spec.subscriptions[name],
-            spec.datas[name],
+            name = it.name,
+            specification = it.stateMachine,
+            instance = it,
+            runtime = this,
+            selector = selector,
+            parent = null,
           )
         }
         .associateBy { it.name }
 
     instances.values.forEach { instance -> eventHandler.registerHandler(instance::pushEvent) }
-
-    spec.subscriptions.values.flatten().forEach { eventHandler.subscribe(it) }
   }
 
   fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =

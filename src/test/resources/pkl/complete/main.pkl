@@ -9,7 +9,7 @@ collaborativeStateMachine {
   persistent { ["b"] = "false"; ["v"] = "0"; ["e"] = "false" }
 }
 instances {
-  ["complete"] = "completeStateMachine"
+  ["complete"] = new Instance { stateMachineName = "completeStateMachine" }
 }
 bindings {
   new HttpServiceImplementationBinding {

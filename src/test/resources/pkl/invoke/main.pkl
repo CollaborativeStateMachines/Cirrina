@@ -9,7 +9,7 @@ collaborativeStateMachine {
   persistent { ["v"] = "0"; ["e"] = "0"; }
 }
 instances {
-  ["invoke"] = "invokeStateMachine"
+  ["invoke"] = new Instance { stateMachineName = "invokeStateMachine" }
 }
 bindings {
   new HttpServiceImplementationBinding {

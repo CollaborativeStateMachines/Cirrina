@@ -12,14 +12,12 @@ collaborativeStateMachine {
   persistent { ["b"] = "false"; ["c"] = "false" }
 }
 instances {
-  ["one"] = "oneMachine"
-  ["two"] = "twoMachine"
-  ["three"] = "threeMachine"
-  ["four"] = "fourMachine"
-}
-instanceData {
-  ["one"] { ["target"] = "'two'" }
-}
-instanceSubscriptions {
-  ["one"] { "two" }
+  ["one"] = new Instance {
+    stateMachineName = "oneMachine"
+    data { ["target"] = "'two'" }
+    subscriptions { "two" }
+  }
+  ["two"] = new Instance { stateMachineName = "twoMachine" }
+  ["three"] = new Instance { stateMachineName = "threeMachine" }
+  ["four"] = new Instance { stateMachineName = "fourMachine" }
 }

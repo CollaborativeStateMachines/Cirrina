@@ -1,25 +1,29 @@
 package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 
 class Csml
 private constructor(
   val collaborativeStateMachine: CollaborativeStateMachine,
-  val instances: Map<String, String>,
-  val subscriptions: Map<String, List<String>>,
-  val datas: Map<String, List<ContextVariable>>,
-  val bindings: List<Csml.ServiceImplementationBinding>,
+  val instances: List<Instance>,
+  val bindings: List<Csml.ServiceImplementationBinding>?,
 ) {
   companion object {
-    fun create(desc: Csml): Result<at.ac.uibk.dps.cirrina.spec.Csml> = runCatching {
-      val spec = CollaborativeStateMachine.create(desc.collaborativeStateMachine).getOrThrow()
+    fun create(description: Csml): Result<at.ac.uibk.dps.cirrina.spec.Csml> = runCatching {
+      val spec =
+        CollaborativeStateMachine.create(description.collaborativeStateMachine).getOrThrow()
 
-      val instanceData =
-        desc.instanceData.mapValues { (_, innerMap) -> Context.from(innerMap).getAll() }
+      val instances =
+        description.instances.map { (name, desc) ->
+          Instance.create(
+            desc,
+            spec.stateMachines[desc.stateMachineName]
+              ?: error("state machine class '${desc.stateMachineName}' not found"),
+            name,
+          )
+        }
 
-      Csml(spec, desc.instances, desc.instanceSubscriptions, instanceData, desc.bindings)
+      Csml(spec, instances, description.bindings)
     }
   }
 }

@@ -7,8 +7,17 @@ typealias Version = "4.0.0"
 /// The name of an instance of a state machine or "*" to refer to all instances.
 typealias InstanceName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
+/// The name of a state machine.
+typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+
 /// The subscription to events raised by state machine instances.
 typealias Subscription = String(matches(Regex(#"^([a-zA-Z_]\w*|\*)$"#)))
+
+class Instance {
+  stateMachineName: StateMachineName
+  subscriptions: Listing<Subscription>?
+  data: Context?
+}
 
 /// The CSML version.
 version: Version
@@ -17,18 +26,9 @@ version: Version
 collaborativeStateMachine: CollaborativeStateMachineDescription
 
 /// State machine instances from the collaborative state machine declaration to instantiate.
-instances: Mapping<InstanceName, StateMachineName>
+instances: Mapping<String, Instance>?
 
-/// Subscriptions to events raised by state machine instances. The key is the name of the instance
-/// subscribed to the events raised by the instances in the value listing.
-instanceSubscriptions: Mapping<InstanceName, Listing<Subscription>>
-
-instanceData: Mapping<InstanceName, Context>
-
-bindings: Listing<ServiceImplementationBinding>
-
-/// The name of a state machine.
-typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+bindings: Listing<ServiceImplementationBinding>?
 
 /// An expression, see <https://commons.apache.org/proper/commons-jexl/reference/syntax.html> for
 /// the JEXL expression syntax.
