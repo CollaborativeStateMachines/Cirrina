@@ -4,7 +4,6 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
@@ -20,7 +19,6 @@ class InvokeTest {
   fun testInvokeExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = EventHandler()
         val context = ContextInMemory()
 
         val server = mockHttpServer { input ->
@@ -31,9 +29,7 @@ class InvokeTest {
         try {
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(
-                TestModule(eventHandler, context, DefaultDescriptions.invoke, listOf("invoke"))
-              )
+              .testModule(TestModule(context, DefaultDescriptions.invoke, listOf("invoke")))
               .build()
               .runtime()
 

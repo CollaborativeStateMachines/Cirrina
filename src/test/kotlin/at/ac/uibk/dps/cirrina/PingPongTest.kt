@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.time.Duration
 import kotlin.time.measureTime
@@ -18,19 +17,11 @@ class PingPongTest {
   fun testPingPongExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = EventHandler()
         val context = ContextInMemory()
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(
-              TestModule(
-                eventHandler,
-                context,
-                DefaultDescriptions.pingPong,
-                listOf("ping", "pong"),
-              )
-            )
+            .testModule(TestModule(context, DefaultDescriptions.pingPong, listOf("ping", "pong")))
             .build()
             .runtime()
 

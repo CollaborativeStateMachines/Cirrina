@@ -2,13 +2,17 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
+import at.ac.uibk.dps.cirrina.execution.graph.EventGraph
 import at.ac.uibk.dps.cirrina.execution.util.EventExchange
 import io.zenoh.Config
 import io.zenoh.Session
 import io.zenoh.Zenoh
+import io.zenoh.annotations.Unstable
 import io.zenoh.bytes.ZBytes
 import io.zenoh.keyexpr.KeyExpr
-import io.zenoh.pubsub.Subscriber
+import io.zenoh.pubsub.AdvancedPublisher
+import io.zenoh.pubsub.AdvancedSubscriber
+import io.zenoh.pubsub.MatchingListener
 import io.zenoh.sample.Sample
 import java.io.File
 import java.lang.AutoCloseable
@@ -17,12 +21,15 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 typealias PropagationHandler = (Event) -> Unit
 
+@OptIn(Unstable::class)
 class EventHandler() : AutoCloseable {
   private val handlers: CopyOnWriteArrayList<PropagationHandler> = CopyOnWriteArrayList()
 
   private val session: Session
 
-  private val activeSubscriptions = ConcurrentHashMap<String, Subscriber<Unit>>()
+  private val publishers = ConcurrentHashMap<String, AdvancedPublisher>()
+  private val listeners = CopyOnWriteArrayList<MatchingListener>()
+  private val subscribers = ConcurrentHashMap<String, AdvancedSubscriber<Unit>>()
 
   init {
     val config =
@@ -31,70 +38,80 @@ class EventHandler() : AutoCloseable {
       } ?: Config.default()
 
     session = Zenoh.open(config).getOrThrow()
+  }
 
-    subscribe(GLOBAL_SOURCE)
-    subscribe(PERIPHERAL_SOURCE)
+  fun bind(graph: EventGraph, names: Collection<String>, handlers: List<PropagationHandler>) {
+    graph.getOutgoing(names).forEach { flow ->
+      publishers.computeIfAbsent(flow.topic) { topic ->
+        val publisher =
+          session
+            .declareAdvancedPublisher(
+              KeyExpr.tryFrom("events/$topic").getOrThrow(),
+              publisherDetection = true,
+            )
+            .getOrThrow()
+
+        val listener =
+          publisher
+            .declareMatchingListener(callback = { matching -> flow.isSubscribed = matching })
+            .getOrThrow()
+
+        listeners.add(listener)
+
+        publisher
+      }
+    }
+
+    graph.getIncoming(names).forEach { flow ->
+      subscribers.computeIfAbsent(flow.topic) { topic ->
+        session
+          .declareAdvancedSubscriber(
+            KeyExpr.tryFrom("events/$topic").getOrThrow(),
+            subscriberDetection = true,
+            callback = { sample -> handleIncoming(sample) },
+          )
+          .getOrThrow()
+      }
+    }
+
+    subscribers["peripheral"] =
+      session
+        .declareAdvancedSubscriber(
+          KeyExpr.tryFrom("events/peripheral/**").getOrThrow(),
+          callback = { sample -> handleIncoming(sample) },
+        )
+        .getOrThrow()
+
+    handlers.forEach { this.handlers.add(it) }
   }
 
   fun send(event: Event) {
-    val pathString = getZenohPath(event) ?: return
-    val keyExpr = KeyExpr.tryFrom(pathString).getOrThrow()
-    val bytes = EventExchange(event).toBytes()
-    val payload = ZBytes.from(bytes)
+    if (event.channel == Csml.EventChannel.INTERNAL) return
 
-    session.put(keyExpr, payload).onFailure { error("failed to send event '$event'") }
+    val publisher = publishers[event.topic] ?: error("no publisher for topic '${event.topic}'")
+    val payload = ZBytes.from(EventExchange(event).toBytes())
+
+    publisher.put(payload).onFailure { error("failed to send event '$event'") }
   }
 
-  fun subscribe(source: String) {
-    val selectorString = "$source/**"
-
-    activeSubscriptions.computeIfAbsent(selectorString) {
-      val selector = KeyExpr.tryFrom(selectorString).getOrThrow()
-
-      session
-        .declareSubscriber(selector, callback = { sample: Sample -> handleIncoming(sample) })
-        .getOrElse { error("failed to subscribe to '$source'") }
-    }
+  override fun close() {
+    subscribers.values.forEach { it.close() }
+    listeners.forEach { it.close() }
+    publishers.values.forEach { it.close() }
+    session.close()
   }
 
   private fun handleIncoming(sample: Sample) {
     runCatching {
         val bytes = sample.payload.toBytes()
         val event = EventExchange.fromBytes(bytes).event
+
         propagate(event)
       }
       .onFailure { error("failed to handle sample from '${sample.keyExpr}'") }
   }
 
-  fun unsubscribe(source: String) {
-    val selectorString = "$source/**"
-    activeSubscriptions.remove(selectorString)?.close()
-  }
-
-  private fun getZenohPath(event: Event): String? {
-    return when (event.channel) {
-      Csml.EventChannel.EXTERNAL -> event.source.let { "$it/${event.topic}" }
-      Csml.EventChannel.GLOBAL -> "$GLOBAL_SOURCE/${event.topic}"
-      Csml.EventChannel.PERIPHERAL -> "$PERIPHERAL_SOURCE/${event.topic}"
-      else -> null
-    }
-  }
-
-  override fun close() {
-    activeSubscriptions.values.forEach { it.close() }
-    session.close()
-  }
-
-  fun registerHandler(handler: PropagationHandler) {
-    handlers.add(handler)
-  }
-
-  protected fun propagate(event: Event) {
+  private fun propagate(event: Event) {
     handlers.forEach { it(event) }
-  }
-
-  companion object {
-    const val GLOBAL_SOURCE = "global"
-    const val PERIPHERAL_SOURCE = "peripheral"
   }
 }

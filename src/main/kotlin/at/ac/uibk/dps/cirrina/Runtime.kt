@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.cirrina.di.Main
 import at.ac.uibk.dps.cirrina.cirrina.di.Run
+import at.ac.uibk.dps.cirrina.execution.graph.EventGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.Extent
@@ -16,9 +17,9 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
 import java.net.URI
-import java.util.concurrent.Phaser
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 
@@ -27,30 +28,30 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
-  @Run private val run: List<String>,
-  private val eventHandler: EventHandler,
-  private val stateMachineFactory: StateMachine.Factory,
-  persistentContext: Context?,
-  meterRegistry: MeterRegistry,
+  @Run run: List<String>,
   @Main main: URI,
+  persistentContext: Context?,
+  stateMachineFactory: StateMachine.Factory,
+  meterRegistry: MeterRegistry,
 ) {
-  val instances: Map<String, StateMachine>
-  val selector: ServiceImplementationSelector
-
+  val eventHandler = EventHandler()
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
-  val phaser: Phaser = Phaser(1)
+  val selector: ServiceImplementationSelector
 
-  var completion: Timer = meterRegistry.timer("runtime.completionTime")
+  private val instances: Map<String, StateMachine>
+
+  private var completion: Timer = meterRegistry.timer("runtime.completionTime")
 
   init {
-    // Parse the CSML specification
     val spec =
       CsmlSpec.create(CsmParser.parseCsml(main))
         .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
         .getOrThrow()
 
-    // Populate the persistent context
+    selector =
+      RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings ?: emptyList()))
+
     persistentContext?.let { context ->
       spec.collaborativeStateMachine.persistentContext.forEach { variable ->
         runCatching { context.create(variable.name, variable.value) }
@@ -60,12 +61,6 @@ constructor(
       }
     }
 
-    // Instantiate a service implementation selector, this can be extended to more selector
-    // implementations in the future
-    selector =
-      RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings ?: emptyList()))
-
-    // Create the state machines specified
     instances =
       spec.instances
         .filter { it.name in run }
@@ -75,32 +70,26 @@ constructor(
             specification = it.stateMachine,
             instance = it,
             runtime = this,
-            selector = selector,
             parent = null,
           )
         }
         .associateBy { it.name }
 
-    instances.values.forEach { instance -> eventHandler.registerHandler(instance::pushEvent) }
+    eventHandler.bind(
+      graph = EventGraph.create(instances.mapValues { it.value.specification }),
+      names = instances.keys,
+      handlers = instances.values.map { it::pushEvent },
+    )
   }
 
-  fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
-    instances[stateMachineObjectName]
-
   fun run() = runBlocking {
-    measureTime {
-        // Start all state machines
-        instances.values.forEach { it.start() }
-
-        // Wait for all state machines to finish
-        phaser.arriveAndDeregister()
-        while (phaser.registeredParties > 0) {
-          phaser.awaitAdvance(phaser.phase)
-        }
-      }
+    measureTime { instances.values.map { it.start() }.joinAll() }
       .also { duration ->
         completion.record(duration.toJavaDuration())
         logger.info { "runtime terminated in $duration" }
       }
   }
+
+  fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
+    instances[stateMachineObjectName]
 }

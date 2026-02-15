@@ -7,7 +7,6 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.`object`.Stdlib
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
@@ -25,7 +24,6 @@ class CompleteTest {
   fun testCompleteExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = EventHandler()
         val context = ContextInMemory()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
@@ -35,9 +33,7 @@ class CompleteTest {
         try {
           val runtime =
             DaggerTestComponent.builder()
-              .testModule(
-                TestModule(eventHandler, context, DefaultDescriptions.complete, listOf("complete"))
-              )
+              .testModule(TestModule(context, DefaultDescriptions.complete, listOf("complete")))
               .build()
               .runtime()
 

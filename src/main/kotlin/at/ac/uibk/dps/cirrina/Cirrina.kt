@@ -16,9 +16,7 @@ class Cirrina {
     logger.info { component.identifier() }
 
     runCatching {
-        component.eventHandler().use { _ ->
-          component.persistentContext().use { _ -> component.runtime().run() }
-        }
+        component.persistentContext().use { _ -> component.runtime().run() }
 
         component.meterRegistry().close()
       }

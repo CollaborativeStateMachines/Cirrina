@@ -5,7 +5,6 @@ import at.ac.uibk.dps.cirrina.PersistentContextProvider
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import at.ac.uibk.dps.cirrina.execution.provider.ContextEtcd
 import at.ac.uibk.dps.cirrina.util.getBuildVersion
 import dagger.Module
@@ -49,8 +48,6 @@ import java.util.UUID
 
 @Module
 class CirrinaModule {
-
-  @Provides @Singleton fun provideEventHandler(): EventHandler = EventHandler()
 
   @Provides
   @Singleton

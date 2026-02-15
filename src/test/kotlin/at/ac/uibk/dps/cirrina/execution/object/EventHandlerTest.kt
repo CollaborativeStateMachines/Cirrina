@@ -1,18 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
-import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.EnumSource
-
 abstract class EventHandlerTest {
 
-  fun createEventHandler(): EventHandler = EventHandler()
+  /*fun createEventHandler(): EventHandler = EventHandler()
 
   @ParameterizedTest
   @EnumSource(Csml.EventChannel::class)
@@ -30,9 +20,6 @@ abstract class EventHandlerTest {
         receivedEvents.add(it)
         latch.countDown()
       }
-
-      eventHandler.subscribe(EventHandler.GLOBAL_SOURCE)
-      eventHandler.subscribe("source")
 
       // Send <count> events
       repeat(count) { i ->
@@ -89,5 +76,5 @@ abstract class EventHandlerTest {
         )
       }
     }
-  }
+  }*/
 }

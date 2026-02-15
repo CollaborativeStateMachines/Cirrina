@@ -6,7 +6,6 @@ import at.ac.uibk.dps.cirrina.cirrina.di.Run
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
 import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.EventHandler
 import dagger.Module
 import dagger.Provides
 import io.micrometer.core.instrument.MeterRegistry
@@ -18,13 +17,10 @@ import java.util.UUID
 
 @Module
 class TestModule(
-  private val eventHandler: EventHandler,
   private val context: Context,
   private val mainUri: URI,
   private val run: List<String>,
 ) {
-  @Provides fun provideEventHandler() = eventHandler
-
   @Provides fun provideContext() = context
 
   @Provides fun provideMeterRegistry(): MeterRegistry = SimpleMeterRegistry()

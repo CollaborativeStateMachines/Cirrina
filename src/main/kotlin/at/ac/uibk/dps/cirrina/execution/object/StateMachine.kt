@@ -5,7 +5,6 @@ import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.spec.Instance
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
@@ -32,13 +31,11 @@ internal constructor(
   @Assisted val specification: StateMachineSpec,
   @Assisted val instance: Instance,
   @Assisted private val runtime: Runtime,
-  @Assisted private val selector: ServiceImplementationSelector,
   @Assisted private val parent: StateMachine? = null,
   private val observationRegistry: ObservationRegistry,
   private val commandFactory: ActionCommandFactory,
   private val stateFactory: State.Factory,
   private val transitionFactory: Transition.Factory,
-  eventHandler: EventHandler,
 ) : Scope {
   var nested: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
@@ -48,7 +45,7 @@ internal constructor(
 
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
-  private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
+  private val stateMachineEventHandler = StateMachineEventHandler(runtime.eventHandler)
 
   private val stateInstances =
     specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
@@ -71,13 +68,9 @@ internal constructor(
     instanceData.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parent?.extent ?: runtime.extent).extend(transientContext)
-
-    instance.subscriptions?.forEach { stateMachineEventHandler.eventHandler.subscribe(it) }
-
-    runtime.phaser.register()
   }
 
-  fun start() {
+  fun start(): Job {
     logger.info { "'$this' entering initial state" }
 
     instanceObservation.observe {
@@ -88,7 +81,7 @@ internal constructor(
     }
 
     logger.info { "'$this' starting event processor" }
-    processEvents()
+    return processEvents()
   }
 
   private fun isTerminated(): Boolean =
@@ -103,8 +96,6 @@ internal constructor(
 
       eventChannel.close()
       coroutineScope.cancel()
-
-      runtime.phaser.arriveAndDeregister()
     }
   }
 
@@ -157,7 +148,6 @@ internal constructor(
 
   private fun Event.isValid(): Boolean {
     if (target.isNotEmpty() && target != name) return false
-    if (channel != EventChannel.INTERNAL && source.isEmpty()) return false
     if (channel == EventChannel.EXTERNAL && !instance.isSubscribedTo(source)) return false
 
     return true
@@ -246,7 +236,7 @@ internal constructor(
   private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
     CommandExecutionContext(
       scope,
-      selector,
+      runtime.selector,
       stateMachineEventHandler,
       coroutineScope,
       event,
@@ -296,7 +286,6 @@ internal constructor(
       specification: StateMachineSpec,
       instance: Instance,
       runtime: Runtime,
-      selector: ServiceImplementationSelector,
       parent: StateMachine?,
     ): StateMachine
   }
@@ -307,10 +296,9 @@ fun Factory.createHierarchy(
   specification: StateMachineSpec,
   runtime: Runtime,
   instance: Instance,
-  selector: ServiceImplementationSelector,
   parent: StateMachine?,
 ): List<StateMachine> =
-  create(name, specification, instance, runtime, selector, parent).let { current ->
+  create(name, specification, instance, runtime, parent).let { current ->
     specification.nestedStateMachines
       .flatMapIndexed { index, nested ->
         createHierarchy(
@@ -318,7 +306,6 @@ fun Factory.createHierarchy(
           specification = nested,
           instance = instance,
           runtime = runtime,
-          selector = selector,
           parent = current,
         )
       }
