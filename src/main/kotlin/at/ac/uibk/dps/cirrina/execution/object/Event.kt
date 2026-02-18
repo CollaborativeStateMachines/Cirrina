@@ -23,7 +23,7 @@ data class Event(
     fun from(description: EventDescription): Event {
       val variables =
         description.data.map { (name, exprSource) ->
-          val expression = Expression.from(exprSource)
+          val expression = Expression.create(exprSource)
           ContextVariable.lazy(name, expression)
         }
       return Event(description.topic, description.channel, variables)

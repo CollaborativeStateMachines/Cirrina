@@ -120,7 +120,7 @@ class ExpressionTest {
 
   class ContextScope(val context: ContextInMemory, val extent: Extent) {
 
-    fun String.eval(): Any? = Expression.from(this).execute(extent)
+    fun String.eval(): Any? = Expression.create(this).execute(extent)
 
     infix fun String.isEqualTo(expected: Any?) {
       Assertions.assertEquals(expected, this.eval())

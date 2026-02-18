@@ -44,7 +44,7 @@ interface Context : AutoCloseable {
     fun from(description: Map<String, String>?): Context {
       val ctx = ContextInMemory()
       description?.forEach { (name, expr) ->
-        val expression = Expression.from(expr)
+        val expression = Expression.create(expr)
         val value = expression.execute(Extent.empty())
         ctx.create(name, value)
       }

@@ -1,6 +1,5 @@
 package at.ac.uibk.dps.cirrina
 
-import EventHandlerInMemory
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
@@ -18,12 +17,11 @@ class PingPongTest {
   fun testPingPongExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
       assertDoesNotThrow {
-        val eventHandler = EventHandlerInMemory()
         val context = ContextInMemory()
 
         val runtime =
           DaggerTestComponent.builder()
-            .testModule(TestModule(eventHandler, context, DefaultDescriptions.pingPong))
+            .testModule(TestModule(context, DefaultDescriptions.pingPong, listOf("ping", "pong")))
             .build()
             .runtime()
 

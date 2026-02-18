@@ -1,15 +1,82 @@
 amends "modulepath:/pkl/csm/csml.pkl"
-import "completeStateMachine.pkl"
 
 version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
-    ["completeStateMachine"] = completeStateMachine.sm
+    ["completeStateMachine"] = new StateMachine {
+      stateMachines {
+        ["nestedStateMachine"] = new StateMachine {
+          states {
+            ["a"] = new Singleton {
+              entry { new Raise { event = new Internal { topic = "ne1" } } }
+            }
+          }
+        }
+      }
+      states {
+        ["a"] = new Initial {
+          after {
+            ["timeout"] = new Timeout {
+              delay = "10"
+              do = new Raise { event = new Internal { topic = "e1" } }
+            }
+          }
+          on { ["e1"] = new Transition { to = "b" } }
+        }
+        ["b"] = new State {
+          entry {
+            new Invoke {
+              type = "increment"
+              mode = "local"
+              input { ["v"] = "x" }
+              raises { new Internal { topic = "e2" } }
+            }
+          }
+          exit { new Eval { expression = "e = true" } }
+          on {
+            ["e2"] = new Transition {
+              to = "c"
+              do { new Eval { expression = "x = $v" } }
+            }
+          }
+        }
+        ["c"] = new State {
+          always {
+            new Transition {
+              to = "d"
+              iif = "x == 100"; or = "b"
+            }
+          }
+        }
+        ["d"] = new State {
+          static { ["d"] = "100" }
+          entry {
+            new Eval { expression = "v = x" }
+            new Eval { expression = "d = d - 1" }
+            new Match {
+              cases {
+                new Case {
+                  of = "d == 0"
+                  then { new Raise { event = new Internal { topic = "e3" } } }
+                }
+              }
+              default = new Raise { event = new Internal { topic = "e4" } }
+            }
+          }
+          on {
+            ["e3"] = new Transition { to = "e" }
+            ["e4"] = new Transition { to = "d" }
+          }
+        }
+        ["e"] = new Terminal { entry { new Eval { expression = "b = true" } } }
+      }
+      transient { ["x"] = "0" }
+    }
   }
   persistent { ["b"] = "false"; ["v"] = "0"; ["e"] = "false" }
 }
 instances {
-  ["complete"] = "completeStateMachine"
+  ["complete"] = new Instance { stateMachineName = "completeStateMachine" }
 }
 bindings {
   new HttpServiceImplementationBinding {

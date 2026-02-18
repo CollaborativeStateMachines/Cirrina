@@ -2,8 +2,8 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
+import at.ac.uibk.dps.cirrina.execution.graph.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.Action
-import at.ac.uibk.dps.cirrina.execution.`object`.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.TimeoutAction
 
 class State
@@ -11,21 +11,19 @@ private constructor(
   val name: String,
   val initial: Boolean,
   val terminal: Boolean,
-  val staticContextDescription: Map<String, String>?,
-  entryActions: List<Action>,
-  exitActions: List<Action>,
-  whileActions: List<Action>,
-  afterActions: List<Action>,
+  val staticContext: Map<String, String>?,
+  entry: List<Action>,
+  exit: List<Action>,
+  `while`: List<Action>,
+  after: List<Action>,
 ) {
-  val entryActions = ActionGraph.create(entryActions)
-  val exitActions = ActionGraph.create(exitActions)
-  val whileActions = ActionGraph.create(whileActions)
-  val afterActions = ActionGraph.create(afterActions)
+  val entry = ActionGraph.create(entry)
+  val exit = ActionGraph.create(exit)
+  val `while` = ActionGraph.create(`while`)
+  val after = ActionGraph.create(after)
 
   inline fun <reified T : Action> getActionsOfType(): List<T> =
-    listOf(entryActions, exitActions, whileActions, afterActions).flatMap {
-      it.getActionsOfType<T>()
-    }
+    listOf(entry, exit, `while`, after).flatMap { it.getActionsOfType<T>() }
 
   companion object {
     fun create(description: StateDescription, name: String): Result<State> = runCatching {

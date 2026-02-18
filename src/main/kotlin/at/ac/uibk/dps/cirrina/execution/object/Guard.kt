@@ -10,6 +10,6 @@ class Guard private constructor(val expression: Expression) {
   override fun toString(): String = "Guard(expression='$expression')"
 
   companion object {
-    fun from(expressionDescription: String) = Guard(Expression.from(expressionDescription))
+    fun from(expressionDescription: String) = Guard(Expression.create(expressionDescription))
   }
 }

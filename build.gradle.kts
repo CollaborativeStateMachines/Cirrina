@@ -33,6 +33,7 @@ dependencies {
   implementation("com.google.guava:guava:33.4.0-jre")
   implementation("org.apache.commons:commons-jexl3:3.3")
   implementation("org.jgrapht:jgrapht-core:1.5.2")
+  implementation("org.jgrapht:jgrapht-io:1.5.2")
 
   implementation("com.google.protobuf:protobuf-java:4.32.0")
 

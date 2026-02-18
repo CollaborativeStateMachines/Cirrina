@@ -1,14 +1,41 @@
 amends "modulepath:/pkl/csm/csml.pkl"
-import "timeoutStateMachine.pkl"
 
 version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
-    ["timeoutStateMachine"] = timeoutStateMachine.sm
+    ["timeoutStateMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          after {
+            ["timeout"] = new Timeout {
+              delay = "100"
+              do = new Raise { event = new Internal { topic = "update" } }
+            }
+          }
+          on {
+            ["update"] = new Transition {
+              to = "a"
+              do {
+                new Match {
+                  cases {
+                    new Case {
+                      of = "v < 10"
+                      then { new Eval { expression = "v = v + 1" } }
+                    }
+                  }
+                  default = new Raise { event = new Internal { topic = "tob" } }
+                }
+              }
+            }
+            ["tob"] = new Transition { to = "b" }
+          }
+        }
+        ["b"] = new Terminal {}
+      }
+    }
   }
   persistent { ["v"] = "0" }
 }
 instances {
-  ["timeout"] = "timeoutStateMachine"
+  ["timeout"] = new Instance { stateMachineName = "timeoutStateMachine" }
 }
-instanceSubscriptions {}

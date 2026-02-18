@@ -1,33 +1,12 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.csm.Csml.*
-import org.jgrapht.graph.DefaultEdge
-import org.jgrapht.graph.SimpleDirectedGraph
-
-class ActionGraph private constructor() :
-  SimpleDirectedGraph<Action, DefaultEdge>(DefaultEdge::class.java) {
-
-  inline fun <reified T : Action> getActionsOfType(): List<T> = vertexSet().filterIsInstance<T>()
-
-  companion object {
-    fun create(actions: List<Action>, baseGraph: ActionGraph = ActionGraph()): ActionGraph =
-      baseGraph.apply {
-        var lastVertex = vertexSet().lastOrNull()
-
-        actions.forEach { action ->
-          addVertex(action)
-          lastVertex?.let { addEdge(it, action) }
-          lastVertex = action
-        }
-      }
-  }
-}
 
 sealed interface Action {
   companion object {
     fun create(description: ActionDescription, name: String? = null): Action =
       when (description) {
-        is EvalDescription -> EvalAction(Expression.from(description.expression))
+        is EvalDescription -> EvalAction(Expression.create(description.expression))
 
         is InvokeDescription ->
           InvokeAction(
@@ -40,7 +19,7 @@ sealed interface Action {
         is MatchDescription ->
           MatchAction(
             description.cases.associate {
-              Expression.from(it.of) to it.then.map { desc -> create(desc) }
+              Expression.create(it.of) to it.then.map { desc -> create(desc) }
             },
             description.default?.let { create(it) },
           )
@@ -48,26 +27,26 @@ sealed interface Action {
         is RaiseDescription ->
           RaiseAction(
             Event.from(description.event),
-            description.target?.let { Expression.from(it) },
+            description.target?.let { Expression.create(it) },
           )
 
         is TimeoutDescription ->
           TimeoutAction(
             name ?: error("timeout action name required"),
-            Expression.from(description.delay),
+            Expression.create(description.delay),
             create(description.`do`),
           )
 
         is ResetDescription -> TimeoutResetAction(description.name)
 
-        is LogDescription -> LogAction(Expression.from(description.message))
+        is LogDescription -> LogAction(Expression.create(description.message))
 
         else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
 
     private fun buildVariables(context: Map<String, String>) =
       context.map { (k, v) ->
-        val expression = Expression.from(v)
+        val expression = Expression.create(v)
         ContextVariable.lazy(k, expression)
       }
 
@@ -100,9 +79,9 @@ class MatchAction
 internal constructor(val cases: Map<Expression, List<Action>>, val default: Action? = null) :
   EventRaisingAction {
   override fun raises(): List<Event> =
-    (cases.values + listOfNotNull(default)).filterIsInstance<EventRaisingAction>().flatMap {
-      it.raises()
-    }
+    (cases.values.flatten() + listOfNotNull(default))
+      .filterIsInstance<EventRaisingAction>()
+      .flatMap { it.raises() }
 
   override fun toString() = "MatchAction(cases='$cases', default='$default')"
 }

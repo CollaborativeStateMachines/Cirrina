@@ -1,9 +1,5 @@
 package at.ac.uibk.dps.cirrina
 
-enum class EventProvider {
-  ZENOH
-}
-
 enum class PersistentContextProvider {
   ETCD
 }
@@ -37,22 +33,13 @@ object EnvironmentVariables {
 
   val zipkinTraceUrl = EnvironmentVariable<String?>("ZIPKIN_TRACE_URL", null)
 
-  val csmMainUri = EnvironmentVariable("CSM_MAIN_URI", "file:///app/main.pkl")
+  val mainUri = EnvironmentVariable("MAIN_URI", "file:///app/main.pkl")
 
-  val csmGroup = EnvironmentVariable("CSM_GROUP", "cirrina")
-  val csmParties = EnvironmentVariable("CSM_PARTIES", null, { it.toInt() })
-
-  val eventProvider =
+  val run =
     EnvironmentVariable(
-      "EVENT_PROVIDER",
-      EventProvider.ZENOH,
-      { value ->
-        try {
-          EventProvider.valueOf(value.uppercase())
-        } catch (_: Exception) {
-          error("invalid value for environment variable EVENT_PROVIDER")
-        }
-      },
+      "RUN",
+      emptyList(),
+      { value -> value.split(",").filter { it.isNotBlank() } },
     )
 
   val contextProvider =

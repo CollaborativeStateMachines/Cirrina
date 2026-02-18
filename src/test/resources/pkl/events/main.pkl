@@ -1,25 +1,80 @@
 amends "modulepath:/pkl/csm/csml.pkl"
-import "machines.pkl"
 
 version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
-    ["oneMachine"] = machines.one
-    ["twoMachine"] = machines.two
-    ["threeMachine"] = machines.three
-    ["fourMachine"] = machines.four
+    ["oneMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          on {
+            ["e2"] { to = "b" }
+            ["e6"] { to = "d" }
+          }
+        }
+        ["b"] {
+          entry { new Raise { event { topic = "e3" }; target = "target" } }
+          on { ["e4"] { to = "c" } }
+        }
+        ["c"] = new Terminal {
+          entry {
+            new Raise { event { topic = "e5" } }
+            new Eval { expression = "b = true" }
+          }
+        }
+        ["d"] = new Terminal {}
+      }
+      stateMachines {
+        ["nestedStateMachine1"] {
+          states {
+            ["a"] = new Initial { on { ["pe1"] { to = "b" } } }
+            ["b"] = new Terminal { entry { new Raise { event { channel = "internal"; topic = "e1" } } } }
+          }
+        }
+        ["nestedStateMachine2"] {
+          states {
+            ["a"] = new Initial { on { ["e1"] { to = "b" } } }
+            ["b"] = new Terminal { entry { new Raise { event { channel = "internal"; topic = "e2" } } } }
+          }
+        }
+      }
+    }
+    ["twoMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial { on { ["e3"] { to = "b" } } }
+        ["b"] = new Terminal { entry { new Raise { event { topic = "e4" } } } }
+      }
+    }
+    ["threeMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          entry { new Raise { event { topic = "e6" } } }
+          on { ["e5"] { to = "b" } }
+        }
+        ["b"] = new Terminal {}
+      }
+    }
+    ["fourMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          on {
+            ["e3"] { to = "b" }
+            ["e5"] { to = "c" }
+          }
+        }
+        ["b"] = new Terminal {}
+        ["c"] = new Terminal { entry { new Eval { expression = "c = true" } } }
+      }
+    }
   }
   persistent { ["b"] = "false"; ["c"] = "false" }
 }
 instances {
-  ["one"] = "oneMachine"
-  ["two"] = "twoMachine"
-  ["three"] = "threeMachine"
-  ["four"] = "fourMachine"
-}
-instanceData {
-  ["one"] { ["target"] = "'two'" }
-}
-instanceSubscriptions {
-  ["one"] { "two" }
+  ["one"] = new Instance {
+    stateMachineName = "oneMachine"
+    data { ["target"] = "'two'" }
+    subscription = Regex("two")
+  }
+  ["two"] = new Instance { stateMachineName = "twoMachine" }
+  ["three"] = new Instance { stateMachineName = "threeMachine" }
+  ["four"] = new Instance { stateMachineName = "fourMachine" }
 }
