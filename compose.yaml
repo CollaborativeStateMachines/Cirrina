@@ -10,13 +10,6 @@ services:
       - DOCKER_INFLUXDB_INIT_ORG=org
       - DOCKER_INFLUXDB_INIT_BUCKET=bucket
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=bzO10KmR8x
-  nats:
-    image: "nats:latest"
-    command:
-      - "-js"
-    ports:
-      - "4222:4222"
-      - "6222:6222"
   etcd:
     image: "quay.io/coreos/etcd:v3.5.7"
     container_name: "etcd"
