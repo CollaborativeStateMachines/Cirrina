@@ -9,10 +9,15 @@ import io.zenoh.Session
 import io.zenoh.Zenoh
 import io.zenoh.annotations.Unstable
 import io.zenoh.bytes.ZBytes
+import io.zenoh.ext.CacheConfig
+import io.zenoh.ext.HeartbeatMode
+import io.zenoh.ext.HistoryConfig
+import io.zenoh.ext.MissDetectionConfig
+import io.zenoh.ext.RecoveryConfig
+import io.zenoh.ext.RecoveryMode
 import io.zenoh.keyexpr.KeyExpr
 import io.zenoh.pubsub.AdvancedPublisher
 import io.zenoh.pubsub.AdvancedSubscriber
-import io.zenoh.pubsub.MatchingListener
 import io.zenoh.sample.Sample
 import java.io.File
 import java.lang.AutoCloseable
@@ -28,7 +33,6 @@ class EventHandler() : AutoCloseable {
   private val session: Session
 
   private val publishers = ConcurrentHashMap<String, AdvancedPublisher>()
-  private val listeners = CopyOnWriteArrayList<MatchingListener>()
   private val subscribers = CopyOnWriteArrayList<AdvancedSubscriber<Unit>>()
 
   init {
@@ -48,19 +52,16 @@ class EventHandler() : AutoCloseable {
   ) {
     this.handlers.addAll(handlers)
 
-    // Event publishers
     graph.getOutgoing(instanceNames).forEach { flow ->
       val key = flow.event.toKey() ?: error("cannot create publisher for event '${flow.event}'")
-      publishers.computeIfAbsent(key) { createPublisher(it, flow) }
+      publishers.computeIfAbsent(key) { createPublisher(it) }
     }
 
-    // External event subscribers
     subscribedTo.forEach { name ->
       val key = "events/$name/**"
       subscribers.add(createSubscriber(key, subscriberDetection = true))
     }
 
-    // Peripheral event subscribers
     subscribers.add(createSubscriber("events/peripheral/**", subscriberDetection = false))
   }
 
@@ -74,27 +75,28 @@ class EventHandler() : AutoCloseable {
 
   override fun close() {
     subscribers.forEach { it.close() }
-    listeners.forEach { it.close() }
     publishers.values.forEach { it.close() }
     session.close()
   }
 
-  private fun createPublisher(key: String, flow: EventGraph.Flow): AdvancedPublisher {
-    val publisher =
-      session.declareAdvancedPublisher(key.toKeyExpr(), publisherDetection = true).getOrThrow()
-
-    val listener =
-      publisher.declareMatchingListener(callback = { flow.isSubscribed = it }).getOrThrow()
-
-    listeners.add(listener)
-    return publisher
-  }
+  private fun createPublisher(key: String): AdvancedPublisher =
+    session
+      .declareAdvancedPublisher(
+        key.toKeyExpr(),
+        cacheConfig = CacheConfig(CACHE_SIZE),
+        sampleMissDetection =
+          MissDetectionConfig(HeartbeatMode.PeriodicHeartbeat(HEARTBEAT_INTERVAL)),
+        publisherDetection = true,
+      )
+      .getOrThrow()
 
   private fun createSubscriber(key: String, subscriberDetection: Boolean) =
     session
       .declareAdvancedSubscriber(
         key.toKeyExpr(),
         subscriberDetection = subscriberDetection,
+        recoveryConfig = RecoveryConfig(RecoveryMode.Heartbeat),
+        historyConfig = HistoryConfig(detectLatePublishers = true),
         callback = ::handleIncoming,
       )
       .getOrThrow()
@@ -120,4 +122,9 @@ class EventHandler() : AutoCloseable {
       Csml.EventChannel.EXTERNAL -> "events/${source}/${topic}"
       else -> null
     }
+
+  companion object {
+    val CACHE_SIZE = 1000L
+    val HEARTBEAT_INTERVAL = 500L
+  }
 }

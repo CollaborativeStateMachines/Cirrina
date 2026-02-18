@@ -1,10 +1,9 @@
 amends "modulepath:/pkl/csm/csml.pkl"
-import "noopStateMachine.pkl"
 
 version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
-    ["noopStateMachine"] = noopStateMachine.sm
+    ["noopStateMachine"] = new StateMachine { states { ["a"] = new Singleton {} } }
   }
 }
 instances {

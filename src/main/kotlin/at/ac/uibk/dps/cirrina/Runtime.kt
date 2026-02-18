@@ -17,11 +17,8 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
 import java.net.URI
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
-import kotlin.time.measureTimedValue
 import kotlin.time.toJavaDuration
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -93,21 +90,6 @@ constructor(
   }
 
   fun run() = runBlocking {
-    logger.info { "awaiting subscriptions..." }
-
-    val (complete, duration) =
-      measureTimedValue {
-        // graph.await(run, 10.seconds)
-        delay(5.seconds)
-        true
-      }
-
-    if (!complete) {
-      error("timeout reached while waiting for subscriptions")
-    }
-
-    logger.info { "subscriptions established in $duration" }
-
     measureTime { instances.values.map { it.start() }.joinAll() }
       .also {
         completion.record(it.toJavaDuration())

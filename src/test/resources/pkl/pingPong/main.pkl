@@ -1,13 +1,52 @@
 amends "modulepath:/pkl/csm/csml.pkl"
 
-import "pingStateMachine.pkl"
-import "pongStateMachine.pkl"
-
 version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
-    ["pingStateMachine"] = pingStateMachine.sm
-    ["pongStateMachine"] = pongStateMachine.sm
+    ["pingStateMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          entry {
+            new Eval { expression = "v = v + 1" }
+            new Raise { event { topic = "e1" } }
+          }
+          on { ["e2"] = new Transition { to = "b" } }
+        }
+        ["b"] = new State {
+          entry { new Raise { event { topic = "e3" } } }
+          on { ["e4"] = new Transition { to = "a" } }
+          always {
+            new Transition {
+              to = "c"
+              iif = "v >= 100000"
+            }
+          }
+        }
+        ["c"] = new Terminal {}
+      }
+    }
+    ["pongStateMachine"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          entry { new Raise { event { topic = "e4" } } }
+          on { ["e1"] = new Transition { to = "b" } }
+        }
+        ["b"] = new State {
+          entry {
+            new Eval { expression = "v = v + 1" }
+            new Raise { event { topic = "e2" } }
+          }
+          on { ["e3"] = new Transition { to = "a" } }
+          always {
+            new Transition {
+              to = "c"
+              iif = "v >= 100000"
+            }
+          }
+        }
+        ["c"] = new Terminal {}
+      }
+    }
   }
   persistent { ["v"] = "0" }
 }
