@@ -15,7 +15,7 @@ typealias Subscription = String(matches(Regex(#"^([a-zA-Z_]\w*|\*)$"#)))
 
 class Instance {
   stateMachineName: StateMachineName
-  subscriptions: Listing<Subscription>?
+  subscription: Regex = Regex(#".*"#)
   data: Context?
 }
 
@@ -136,24 +136,16 @@ class LogDescription extends ActionDescription {
 
 typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
-typealias EventChannel = "internal"|"external"|"global"|"peripheral"
+typealias EventChannel = "internal"|"external"|"peripheral"
 
 open class EventDescription {
   topic: EventTopic
-  channel: EventChannel
+  channel: EventChannel = "external"
   data: Context
 }
 
 class InternalDescription extends EventDescription {
   channel: EventChannel = "internal"
-}
-
-class ExternalDescription extends EventDescription {
-  channel: EventChannel = "external"
-}
-
-class GlobalDescription extends EventDescription {
-  channel: EventChannel = "global"
 }
 
 typealias Type = "HTTP"
@@ -201,5 +193,3 @@ typealias Log = LogDescription
 // Event aliases
 typealias Event = EventDescription
 typealias Internal = InternalDescription
-typealias External = ExternalDescription
-typealias Global = GlobalDescription

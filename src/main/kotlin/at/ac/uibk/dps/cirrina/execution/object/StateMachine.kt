@@ -30,6 +30,7 @@ internal constructor(
   @Assisted val name: String,
   @Assisted val specification: StateMachineSpec,
   @Assisted val instance: Instance,
+  @Assisted val subscriptions: List<String>,
   @Assisted private val runtime: Runtime,
   @Assisted private val parent: StateMachine? = null,
   private val observationRegistry: ObservationRegistry,
@@ -148,7 +149,7 @@ internal constructor(
 
   private fun Event.isValid(): Boolean {
     if (target.isNotEmpty() && target != name) return false
-    if (channel == EventChannel.EXTERNAL && !instance.isSubscribedTo(source)) return false
+    if (channel == EventChannel.EXTERNAL && source !in subscriptions) return false
 
     return true
   }
@@ -285,6 +286,7 @@ internal constructor(
       name: String,
       specification: StateMachineSpec,
       instance: Instance,
+      subscriptions: List<String>,
       runtime: Runtime,
       parent: StateMachine?,
     ): StateMachine
@@ -294,19 +296,21 @@ internal constructor(
 fun Factory.createHierarchy(
   name: String,
   specification: StateMachineSpec,
-  runtime: Runtime,
   instance: Instance,
+  subscriptions: List<String>,
+  runtime: Runtime,
   parent: StateMachine?,
 ): List<StateMachine> =
-  create(name, specification, instance, runtime, parent).let { current ->
+  create(name, specification, instance, subscriptions, runtime, parent).let { current ->
     specification.nestedStateMachines
       .flatMapIndexed { index, nested ->
         createHierarchy(
-          name = "${current.name}.$index@${nested.name}",
-          specification = nested,
-          instance = instance,
-          runtime = runtime,
-          parent = current,
+          "${current.name}.$index@${nested.name}",
+          nested,
+          instance,
+          subscriptions,
+          runtime,
+          current,
         )
       }
       .let { nestedInstances ->

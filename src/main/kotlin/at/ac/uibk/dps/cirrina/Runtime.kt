@@ -17,8 +17,11 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import jakarta.inject.Inject
 import java.net.URI
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 import kotlin.time.toJavaDuration
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -28,7 +31,7 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
-  @Run run: List<String>,
+  @Run private val run: List<String>,
   @Main main: URI,
   persistentContext: Context?,
   stateMachineFactory: StateMachine.Factory,
@@ -40,6 +43,8 @@ constructor(
   val selector: ServiceImplementationSelector
 
   private val instances: Map<String, StateMachine>
+
+  private val graph: EventGraph
 
   private var completion: Timer = meterRegistry.timer("runtime.completionTime")
 
@@ -64,29 +69,49 @@ constructor(
     instances =
       spec.instances
         .filter { it.name in run }
-        .flatMap {
+        .flatMap { instance ->
           stateMachineFactory.createHierarchy(
-            name = it.name,
-            specification = it.stateMachine,
-            instance = it,
+            name = instance.name,
+            specification = instance.stateMachine,
+            instance = instance,
+            subscriptions =
+              spec.instances.filter { instance.subscription.matches(it.name) }.map { it.name },
             runtime = this,
             parent = null,
           )
         }
         .associateBy { it.name }
 
+    graph = EventGraph.create(spec.instances)
+
     eventHandler.bind(
-      graph = EventGraph.create(instances.mapValues { it.value.specification }),
-      names = instances.keys,
+      graph = graph,
+      instanceNames = run,
+      subscribedTo = instances.values.flatMap { it.subscriptions },
       handlers = instances.values.map { it::pushEvent },
     )
   }
 
   fun run() = runBlocking {
+    logger.info { "awaiting subscriptions..." }
+
+    val (complete, duration) =
+      measureTimedValue {
+        // graph.await(run, 10.seconds)
+        delay(5.seconds)
+        true
+      }
+
+    if (!complete) {
+      error("timeout reached while waiting for subscriptions")
+    }
+
+    logger.info { "subscriptions established in $duration" }
+
     measureTime { instances.values.map { it.start() }.joinAll() }
-      .also { duration ->
-        completion.record(duration.toJavaDuration())
-        logger.info { "runtime terminated in $duration" }
+      .also {
+        completion.record(it.toJavaDuration())
+        logger.info { "runtime terminated in $it" }
       }
   }
 

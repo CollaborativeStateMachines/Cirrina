@@ -7,12 +7,10 @@ private constructor(
   val name: String,
   val stateMachine: StateMachine,
   val data: Map<String, String>?,
-  val subscriptions: List<String>?,
+  val subscription: Regex,
 ) {
-  fun isSubscribedTo(other: String): Boolean = subscriptions?.contains(other) == true
-
   companion object {
     fun create(description: InstanceDescription, stateMachine: StateMachine, name: String) =
-      Instance(name, stateMachine, description.data, description.subscriptions)
+      Instance(name, stateMachine, description.data, description.subscription.toRegex())
   }
 }

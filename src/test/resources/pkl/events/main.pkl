@@ -15,7 +15,7 @@ instances {
   ["one"] = new Instance {
     stateMachineName = "oneMachine"
     data { ["target"] = "'two'" }
-    subscriptions { "two" }
+    subscription = Regex("two")
   }
   ["two"] = new Instance { stateMachineName = "twoMachine" }
   ["three"] = new Instance { stateMachineName = "threeMachine" }

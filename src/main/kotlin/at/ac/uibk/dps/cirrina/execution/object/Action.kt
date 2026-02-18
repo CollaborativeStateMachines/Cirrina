@@ -79,9 +79,9 @@ class MatchAction
 internal constructor(val cases: Map<Expression, List<Action>>, val default: Action? = null) :
   EventRaisingAction {
   override fun raises(): List<Event> =
-    (cases.values + listOfNotNull(default)).filterIsInstance<EventRaisingAction>().flatMap {
-      it.raises()
-    }
+    (cases.values.flatten() + listOfNotNull(default))
+      .filterIsInstance<EventRaisingAction>()
+      .flatMap { it.raises() }
 
   override fun toString() = "MatchAction(cases='$cases', default='$default')"
 }

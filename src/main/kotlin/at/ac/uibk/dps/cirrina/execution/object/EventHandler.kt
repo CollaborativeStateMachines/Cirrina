@@ -29,7 +29,7 @@ class EventHandler() : AutoCloseable {
 
   private val publishers = ConcurrentHashMap<String, AdvancedPublisher>()
   private val listeners = CopyOnWriteArrayList<MatchingListener>()
-  private val subscribers = ConcurrentHashMap<String, AdvancedSubscriber<Unit>>()
+  private val subscribers = CopyOnWriteArrayList<AdvancedSubscriber<Unit>>()
 
   init {
     val config =
@@ -40,66 +40,64 @@ class EventHandler() : AutoCloseable {
     session = Zenoh.open(config).getOrThrow()
   }
 
-  fun bind(graph: EventGraph, names: Collection<String>, handlers: List<PropagationHandler>) {
-    graph.getOutgoing(names).forEach { flow ->
-      publishers.computeIfAbsent(flow.topic) { topic ->
-        val publisher =
-          session
-            .declareAdvancedPublisher(
-              KeyExpr.tryFrom("events/$topic").getOrThrow(),
-              publisherDetection = true,
-            )
-            .getOrThrow()
+  fun bind(
+    graph: EventGraph,
+    instanceNames: Collection<String>,
+    subscribedTo: Collection<String>,
+    handlers: List<PropagationHandler>,
+  ) {
+    this.handlers.addAll(handlers)
 
-        val listener =
-          publisher
-            .declareMatchingListener(callback = { matching -> flow.isSubscribed = matching })
-            .getOrThrow()
-
-        listeners.add(listener)
-
-        publisher
-      }
+    // Event publishers
+    graph.getOutgoing(instanceNames).forEach { flow ->
+      val key = flow.event.toKey() ?: error("cannot create publisher for event '${flow.event}'")
+      publishers.computeIfAbsent(key) { createPublisher(it, flow) }
     }
 
-    graph.getIncoming(names).forEach { flow ->
-      subscribers.computeIfAbsent(flow.topic) { topic ->
-        session
-          .declareAdvancedSubscriber(
-            KeyExpr.tryFrom("events/$topic").getOrThrow(),
-            subscriberDetection = true,
-            callback = { sample -> handleIncoming(sample) },
-          )
-          .getOrThrow()
-      }
+    // External event subscribers
+    subscribedTo.forEach { name ->
+      val key = "events/$name/**"
+      subscribers.add(createSubscriber(key, subscriberDetection = true))
     }
 
-    subscribers["peripheral"] =
-      session
-        .declareAdvancedSubscriber(
-          KeyExpr.tryFrom("events/peripheral/**").getOrThrow(),
-          callback = { sample -> handleIncoming(sample) },
-        )
-        .getOrThrow()
-
-    handlers.forEach { this.handlers.add(it) }
+    // Peripheral event subscribers
+    subscribers.add(createSubscriber("events/peripheral/**", subscriberDetection = false))
   }
 
   fun send(event: Event) {
-    if (event.channel == Csml.EventChannel.INTERNAL) return
-
-    val publisher = publishers[event.topic] ?: error("no publisher for topic '${event.topic}'")
+    val key = event.toKey() ?: return
+    val publisher = publishers[key] ?: error("no publisher for topic '${key}'")
     val payload = ZBytes.from(EventExchange(event).toBytes())
 
     publisher.put(payload).onFailure { error("failed to send event '$event'") }
   }
 
   override fun close() {
-    subscribers.values.forEach { it.close() }
+    subscribers.forEach { it.close() }
     listeners.forEach { it.close() }
     publishers.values.forEach { it.close() }
     session.close()
   }
+
+  private fun createPublisher(key: String, flow: EventGraph.Flow): AdvancedPublisher {
+    val publisher =
+      session.declareAdvancedPublisher(key.toKeyExpr(), publisherDetection = true).getOrThrow()
+
+    val listener =
+      publisher.declareMatchingListener(callback = { flow.isSubscribed = it }).getOrThrow()
+
+    listeners.add(listener)
+    return publisher
+  }
+
+  private fun createSubscriber(key: String, subscriberDetection: Boolean) =
+    session
+      .declareAdvancedSubscriber(
+        key.toKeyExpr(),
+        subscriberDetection = subscriberDetection,
+        callback = ::handleIncoming,
+      )
+      .getOrThrow()
 
   private fun handleIncoming(sample: Sample) {
     runCatching {
@@ -114,4 +112,12 @@ class EventHandler() : AutoCloseable {
   private fun propagate(event: Event) {
     handlers.forEach { it(event) }
   }
+
+  private fun String.toKeyExpr() = KeyExpr.tryFrom(this).getOrThrow()
+
+  private fun Event.toKey() =
+    when (channel) {
+      Csml.EventChannel.EXTERNAL -> "events/${source}/${topic}"
+      else -> null
+    }
 }
