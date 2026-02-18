@@ -67,6 +67,8 @@ class Stdlib {
     @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
 
     @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
+
+    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull()
   }
 }
 
