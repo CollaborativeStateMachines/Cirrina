@@ -1,9 +1,6 @@
 @ModuleInfo { minPklVersion = "0.29.0" }
 module at.ac.uibk.dps.cirrina.csm.Csml
 
-/// This CSML language version.
-typealias Version = "4.0.0"
-
 /// The name of an instance of a state machine or "*" to refer to all instances.
 typealias InstanceName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
@@ -20,7 +17,7 @@ class Instance {
 }
 
 /// The CSML version.
-version: Version
+fixed version: String = "4.0.0"
 
 /// The collaborative state machine declaration.
 collaborativeStateMachine: CollaborativeStateMachineDescription

@@ -1,6 +1,5 @@
 amends "modulepath:/pkl/csm/csml.pkl"
 
-version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
     ["oneMachine"] = new StateMachine {
