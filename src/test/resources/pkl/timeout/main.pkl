@@ -1,6 +1,5 @@
 amends "modulepath:/pkl/csm/csml.pkl"
 
-version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
     ["timeoutStateMachine"] = new StateMachine {
@@ -9,21 +8,21 @@ collaborativeStateMachine {
           after {
             ["timeout"] = new Timeout {
               delay = "100"
-              do = new Raise { event = new Internal { topic = "update" } }
+              triggers = new Emit { event = new Internal { topic = "update" } }
             }
           }
           on {
             ["update"] = new Transition {
               to = "a"
-              do {
+              yields {
                 new Match {
                   cases {
                     new Case {
                       of = "v < 10"
-                      then { new Eval { expression = "v = v + 1" } }
+                      yields { new Assign { expression = "v = v + 1" } }
                     }
                   }
-                  default = new Raise { event = new Internal { topic = "tob" } }
+                  default = new Emit { event = new Internal { topic = "tob" } }
                 }
               }
             }

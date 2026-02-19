@@ -15,19 +15,17 @@ internal constructor(
   private val commandFactory: ActionCommandFactory,
 ) : Scope {
   private val entry = specification.entry.toTopologicalList()
-  private val `while` = specification.`while`.toTopologicalList()
+  private val during = specification.during.toTopologicalList()
   private val exit = specification.exit.toTopologicalList()
   val timeout = specification.after.toTopologicalList().filterIsInstance<TimeoutAction>()
 
-  override val extent: Extent by lazy {
-    parent.extent.extend(Context.from(specification.staticContext))
-  }
+  override val extent: Extent by lazy { parent.extent.extend(Context.from(specification.static)) }
 
   fun getEntryActionCommands(ctx: CommandExecutionContext) =
     entry.map { commandFactory.create(it, ctx) }
 
-  fun getWhileActionCommands(ctx: CommandExecutionContext) =
-    `while`.map { commandFactory.create(it, ctx) }
+  fun getDuringActionCommands(ctx: CommandExecutionContext) =
+    during.map { commandFactory.create(it, ctx) }
 
   fun getExitActionCommands(ctx: CommandExecutionContext) =
     exit.map { commandFactory.create(it, ctx) }

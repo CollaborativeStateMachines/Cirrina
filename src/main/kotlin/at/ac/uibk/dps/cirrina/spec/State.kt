@@ -11,19 +11,19 @@ private constructor(
   val name: String,
   val initial: Boolean,
   val terminal: Boolean,
-  val staticContext: Map<String, String>?,
+  val static: Map<String, String>?,
   entry: List<Action>,
   exit: List<Action>,
-  `while`: List<Action>,
+  during: List<Action>,
   after: List<Action>,
 ) {
   val entry = ActionGraph.create(entry)
   val exit = ActionGraph.create(exit)
-  val `while` = ActionGraph.create(`while`)
+  val during = ActionGraph.create(during)
   val after = ActionGraph.create(after)
 
   inline fun <reified T : Action> getActionsOfType(): List<T> =
-    listOf(entry, exit, `while`, after).flatMap { it.getActionsOfType<T>() }
+    listOf(entry, exit, during, after).flatMap { it.getActionsOfType<T>() }
 
   companion object {
     fun create(description: StateDescription, name: String): Result<State> = runCatching {
@@ -34,7 +34,7 @@ private constructor(
         description.static,
         resolveActions(description.entry),
         resolveActions(description.exit),
-        resolveActions(description.`while`),
+        resolveActions(description.during),
         resolveAfterActions(description.after),
       )
     }

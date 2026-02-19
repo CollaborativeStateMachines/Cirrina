@@ -63,9 +63,9 @@ internal constructor(
     }
 
   init {
-    val transientContext = Context.from(specification.transientContext)
-
+    val transientContext = Context.from(specification.transient)
     val instanceData = Context.from(instance.data).getAll()
+
     instanceData.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parent?.extent ?: runtime.extent).extend(transientContext)
@@ -135,6 +135,7 @@ internal constructor(
     val current = activeState ?: error("received event '$event' before entering initial state")
     val candidates =
       specification.getOnTransitionsFromStateByEventName(current.specification, event.topic)
+
     if (candidates.isEmpty()) return null
 
     val evalExtent =
@@ -173,14 +174,15 @@ internal constructor(
 
   private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
     val selected =
-      transitions.mapNotNull { tc ->
-        val result = tc.evaluate(evalExtent)
+      transitions.mapNotNull { transition ->
+        val result = transition.evaluate(evalExtent)
         when {
-          result -> transitionFactory.create(tc, isOr = false)
-          tc.or != null -> transitionFactory.create(tc, isOr = true)
+          result -> transitionFactory.create(transition, isOr = false)
+          transition.or != null -> transitionFactory.create(transition, isOr = true)
           else -> null
         }
       }
+
     return when (selected.size) {
       0 -> null
       1 -> selected.first()
@@ -196,7 +198,7 @@ internal constructor(
         activeState = state
 
         execute(state.getEntryActionCommands(createContext(state, event)))
-        execute(state.getWhileActionCommands(createContext(state, event, isWhile = true)))
+        execute(state.getDuringActionCommands(createContext(state, event, isDuring = true)))
 
         state.timeout.forEach(::startTimeout)
 
@@ -225,23 +227,25 @@ internal constructor(
 
   private tailrec fun execute(commands: List<ActionCommand>) {
     if (commands.isEmpty()) return
+
     val next =
       commands.flatMap { command ->
         command.execute().also {
           if (command is TimeoutResetActionCommand) stopTimeout(command.timeoutResetAction.action)
         }
       }
+
     execute(next)
   }
 
-  private fun createContext(scope: Scope, event: Event?, isWhile: Boolean = false) =
+  private fun createContext(scope: Scope, event: Event?, isDuring: Boolean = false) =
     CommandExecutionContext(
       scope,
       runtime.selector,
       stateMachineEventHandler,
       coroutineScope,
       event,
-      isWhile,
+      isDuring,
     )
 
   private fun startTimeout(timeout: TimeoutAction) {
@@ -250,12 +254,12 @@ internal constructor(
         ?: error("timeout delay '${timeout.delay}' is non-numeric")
 
     timeoutActionManager.start(timeout.name, delay) {
-      val action = timeout.`do`
+      val action = timeout.triggers
       val command = commandFactory.create(action, createContext(this, null))
 
       execute(
         listOf(
-          command as? RaiseActionCommand ?: error("timeout action '$action' must be a raise action")
+          command as? EmitActionCommand ?: error("timeout action '$action' must be an emit action")
         )
       )
     }
@@ -266,7 +270,7 @@ internal constructor(
   override fun toString() = "StateMachine(name='$name')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun sendEvent(event: Event) = eventHandler.send(event.copy(source = name))
+    fun emit(event: Event) = eventHandler.emit(event.copy(source = name))
 
     fun propagateToParent(event: Event) {
       parent?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
@@ -302,7 +306,7 @@ fun Factory.createHierarchy(
   parent: StateMachine?,
 ): List<StateMachine> =
   create(name, specification, instance, subscriptions, runtime, parent).let { current ->
-    specification.nestedStateMachines
+    specification.nested
       .flatMapIndexed { index, nested ->
         createHierarchy(
           "${current.name}.$index@${nested.name}",
