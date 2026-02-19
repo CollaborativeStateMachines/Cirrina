@@ -12,28 +12,28 @@ collaborativeStateMachine {
           }
         }
         ["b"] {
-          entry { new Raise { event { topic = "e3" }; target = "target" } }
+          entry { new Emit { event { topic = "e3" }; target = "target" } }
           on { ["e4"] { to = "c" } }
         }
         ["c"] = new Terminal {
           entry {
-            new Raise { event { topic = "e5" } }
-            new Eval { expression = "b = true" }
+            new Emit { event { topic = "e5" } }
+            new Assign { expression = "b = true" }
           }
         }
         ["d"] = new Terminal {}
       }
-      stateMachines {
+      nested {
         ["nestedStateMachine1"] {
           states {
             ["a"] = new Initial { on { ["pe1"] { to = "b" } } }
-            ["b"] = new Terminal { entry { new Raise { event { channel = "internal"; topic = "e1" } } } }
+            ["b"] = new Terminal { entry { new Emit { event { channel = "internal"; topic = "e1" } } } }
           }
         }
         ["nestedStateMachine2"] {
           states {
             ["a"] = new Initial { on { ["e1"] { to = "b" } } }
-            ["b"] = new Terminal { entry { new Raise { event { channel = "internal"; topic = "e2" } } } }
+            ["b"] = new Terminal { entry { new Emit { event { channel = "internal"; topic = "e2" } } } }
           }
         }
       }
@@ -41,13 +41,13 @@ collaborativeStateMachine {
     ["twoMachine"] = new StateMachine {
       states {
         ["a"] = new Initial { on { ["e3"] { to = "b" } } }
-        ["b"] = new Terminal { entry { new Raise { event { topic = "e4" } } } }
+        ["b"] = new Terminal { entry { new Emit { event { topic = "e4" } } } }
       }
     }
     ["threeMachine"] = new StateMachine {
       states {
         ["a"] = new Initial {
-          entry { new Raise { event { topic = "e6" } } }
+          entry { new Emit { event { topic = "e6" } } }
           on { ["e5"] { to = "b" } }
         }
         ["b"] = new Terminal {}
@@ -62,7 +62,7 @@ collaborativeStateMachine {
           }
         }
         ["b"] = new Terminal {}
-        ["c"] = new Terminal { entry { new Eval { expression = "c = true" } } }
+        ["c"] = new Terminal { entry { new Assign { expression = "c = true" } } }
       }
     }
   }

@@ -10,8 +10,8 @@ import org.jgrapht.graph.DirectedPseudograph
 class StateMachine
 internal constructor(
   val name: String,
-  val nestedStateMachines: List<StateMachine>,
-  val transientContext: Map<String, String>?,
+  val nested: List<StateMachine>,
+  val transient: Map<String, String>?,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
   val initial: State by lazy {
     vertexSet().firstOrNull { it.initial }
@@ -20,7 +20,7 @@ internal constructor(
 
   val inputEvents: List<String> by lazy {
     val localEvents = edgeSet().mapNotNull { it.event }
-    val nestedEvents = nestedStateMachines.flatMap { it.inputEvents }
+    val nestedEvents = nested.flatMap { it.inputEvents }
     (localEvents + nestedEvents).distinct()
   }
 
@@ -30,20 +30,20 @@ internal constructor(
           edgeSet().flatMap { it.getActionsOfType<EventRaisingAction>() })
         .flatMap { it.raises() }
 
-    val nestedEvents = nestedStateMachines.flatMap { it.outputEvents }
+    val nestedEvents = nested.flatMap { it.outputEvents }
     (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
   }
 
   private val stateNames: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
 
-  private val alwaysTransitions: Map<State, List<Transition>> by lazy {
-    vertexSet().associateWith { state -> outgoingEdgesOf(state).filter { it.event == null } }
-  }
-
   private val onTransitions: Map<State, Map<String, List<Transition>>> by lazy {
     vertexSet().associateWith { state ->
       outgoingEdgesOf(state).filter { it.event != null }.groupBy { it.event!! }
     }
+  }
+
+  private val alwaysTransitions: Map<State, List<Transition>> by lazy {
+    vertexSet().associateWith { state -> outgoingEdgesOf(state).filter { it.event == null } }
   }
 
   fun getStateClassByName(name: String): State? = stateNames[name]
@@ -58,9 +58,7 @@ internal constructor(
     fun create(description: StateMachineDescription, name: String = ""): Result<StateMachine> =
       runCatching {
         val nested =
-          description.stateMachines.map { (nestedName, smDesc) ->
-            create(smDesc, nestedName).getOrThrow()
-          }
+          description.nested.map { (nestedName, smDesc) -> create(smDesc, nestedName).getOrThrow() }
 
         val spec = StateMachine(name, nested, description.transient)
 
@@ -88,7 +86,7 @@ internal constructor(
       val target =
         desc.to?.let { targetName ->
           graph.getStateClassByName(targetName)
-            ?: error("state machine '${graph.name}' has invalid transition target: $targetName")
+            ?: error("state machine '${graph.name}' has invalid transition target '$targetName'")
         } ?: source
 
       val transition = Transition.create(desc, event).getOrThrow()

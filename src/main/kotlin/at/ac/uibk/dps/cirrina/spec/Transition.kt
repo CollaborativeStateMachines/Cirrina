@@ -11,13 +11,13 @@ class Transition
 private constructor(
   val event: String?,
   val to: String?,
-  val iif: Guard?,
-  val `do`: List<Action>,
+  val provided: Guard?,
+  val yields: List<Action>,
   val or: String?,
 ) : DefaultEdge() {
-  val actions: ActionGraph = ActionGraph.create(`do`)
+  val actions: ActionGraph = ActionGraph.create(yields)
 
-  fun evaluate(extent: Extent): Boolean = iif?.evaluate(extent) ?: true
+  fun evaluate(extent: Extent): Boolean = provided?.evaluate(extent) ?: true
 
   public override fun getSource(): State = super.getSource() as State
 
@@ -31,8 +31,8 @@ private constructor(
         Transition(
           event,
           description.to,
-          description.iif?.let { Guard.from(it) },
-          description.`do`.map { Action.create(it) },
+          description.provided?.let { Guard.from(it) },
+          description.yields.map { Action.create(it) },
           description.or,
         )
       }

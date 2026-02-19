@@ -6,26 +6,26 @@ sealed interface Action {
   companion object {
     fun create(description: ActionDescription, name: String? = null): Action =
       when (description) {
-        is EvalDescription -> EvalAction(Expression.create(description.expression))
+        is AssignDescription -> EvalAction(Expression.create(description.expression))
 
         is InvokeDescription ->
           InvokeAction(
             description.type,
             description.mode,
             buildVariables(description.input),
-            buildEvents(description.raises),
+            buildEvents(description.emits),
           )
 
         is MatchDescription ->
           MatchAction(
             description.cases.associate {
-              Expression.create(it.of) to it.then.map { desc -> create(desc) }
+              Expression.create(it.of) to it.yields.map { desc -> create(desc) }
             },
             description.default?.let { create(it) },
           )
 
-        is RaiseDescription ->
-          RaiseAction(
+        is EmitDescription ->
+          EmitAction(
             Event.from(description.event),
             description.target?.let { Expression.create(it) },
           )
@@ -34,7 +34,7 @@ sealed interface Action {
           TimeoutAction(
             name ?: error("timeout action name required"),
             Expression.create(description.delay),
-            create(description.`do`),
+            create(description.triggers),
           )
 
         is ResetDescription -> TimeoutResetAction(description.name)
@@ -67,12 +67,12 @@ internal constructor(
   val type: String,
   val mode: InvocationMode,
   val input: List<ContextVariable>,
-  val raises: List<Event>,
+  val emits: List<Event>,
 ) : EventRaisingAction {
-  override fun raises(): List<Event> = raises
+  override fun raises(): List<Event> = emits
 
   override fun toString() =
-    "InvokeAction(type='$type', mode='$mode', input='$input', raises='$raises')"
+    "InvokeAction(type='$type', mode='$mode', input='$input', emits='$emits')"
 }
 
 class MatchAction
@@ -86,7 +86,7 @@ internal constructor(val cases: Map<Expression, List<Action>>, val default: Acti
   override fun toString() = "MatchAction(cases='$cases', default='$default')"
 }
 
-class RaiseAction internal constructor(val event: Event, val target: Expression?) :
+class EmitAction internal constructor(val event: Event, val target: Expression?) :
   EventRaisingAction {
   override fun raises(): List<Event> = listOf(event)
 
@@ -94,12 +94,12 @@ class RaiseAction internal constructor(val event: Event, val target: Expression?
 }
 
 class TimeoutAction
-internal constructor(val name: String, val delay: Expression, val `do`: Action) :
+internal constructor(val name: String, val delay: Expression, val triggers: Action) :
   EventRaisingAction {
   override fun raises(): List<Event> =
-    (`do` as? RaiseAction)?.let { listOf(it.event) } ?: emptyList()
+    (triggers as? EmitAction)?.let { listOf(it.event) } ?: emptyList()
 
-  override fun toString() = "TimeoutAction(name='$name', delay='$delay', do='${`do`}')"
+  override fun toString() = "TimeoutAction(name='$name', delay='$delay', do='${triggers}')"
 }
 
 class TimeoutResetAction internal constructor(val action: String) : Action {

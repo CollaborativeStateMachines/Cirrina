@@ -65,7 +65,7 @@ class EventHandler() : AutoCloseable {
     subscribers.add(createSubscriber("events/peripheral/**", subscriberDetection = false))
   }
 
-  fun send(event: Event) {
+  fun emit(event: Event) {
     val key = event.toKey() ?: return
     val publisher = publishers[key] ?: error("no publisher for topic '${key}'")
     val payload = ZBytes.from(EventExchange(event).toBytes())

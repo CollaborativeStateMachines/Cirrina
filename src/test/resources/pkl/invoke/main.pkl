@@ -9,31 +9,31 @@ collaborativeStateMachine {
           after {
             ["timeout"] = new Timeout {
               delay = "100"
-              do = new Raise { event = new Internal { topic = "update" } }
+              triggers = new Emit { event = new Internal { topic = "update" } }
             }
           }
           on {
             ["update"] = new Transition {
               to = "a"
-              do {
+              yields {
                 new Invoke {
                   type = "increment"
                   mode = "local"
                   input { ["v"] = "v" }
-                  raises { new Internal { topic = "tob" } }
+                  emits { new Internal { topic = "tob" } }
                 }
-                new Eval { expression = "e = e + 1" }
+                new Assign { expression = "e = e + 1" }
               }
             }
             ["tob"] = new Transition { to = "b" }
           }
         }
         ["b"] = new State {
-          entry { new Eval { expression = "v = $v" } }
+          entry { new Assign { expression = "v = $v" } }
           always {
             new Transition {
               to = "a"
-              iif = "v < 10"; or = "c"
+              provided = "v < 10"; or = "c"
             }
           }
         }

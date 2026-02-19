@@ -16,7 +16,7 @@ data class CommandExecutionContext(
   val stateMachineEventHandler: StateMachine.StateMachineEventHandler,
   val coroutineScope: CoroutineScope,
   val raisingEvent: Event? = null,
-  val isWhile: Boolean = false,
+  val isDuring: Boolean = false,
 )
 
 interface ActionCommandFactory {
@@ -32,7 +32,7 @@ class ActionCommandFactoryImpl(private val meterRegistry: MeterRegistry) : Actio
       is EvalAction -> EvalActionCommand(action, commandExecutionContext, this, meterRegistry)
       is InvokeAction -> InvokeActionCommand(action, commandExecutionContext, this, meterRegistry)
       is MatchAction -> MatchActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is RaiseAction -> RaiseActionCommand(action, commandExecutionContext, this, meterRegistry)
+      is EmitAction -> EmitActionCommand(action, commandExecutionContext, this, meterRegistry)
       is TimeoutAction -> TimeoutActionCommand(action, commandExecutionContext, this, meterRegistry)
       is TimeoutResetAction ->
         TimeoutResetActionCommand(action, commandExecutionContext, this, meterRegistry)
@@ -80,7 +80,7 @@ internal constructor(
 
     commandExecutionContext.coroutineScope.launch {
       runCatching { service.invoke(input) }
-        .onSuccess { raiseEvents(it) }
+        .onSuccess { emitEvents(it) }
         .onFailure { logger.error(it) { "service invocation failed" } }
     }
 
@@ -96,14 +96,14 @@ internal constructor(
   private fun prepareInput(extent: Extent): List<ContextVariable> =
     invokeAction.input.map { it.evaluate(extent) }
 
-  private fun raiseEvents(output: List<ContextVariable>) {
-    invokeAction.raises.forEach { eventTemplate ->
+  private fun emitEvents(output: List<ContextVariable>) {
+    invokeAction.emits.forEach { eventTemplate ->
       val event = eventTemplate.copy(data = output)
       val handler =
         when (event.channel) {
           EventChannel.INTERNAL ->
             commandExecutionContext.stateMachineEventHandler::propagateToParent
-          else -> commandExecutionContext.stateMachineEventHandler::sendEvent
+          else -> commandExecutionContext.stateMachineEventHandler::emit
         }
       handler(event)
     }
@@ -130,22 +130,22 @@ internal constructor(
   }
 }
 
-class RaiseActionCommand
+class EmitActionCommand
 internal constructor(
-  private val raiseAction: RaiseAction,
+  private val emitAction: EmitAction,
   commandExecutionContext: CommandExecutionContext,
   commandFactory: ActionCommandFactory,
   meterRegistry: MeterRegistry,
 ) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
   override fun execute(): List<ActionCommand> {
     val event =
-      raiseAction.event.evaluateData(commandExecutionContext.scope.extent).run {
-        val target = raiseAction.target?.execute(commandExecutionContext.scope.extent) as? String
+      emitAction.event.evaluateData(commandExecutionContext.scope.extent).run {
+        val target = emitAction.target?.execute(commandExecutionContext.scope.extent) as? String
         if (target != null) copy(target = target) else this
       }
 
     with(commandExecutionContext.stateMachineEventHandler) {
-      if (event.channel == EventChannel.INTERNAL) propagateToParent(event) else sendEvent(event)
+      if (event.channel == EventChannel.INTERNAL) propagateToParent(event) else emit(event)
     }
 
     return emptyList()
@@ -160,7 +160,7 @@ internal constructor(
   meterRegistry: MeterRegistry,
 ) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
   override fun execute(): List<ActionCommand> =
-    listOf(commandFactory.create(timeoutAction.`do`, commandExecutionContext))
+    listOf(commandFactory.create(timeoutAction.triggers, commandExecutionContext))
 }
 
 class TimeoutResetActionCommand

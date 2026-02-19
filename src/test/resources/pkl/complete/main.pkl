@@ -4,11 +4,11 @@ version = "4.0.0"
 collaborativeStateMachine {
   stateMachines {
     ["completeStateMachine"] = new StateMachine {
-      stateMachines {
+      nested {
         ["nestedStateMachine"] = new StateMachine {
           states {
             ["a"] = new Singleton {
-              entry { new Raise { event = new Internal { topic = "ne1" } } }
+              entry { new Emit { event = new Internal { topic = "ne1" } } }
             }
           }
         }
@@ -18,7 +18,7 @@ collaborativeStateMachine {
           after {
             ["timeout"] = new Timeout {
               delay = "10"
-              do = new Raise { event = new Internal { topic = "e1" } }
+              triggers = new Emit { event = new Internal { topic = "e1" } }
             }
           }
           on { ["e1"] = new Transition { to = "b" } }
@@ -29,14 +29,14 @@ collaborativeStateMachine {
               type = "increment"
               mode = "local"
               input { ["v"] = "x" }
-              raises { new Internal { topic = "e2" } }
+              emits { new Internal { topic = "e2" } }
             }
           }
-          exit { new Eval { expression = "e = true" } }
+          exit { new Assign { expression = "e = true" } }
           on {
             ["e2"] = new Transition {
               to = "c"
-              do { new Eval { expression = "x = $v" } }
+              yields { new Assign { expression = "x = $v" } }
             }
           }
         }
@@ -44,23 +44,24 @@ collaborativeStateMachine {
           always {
             new Transition {
               to = "d"
-              iif = "x == 100"; or = "b"
+              provided = "x == 100"
+              or = "b"
             }
           }
         }
         ["d"] = new State {
           static { ["d"] = "100" }
           entry {
-            new Eval { expression = "v = x" }
-            new Eval { expression = "d = d - 1" }
+            new Assign { expression = "v = x" }
+            new Assign { expression = "d = d - 1" }
             new Match {
               cases {
                 new Case {
                   of = "d == 0"
-                  then { new Raise { event = new Internal { topic = "e3" } } }
+                  yields { new Emit { event = new Internal { topic = "e3" } } }
                 }
               }
-              default = new Raise { event = new Internal { topic = "e4" } }
+              default = new Emit { event = new Internal { topic = "e4" } }
             }
           }
           on {
@@ -68,7 +69,7 @@ collaborativeStateMachine {
             ["e4"] = new Transition { to = "d" }
           }
         }
-        ["e"] = new Terminal { entry { new Eval { expression = "b = true" } } }
+        ["e"] = new Terminal { entry { new Assign { expression = "b = true" } } }
       }
       transient { ["x"] = "0" }
     }

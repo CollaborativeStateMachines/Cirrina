@@ -49,7 +49,7 @@ typealias StateName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 class StateMachineDescription {
   states: Mapping<StateName, StateDescription>
-  stateMachines: Mapping<StateMachineName, StateMachineDescription>
+  nested: Mapping<StateMachineName, StateMachineDescription>
   transient: Context?
 }
 
@@ -63,7 +63,7 @@ open class StateDescription {
   static: Context?
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
-  while: Listing<ActionDescription>
+  during: Listing<ActionDescription>
   after: Mapping<TimeoutName, TimeoutDescription>
   on: Mapping<EventName, TransitionDescription>
   always: Listing<TransitionDescription>
@@ -84,8 +84,8 @@ class SingletonDescription extends StateDescription {
 
 class TransitionDescription {
   to: StateName?
-  iif: Expression?
-  do: Listing<ActionDescription>
+  provided: Expression?
+  yields: Listing<ActionDescription>
   or: String?
 }
 
@@ -99,21 +99,21 @@ class InvokeDescription extends ActionDescription {
   type: InvocationType
   mode: InvocationMode = "remote"
   input: Context
-  raises: Listing<EventDescription>
+  emits: Listing<EventDescription>
 }
 
-class EvalDescription extends ActionDescription {
+class AssignDescription extends ActionDescription {
   expression: Expression
 }
 
-class RaiseDescription extends ActionDescription {
+class EmitDescription extends ActionDescription {
   event: EventDescription
   target: Expression?
 }
 
 class TimeoutDescription extends ActionDescription {
   delay: Expression
-  do: RaiseDescription
+  triggers: EmitDescription
 }
 
 class ResetDescription extends ActionDescription {
@@ -122,7 +122,7 @@ class ResetDescription extends ActionDescription {
 
 class CaseDescription {
   of: Expression
-  then: Listing<ActionDescription>
+  yields: Listing<ActionDescription>
 }
 
 class MatchDescription extends ActionDescription {
@@ -181,11 +181,11 @@ typealias Transition = TransitionDescription
 
 // Action aliases
 typealias Action = ActionDescription
-typealias Eval = EvalDescription
+typealias Assign = AssignDescription
 typealias Invoke = InvokeDescription
 typealias Case = CaseDescription
 typealias Match = MatchDescription
-typealias Raise = RaiseDescription
+typealias Emit = EmitDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
 typealias Log = LogDescription
