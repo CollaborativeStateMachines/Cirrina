@@ -69,6 +69,22 @@ class Stdlib {
     @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
 
     @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull()
+
+    @JvmStatic fun repeat(item: Boolean, n: Int) = BooleanArray(n) { item }
+
+    @JvmStatic fun repeat(item: Byte, n: Int) = ByteArray(n) { item }
+
+    @JvmStatic fun repeat(item: Char, n: Int) = CharArray(n) { item }
+
+    @JvmStatic fun repeat(item: Short, n: Int) = ShortArray(n) { item }
+
+    @JvmStatic fun repeat(item: Int, n: Int) = IntArray(n) { item }
+
+    @JvmStatic fun repeat(item: Long, n: Int) = LongArray(n) { item }
+
+    @JvmStatic fun repeat(item: Float, n: Int) = FloatArray(n) { item }
+
+    @JvmStatic fun repeat(item: Double, n: Int) = DoubleArray(n) { item }
   }
 }
 
