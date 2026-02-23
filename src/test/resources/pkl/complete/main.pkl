@@ -28,10 +28,14 @@ collaborativeStateMachine {
               type = "increment"
               mode = "local"
               input { ["v"] = "x" }
+              output { new ContextVariableReferenceDescription { reference = "s" } }
               emits { new Internal { topic = "e2" } }
             }
           }
-          exit { new Assign { expression = "e = true" } }
+          exit {
+            new Assign { expression = "e = true" }
+            new Assign { expression = "f = f + s" }
+          }
           on {
             ["e2"] = new Transition {
               to = "c"
@@ -70,10 +74,13 @@ collaborativeStateMachine {
         }
         ["e"] = new Terminal { entry { new Assign { expression = "b = true" } } }
       }
-      transient { ["x"] = "0" }
+      transient {
+        ["x"] = "0"
+        ["s"] = "0"
+      }
     }
   }
-  persistent { ["b"] = "false"; ["v"] = "0"; ["e"] = "false" }
+  persistent { ["b"] = "false"; ["v"] = "0"; ["e"] = "false"; ["f"] = "0" }
 }
 instances {
   ["complete"] = new Instance { stateMachineName = "completeStateMachine" }

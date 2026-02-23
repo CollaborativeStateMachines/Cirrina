@@ -13,6 +13,7 @@ sealed interface Action {
             description.type,
             description.mode,
             buildVariables(description.input),
+            description.output,
             buildEvents(description.emits),
           )
 
@@ -67,12 +68,13 @@ internal constructor(
   val type: String,
   val mode: InvocationMode,
   val input: List<ContextVariable>,
+  val output: List<ContextVariableReferenceDescription>,
   val emits: List<Event>,
 ) : EventRaisingAction {
   override fun raises(): List<Event> = emits
 
   override fun toString() =
-    "InvokeAction(type='$type', mode='$mode', input='$input', emits='$emits')"
+    "InvokeAction(type='$type', mode='$mode', input='$input', output='$output', emits='$emits')"
 }
 
 class MatchAction

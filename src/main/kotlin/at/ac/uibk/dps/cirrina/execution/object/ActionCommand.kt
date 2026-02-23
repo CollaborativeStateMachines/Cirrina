@@ -80,7 +80,10 @@ internal constructor(
 
     commandExecutionContext.coroutineScope.launch {
       runCatching { service.invoke(input) }
-        .onSuccess { emitEvents(it) }
+        .onSuccess {
+          assignServiceOutput(it, commandExecutionContext.scope.extent)
+          emitEvents(it)
+        }
         .onFailure { logger.error(it) { "service invocation failed" } }
     }
 
@@ -106,6 +109,24 @@ internal constructor(
           else -> commandExecutionContext.stateMachineEventHandler::emit
         }
       handler(event)
+    }
+  }
+
+  private fun assignServiceOutput(output: List<ContextVariable>, extent: Extent) {
+    invokeAction.output.forEach { variable ->
+      output
+        .firstOrNull { it.name == variable.reference }
+        ?.let {
+          runCatching { extent.set(variable.reference, it.value) }
+            .onFailure { e ->
+              logger.warn(e) {
+                "failed to assign service output to variable '${variable.reference}'"
+              }
+            }
+        }
+        ?: logger.warn {
+          "service output does not contain expected variable '${variable.reference}'"
+        }
     }
   }
 }

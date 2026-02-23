@@ -27,7 +27,10 @@ class CompleteTest {
         val context = ContextInMemory()
         val server = mockHttpServer { input ->
           val v = input.firstOrNull { it.name == "v" } ?: error("variable 'v' not found")
-          listOf(ContextVariable("v", (v.value as Int) + 1))
+          listOf(
+            ContextVariable("v", (v.value as Int) + 1),
+            ContextVariable("s", (v.value + 1) * 10),
+          )
         }
 
         try {
@@ -43,6 +46,7 @@ class CompleteTest {
           assertEquals(100, context.get("v"))
           assertEquals(true, context.get("b"))
           assertEquals(true, context.get("e"))
+          assertEquals(50500, context.get("f"))
         } finally {
           server.stop(1)
         }

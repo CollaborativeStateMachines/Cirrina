@@ -96,6 +96,7 @@ class InvokeDescription extends ActionDescription {
   type: InvocationType
   mode: InvocationMode = "remote"
   input: Context
+  output: Listing<ContextVariableReferenceDescription>
   emits: Listing<EventDescription>
 }
 
@@ -129,6 +130,10 @@ class MatchDescription extends ActionDescription {
 
 class LogDescription extends ActionDescription {
   message: Expression
+}
+
+class ContextVariableReferenceDescription {
+  reference: String
 }
 
 typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
