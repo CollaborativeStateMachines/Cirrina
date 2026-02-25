@@ -10,6 +10,7 @@ import org.apache.commons.jexl3.JexlEngine
 import org.apache.commons.jexl3.JexlFeatures
 import org.apache.commons.jexl3.JexlScript
 import org.apache.commons.jexl3.introspection.JexlPermissions
+import kotlin.random.Random
 
 class Expression(val source: String) {
   private val jexlScript: JexlScript =
@@ -64,11 +65,18 @@ private object Provider {
 
 class Stdlib {
   companion object {
-    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
+    @Volatile private var rng: Random = Random.Default
 
-    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
+    @JvmStatic
+    fun seed(seed: Long) {
+      rng = Random(seed)
+    }
 
-    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull()
+    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random(rng))
+
+    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull(rng)
+
+    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull(rng)
 
     @JvmStatic fun repeat(item: Boolean, n: Int) = BooleanArray(n) { item }
 
