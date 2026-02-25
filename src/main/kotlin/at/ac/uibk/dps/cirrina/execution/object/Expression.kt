@@ -3,6 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 import java.lang.reflect.Array as ReflectArray
 import java.util.LinkedHashSet
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.random.Random
 import org.apache.commons.jexl3.JexlArithmetic
 import org.apache.commons.jexl3.JexlBuilder
 import org.apache.commons.jexl3.JexlContext
@@ -64,11 +65,18 @@ private object Provider {
 
 class Stdlib {
   companion object {
-    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random())
+    @Volatile private var rng: Random = Random.Default
 
-    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull()
+    @JvmStatic
+    fun seed(seed: Long) {
+      rng = Random(seed)
+    }
 
-    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull()
+    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random(rng))
+
+    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull(rng)
+
+    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull(rng)
 
     @JvmStatic fun repeat(item: Boolean, n: Int) = BooleanArray(n) { item }
 
