@@ -3,6 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 import java.lang.reflect.Array as ReflectArray
 import java.util.LinkedHashSet
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.random.Random
 import org.apache.commons.jexl3.JexlArithmetic
 import org.apache.commons.jexl3.JexlBuilder
 import org.apache.commons.jexl3.JexlContext
@@ -10,7 +11,6 @@ import org.apache.commons.jexl3.JexlEngine
 import org.apache.commons.jexl3.JexlFeatures
 import org.apache.commons.jexl3.JexlScript
 import org.apache.commons.jexl3.introspection.JexlPermissions
-import kotlin.random.Random
 
 class Expression(val source: String) {
   private val jexlScript: JexlScript =
