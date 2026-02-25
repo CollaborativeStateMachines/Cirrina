@@ -155,21 +155,27 @@ internal constructor(
     return true
   }
 
-  private fun step(transition: Transition, event: Event?) {
-    if (transition.isInternal) {
+  private fun step(initialTransition: Transition, event: Event?) {
+    var currentTransition: Transition? = initialTransition
+
+    while (currentTransition != null) {
+      val transition = currentTransition
+
+      if (transition.isInternal) {
+        doTransition(transition, event)
+        return
+      }
+
+      val target =
+        stateInstances[transition.targetStateName]
+          ?: error("target state '${transition.targetStateName}' not found")
+      val current = activeState ?: error("no active state to transition from")
+
+      doExit(current, event)
       doTransition(transition, event)
-      return
+
+      currentTransition = doEnter(target, event)
     }
-
-    val target =
-      stateInstances[transition.targetStateName]
-        ?: error("target state '${transition.targetStateName}' not found")
-    val current = activeState ?: error("no active state to transition from")
-
-    doExit(current, event)
-    doTransition(transition, event)
-
-    doEnter(target, event)?.let { step(it, event) }
   }
 
   private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
