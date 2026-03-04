@@ -99,23 +99,27 @@ class InvokeDescription extends ActionDescription {
   emits: Listing<EventDescription>
 }
 
-class AssignDescription extends ActionDescription {
+class EvalDescription extends ActionDescription {
   expression: Expression
 }
+
 
 class EmitDescription extends ActionDescription {
   event: EventDescription
   target: Expression?
 }
 
+
 class TimeoutDescription extends ActionDescription {
   delay: Expression
   triggers: EmitDescription
 }
 
+
 class ResetDescription extends ActionDescription {
   name: TimeoutName
 }
+
 
 class CaseDescription {
   of: Expression
@@ -131,6 +135,15 @@ class LogDescription extends ActionDescription {
   message: Expression
 }
 
+function Invoke(t: InvocationType, m: InvocationMode, i: Context, e: Listing<EventDescription>): InvokeDescription = new InvokeDescription { type = t; mode = m; input = i; emits = e }
+function Eval(e: Expression): EvalDescription = new EvalDescription { expression = e }
+function Emit(e: EventDescription, t: Expression): EmitDescription = new EmitDescription { event = e; target = t }
+function Timeout(d: Expression, t: EmitDescription): TimeoutDescription = new TimeoutDescription { delay = d; triggers = t }
+function Reset(n: TimeoutName): ResetDescription = new ResetDescription { name = n }
+function Case(o: Expression, y: Listing<ActionDescription>): CaseDescription = new CaseDescription { of = o; yields = y }
+function Match(c: Listing<CaseDescription>, d: ActionDescription): MatchDescription = new MatchDescription { cases = c; default = d }
+function Log(m: Expression): LogDescription = new LogDescription { message = m }
+
 typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 typealias EventChannel = "internal"|"external"|"peripheral"
@@ -144,6 +157,9 @@ open class EventDescription {
 class InternalDescription extends EventDescription {
   channel: EventChannel = "internal"
 }
+
+function External(t: EventTopic, d: Context): EventDescription = new EventDescription { topic = t; data = d }
+function Internal(t: EventTopic, d: Context): InternalDescription = new InternalDescription { topic = t; data = d }
 
 typealias Type = "HTTP"
 
@@ -178,7 +194,7 @@ typealias Transition = TransitionDescription
 
 // Action aliases
 typealias Action = ActionDescription
-typealias Assign = AssignDescription
+typealias Eval = EvalDescription
 typealias Invoke = InvokeDescription
 typealias Case = CaseDescription
 typealias Match = MatchDescription

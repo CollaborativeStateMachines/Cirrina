@@ -17,7 +17,7 @@ collaborativeStateMachine {
         ["c"] = new Terminal {
           entry {
             new Emit { event { topic = "e5" } }
-            new Assign { expression = "b = true" }
+            new Eval { expression = "b = true" }
           }
         }
         ["d"] = new Terminal {}
@@ -61,7 +61,7 @@ collaborativeStateMachine {
           }
         }
         ["b"] = new Terminal {}
-        ["c"] = new Terminal { entry { new Assign { expression = "c = true" } } }
+        ["c"] = new Terminal { entry { new Eval { expression = "c = true" } } }
       }
     }
   }

@@ -19,7 +19,7 @@ collaborativeStateMachine {
                   cases {
                     new Case {
                       of = "v < 10"
-                      yields { new Assign { expression = "v = v + 1" } }
+                      yields { new Eval { expression = "v = v + 1" } }
                     }
                   }
                   default = new Emit { event = new Internal { topic = "tob" } }

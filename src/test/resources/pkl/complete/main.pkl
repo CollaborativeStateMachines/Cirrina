@@ -31,11 +31,11 @@ collaborativeStateMachine {
               emits { new Internal { topic = "e2" } }
             }
           }
-          exit { new Assign { expression = "e = true" } }
+          exit { new Eval { expression = "e = true" } }
           on {
             ["e2"] = new Transition {
               to = "c"
-              yields { new Assign { expression = "x = $v" } }
+              yields { new Eval { expression = "x = $v" } }
             }
           }
         }
@@ -51,8 +51,8 @@ collaborativeStateMachine {
         ["d"] = new State {
           static { ["d"] = "100" }
           entry {
-            new Assign { expression = "v = x" }
-            new Assign { expression = "d = d - 1" }
+            new Eval { expression = "v = x" }
+            new Eval { expression = "d = d - 1" }
             new Match {
               cases {
                 new Case {
@@ -68,7 +68,7 @@ collaborativeStateMachine {
             ["e4"] = new Transition { to = "d" }
           }
         }
-        ["e"] = new Terminal { entry { new Assign { expression = "b = true" } } }
+        ["e"] = new Terminal { entry { new Eval { expression = "b = true" } } }
       }
       transient { ["x"] = "0" }
     }
