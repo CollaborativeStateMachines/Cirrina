@@ -139,9 +139,11 @@ internal constructor(
     if (candidates.isEmpty()) return null
 
     val evalExtent =
-      extent.extend(
-        ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
-      )
+      activeState!!
+        .extent
+        .extend(
+          ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
+        )
 
     return trySelect(candidates, evalExtent)?.also {
       event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }
@@ -227,7 +229,7 @@ internal constructor(
   private fun doTransition(transition: Transition, event: Event?) =
     Observation.createNotStarted("stateMachine.transition", observationRegistry).observe {
       if (!transition.isOr) {
-        execute(transition.getActionCommands(createContext(this, event)))
+        execute(transition.getActionCommands(createContext(activeState!!, event)))
       }
     }
 
