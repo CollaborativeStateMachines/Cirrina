@@ -111,5 +111,5 @@ class TimeoutResetAction internal constructor(val action: String) : Action {
 class LogAction internal constructor(val message: Expression) : Action
 
 class IncrCtrAction internal constructor(val counter: String, val by: String) : Action {
-  override fun toString() = "MetricAction(metric='$counter', by='$by')"
+  override fun toString() = "IncrCtrAction(metric='$counter', by='$by')"
 }
