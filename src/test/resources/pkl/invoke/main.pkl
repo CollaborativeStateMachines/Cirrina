@@ -21,14 +21,14 @@ collaborativeStateMachine {
                   input { ["v"] = "v" }
                   emits { new Internal { topic = "tob" } }
                 }
-                new Assign { expression = "e = e + 1" }
+                new Eval { expression = "e = e + 1" }
               }
             }
             ["tob"] = new Transition { to = "b" }
           }
         }
         ["b"] = new State {
-          entry { new Assign { expression = "v = $v" } }
+          entry { new Eval { expression = "v = $v" } }
           always {
             new Transition {
               to = "a"

@@ -6,7 +6,7 @@ collaborativeStateMachine {
       states {
         ["a"] = new Initial {
           entry {
-            new Assign { expression = "v = v + 1" }
+            new Eval { expression = "v = v + 1" }
             new Emit { event { topic = "e1" } }
           }
           on { ["e2"] = new Transition { to = "b" } }
@@ -32,7 +32,7 @@ collaborativeStateMachine {
         }
         ["b"] = new State {
           entry {
-            new Assign { expression = "v = v + 1" }
+            new Eval { expression = "v = v + 1" }
             new Emit { event { topic = "e2" } }
           }
           on { ["e3"] = new Transition { to = "a" } }

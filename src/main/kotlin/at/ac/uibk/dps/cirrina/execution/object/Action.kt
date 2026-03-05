@@ -6,7 +6,7 @@ sealed interface Action {
   companion object {
     fun create(description: ActionDescription, name: String? = null): Action =
       when (description) {
-        is AssignDescription -> EvalAction(Expression.create(description.expression))
+        is EvalDescription -> EvalAction(Expression.create(description.expression))
 
         is InvokeDescription ->
           InvokeAction(
