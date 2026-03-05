@@ -131,11 +131,6 @@ class LogDescription extends ActionDescription {
   message: Expression
 }
 
-class CounterDescription extends ActionDescription {
-  counter: String
-  by: String?
-}
-
 typealias EventTopic = String
 
 typealias EventChannel = "internal"|"external"|"peripheral"
@@ -191,8 +186,15 @@ typealias Emit = EmitDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
 typealias Log = LogDescription
-typealias Counter = CounterDescription
 
 // Event aliases
 typealias Event = EventDescription
 typealias Internal = InternalDescription
+
+// Private API - not meant for production use
+class IncrCtrDescription extends ActionDescription {
+  counter: String
+  by: String?
+}
+
+typealias IncrCtr = IncrCtrDescription
