@@ -2,13 +2,13 @@
 module at.ac.uibk.dps.cirrina.csm.Csml
 
 /// The name of an instance of a state machine or "*" to refer to all instances.
-typealias InstanceName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias InstanceName = String
 
 /// The name of a state machine.
-typealias StateMachineName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias StateMachineName = String
 
 /// The subscription to events raised by state machine instances.
-typealias Subscription = String(matches(Regex(#"^([a-zA-Z_]\w*|\*)$"#)))
+typealias Subscription = String
 
 class Instance {
   stateMachineName: StateMachineName
@@ -32,7 +32,7 @@ bindings: Listing<ServiceImplementationBinding>?
 typealias Expression = String
 
 /// The name of a variable.
-typealias VariableName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias VariableName = String
 
 /// A context declaration consisting of variable names and value expressions.
 typealias Context = Mapping<VariableName, Expression>
@@ -42,7 +42,7 @@ class CollaborativeStateMachineDescription {
   stateMachines: Mapping<StateMachineName, StateMachineDescription>
 }
 
-typealias StateName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias StateName = String
 
 class StateMachineDescription {
   states: Mapping<StateName, StateDescription>
@@ -50,9 +50,9 @@ class StateMachineDescription {
   transient: Context?
 }
 
-typealias EventName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias EventName = String
 
-typealias TimeoutName = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias TimeoutName = String
 
 open class StateDescription {
   initial: Boolean = false
@@ -88,7 +88,7 @@ class TransitionDescription {
 
 abstract class ActionDescription {}
 
-typealias InvocationType = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias InvocationType = String
 
 typealias InvocationMode = "local"|"remote"
 
@@ -108,7 +108,6 @@ class EmitDescription extends ActionDescription {
   event: EventDescription
   target: Expression?
 }
-
 
 class TimeoutDescription extends ActionDescription {
   delay: Expression
@@ -135,16 +134,7 @@ class LogDescription extends ActionDescription {
   message: Expression
 }
 
-function Invoke(t: InvocationType, m: InvocationMode, i: Context, e: Listing<EventDescription>): InvokeDescription = new InvokeDescription { type = t; mode = m; input = i; emits = e }
-function Eval(e: Expression): EvalDescription = new EvalDescription { expression = e }
-function Emit(e: EventDescription, t: Expression): EmitDescription = new EmitDescription { event = e; target = t }
-function Timeout(d: Expression, t: EmitDescription): TimeoutDescription = new TimeoutDescription { delay = d; triggers = t }
-function Reset(n: TimeoutName): ResetDescription = new ResetDescription { name = n }
-function Case(o: Expression, y: Listing<ActionDescription>): CaseDescription = new CaseDescription { of = o; yields = y }
-function Match(c: Listing<CaseDescription>, d: ActionDescription): MatchDescription = new MatchDescription { cases = c; default = d }
-function Log(m: Expression): LogDescription = new LogDescription { message = m }
-
-typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
+typealias EventTopic = String
 
 typealias EventChannel = "internal"|"external"|"peripheral"
 
@@ -157,9 +147,6 @@ open class EventDescription {
 class InternalDescription extends EventDescription {
   channel: EventChannel = "internal"
 }
-
-function External(t: EventTopic, d: Context): EventDescription = new EventDescription { topic = t; data = d }
-function Internal(t: EventTopic, d: Context): InternalDescription = new InternalDescription { topic = t; data = d }
 
 typealias Type = "HTTP"
 
