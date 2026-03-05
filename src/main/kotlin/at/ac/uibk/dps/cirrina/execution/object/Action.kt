@@ -41,6 +41,8 @@ sealed interface Action {
 
         is LogDescription -> LogAction(Expression.create(description.message))
 
+        is CounterDescription -> CounterAction(description.counter, description.by ?: "1.0")
+
         else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
 
@@ -107,3 +109,7 @@ class TimeoutResetAction internal constructor(val action: String) : Action {
 }
 
 class LogAction internal constructor(val message: Expression) : Action
+
+class CounterAction internal constructor(val counter: String, val by: String) : Action {
+  override fun toString() = "MetricAction(metric='$counter', by='$by')"
+}

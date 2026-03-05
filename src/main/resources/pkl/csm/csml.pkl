@@ -103,7 +103,6 @@ class EvalDescription extends ActionDescription {
   expression: Expression
 }
 
-
 class EmitDescription extends ActionDescription {
   event: EventDescription
   target: Expression?
@@ -114,11 +113,9 @@ class TimeoutDescription extends ActionDescription {
   triggers: EmitDescription
 }
 
-
 class ResetDescription extends ActionDescription {
   name: TimeoutName
 }
-
 
 class CaseDescription {
   of: Expression
@@ -134,7 +131,14 @@ class LogDescription extends ActionDescription {
   message: Expression
 }
 
+class CounterDescription extends ActionDescription {
+  counter: Expression
+  by: String?
+}
+
 typealias EventTopic = String
+
+typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 typealias EventChannel = "internal"|"external"|"peripheral"
 
@@ -189,6 +193,7 @@ typealias Emit = EmitDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
 typealias Log = LogDescription
+typealias Counter = CounterDescription
 
 // Event aliases
 typealias Event = EventDescription
