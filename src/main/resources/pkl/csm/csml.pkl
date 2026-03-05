@@ -132,13 +132,11 @@ class LogDescription extends ActionDescription {
 }
 
 class CounterDescription extends ActionDescription {
-  counter: Expression
+  counter: String
   by: String?
 }
 
 typealias EventTopic = String
-
-typealias EventTopic = String(matches(Regex(#"^[a-zA-Z_]\w*$"#)))
 
 typealias EventChannel = "internal"|"external"|"peripheral"
 
