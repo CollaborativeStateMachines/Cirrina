@@ -2,8 +2,6 @@ package at.ac.uibk.dps.cirrina.cirrina.di
 
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.PersistentContextProvider
-import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
-import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.provider.ContextEtcd
 import at.ac.uibk.dps.cirrina.util.getBuildVersion
@@ -130,11 +128,6 @@ class CirrinaModule {
   @Provides @Singleton @Main fun provideMain(): URI = URI(EnvironmentVariables.mainUri.get())
 
   @Provides @Singleton @Run fun provideRun(): List<String> = EnvironmentVariables.run.get()
-
-  @Provides
-  @Singleton
-  fun provideActionCommandFactory(meterRegistry: MeterRegistry): ActionCommandFactory =
-    ActionCommandFactoryImpl(meterRegistry)
 
   private fun createInfluxRegistry(url: String): InfluxMeterRegistry {
     val config =
