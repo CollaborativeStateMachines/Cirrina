@@ -75,7 +75,7 @@ class HttpServiceImplementation(
     if (input.isEmpty()) return byteArrayOf()
 
     return ContextVariableProtos.ContextVariables.newBuilder()
-      .addAllData(input.map { ContextVariableExchange(it).toProto() })
+      .addAllData(input.map { ContextVariableExchange.toProto(it) })
       .build()
       .toByteArray()
   }

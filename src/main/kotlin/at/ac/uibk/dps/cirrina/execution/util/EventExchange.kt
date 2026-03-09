@@ -1,20 +1,19 @@
 package at.ac.uibk.dps.cirrina.execution.util
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
+import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 
-class EventExchange(val event: Event) {
-
-  fun toBytes(): ByteArray {
+object EventExchange {
+  fun toBytes(event: Event): ByteArray {
     if (event.data.any { it.isLazy }) {
       error("event '${event.topic}' has unevaluated event data")
     }
-
-    return toProto().toByteArray()
+    return toProto(event).toByteArray()
   }
 
-  fun toProto(): EventProtos.Event {
+  fun toProto(event: Event): EventProtos.Event {
     val channel =
       try {
         EventProtos.Event.Channel.valueOf(event.channel.name)
@@ -22,53 +21,52 @@ class EventExchange(val event: Event) {
         error("event '${event.topic}' has an unrecognized channel: ${event.channel.name}")
       }
 
-    val dataProtos = event.data.map { variable -> ContextVariableExchange(variable).toProto() }
+    val builder =
+      EventProtos.Event.newBuilder()
+        .setTopic(event.topic)
+        .setChannel(channel)
+        .setTarget(event.target)
+        .setSource(event.source)
+        .setId(event.id)
+        .setCreatedTime(event.createdTime)
 
-    return EventProtos.Event.newBuilder()
-      .setTopic(event.topic)
-      .setChannel(channel)
-      .addAllData(dataProtos)
-      .setTarget(event.target)
-      .setSource(event.source)
-      .setId(event.id)
-      .setCreatedTime(event.createdTime)
-      .build()
+    event.data.forEach { variable -> builder.addData(ContextVariableExchange.toProto(variable)) }
+
+    return builder.build()
   }
 
-  companion object {
-    fun fromBytes(data: ByteArray): EventExchange {
-      val eventProto =
-        try {
-          EventProtos.Event.parseFrom(data)
-        } catch (_: Exception) {
-          error("received an event with an unsupported payload")
-        }
+  fun fromBytes(data: ByteArray): Event {
+    val eventProto =
+      try {
+        EventProtos.Event.parseFrom(data)
+      } catch (_: Exception) {
+        error("received an event with an unsupported payload")
+      }
 
-      return EventExchange(fromProto(eventProto))
+    return fromProto(eventProto)
+  }
+
+  fun fromProto(proto: EventProtos.Event): Event {
+    val channel =
+      try {
+        EventChannel.valueOf(proto.channel.name)
+      } catch (_: Exception) {
+        error("event has an unrecognized channel: ${proto.channel.name}")
+      }
+
+    val data = ArrayList<ContextVariable>(proto.dataCount)
+    for (i in 0 until proto.dataCount) {
+      data.add(ContextVariableExchange.fromProto(proto.getData(i)))
     }
 
-    fun fromProto(proto: EventProtos.Event): Event {
-      val channel =
-        try {
-          EventChannel.valueOf(proto.channel.name)
-        } catch (_: Exception) {
-          error("event has an unrecognized channel: ${proto.channel.name}")
-        }
-
-      val data =
-        proto.dataList.map { contextVariableProto ->
-          ContextVariableExchange.fromProto(contextVariableProto)
-        }
-
-      return Event(
-        proto.topic,
-        channel,
-        data,
-        proto.target,
-        proto.source,
-        proto.id,
-        proto.createdTime,
-      )
-    }
+    return Event(
+      proto.topic,
+      channel,
+      data,
+      proto.target,
+      proto.source,
+      proto.id,
+      proto.createdTime,
+    )
   }
 }

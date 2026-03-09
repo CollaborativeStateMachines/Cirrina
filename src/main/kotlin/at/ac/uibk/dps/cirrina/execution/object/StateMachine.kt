@@ -11,7 +11,6 @@ import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
 import kotlin.collections.get
@@ -37,7 +36,6 @@ internal constructor(
   private val observationRegistry: ObservationRegistry,
   private val stateFactory: State.Factory,
   private val transitionFactory: Transition.Factory,
-  meterRegistry: MeterRegistry,
 ) : Scope {
   var nested: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->

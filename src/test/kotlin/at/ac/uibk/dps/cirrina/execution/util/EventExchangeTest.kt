@@ -45,5 +45,5 @@ class EventExchangeTest {
   }
 
   private fun Event.roundTrip(): Event =
-    EventExchange(this).toBytes().let { bytes -> EventExchange.fromBytes(bytes).event }
+    EventExchange.toBytes(this).let { bytes -> EventExchange.fromBytes(bytes) }
 }
