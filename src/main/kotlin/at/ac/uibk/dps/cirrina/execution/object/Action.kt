@@ -41,7 +41,12 @@ sealed interface Action {
 
         is LogDescription -> LogAction(Expression.create(description.message))
 
-        is IncrCtrDescription -> IncrCtrAction(description.counter, description.by ?: "1.0")
+        is IncrCtrDescription ->
+          IncrCtrAction(
+            description.counter,
+            description.by ?: "1.0",
+            Expression.create(description.tag),
+          )
 
         else -> error("unknown action type: ${description.javaClass.simpleName}")
       }
@@ -110,6 +115,7 @@ class TimeoutResetAction internal constructor(val action: String) : Action {
 
 class LogAction internal constructor(val message: Expression) : Action
 
-class IncrCtrAction internal constructor(val counter: String, val by: String) : Action {
-  override fun toString() = "IncrCtrAction(metric='$counter', by='$by')"
+class IncrCtrAction
+internal constructor(val counter: String, val by: String, val tag: Expression?) : Action {
+  override fun toString() = "IncrCtrAction(metric='$counter', by='$by', tag='$tag')"
 }
