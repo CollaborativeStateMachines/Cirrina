@@ -45,7 +45,7 @@ sealed interface Action {
           IncrCtrAction(
             description.counter,
             description.by ?: "1.0",
-            Expression.create(description.tag),
+            description.tags?.mapValues { (_, v) -> Expression.create(v) } ?: emptyMap(),
           )
 
         else -> error("unknown action type: ${description.javaClass.simpleName}")
@@ -116,6 +116,7 @@ class TimeoutResetAction internal constructor(val action: String) : Action {
 class LogAction internal constructor(val message: Expression) : Action
 
 class IncrCtrAction
-internal constructor(val counter: String, val by: String, val tag: Expression?) : Action {
+internal constructor(val counter: String, val by: String, val tag: Map<String, Expression>) :
+  Action {
   override fun toString() = "IncrCtrAction(metric='$counter', by='$by', tag='$tag')"
 }

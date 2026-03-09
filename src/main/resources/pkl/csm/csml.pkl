@@ -195,7 +195,7 @@ typealias Internal = InternalDescription
 class IncrCtrDescription extends ActionDescription {
   counter: String
   by: String?
-  tag: Expression?
+  tags: Mapping<String, Expression>?
 }
 
 typealias IncrCtr = IncrCtrDescription
