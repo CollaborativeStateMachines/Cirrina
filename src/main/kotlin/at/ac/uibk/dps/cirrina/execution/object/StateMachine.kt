@@ -6,13 +6,11 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.spec.Instance
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
-import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import io.micrometer.observation.Observation
 import io.micrometer.observation.ObservationRegistry
-import kotlin.collections.get
 import kotlin.properties.Delegates
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -22,6 +20,8 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger {}
 
 private const val VAR_PREFIX = "$"
+
+private data class ActiveTransition(val transition: Transition, val isOr: Boolean)
 
 class StateMachine
 @AssistedInject
@@ -50,6 +50,25 @@ internal constructor(
 
   private val stateInstances =
     specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
+
+  private val onTransitions: Map<String, Map<String, List<Transition>>> =
+    specification.vertexSet().associate { state ->
+      state.name to
+        specification
+          .outgoingEdgesOf(state)
+          .filter { it.event != null }
+          .groupBy { it.event!! }
+          .mapValues { (_, specs) -> specs.map { transitionFactory.create(it) } }
+    }
+
+  private val alwaysTransitions: Map<String, List<Transition>> =
+    specification.vertexSet().associate { state ->
+      state.name to
+        specification
+          .outgoingEdgesOf(state)
+          .filter { it.event == null }
+          .map { transitionFactory.create(it) }
+    }
 
   private val started = CompletableDeferred<Unit>()
   private val eventChannel = Channel<Event>(Channel.UNLIMITED)
@@ -131,10 +150,9 @@ internal constructor(
       }
   }
 
-  private fun handleEvent(event: Event): Transition? {
+  private fun handleEvent(event: Event): ActiveTransition? {
     val current = activeState ?: error("received event '$event' before entering initial state")
-    val candidates =
-      specification.getOnTransitionsFromStateByEventName(current.specification, event.topic)
+    val candidates = onTransitions[current.specification.name]?.get(event.topic).orEmpty()
 
     if (candidates.isEmpty()) return null
 
@@ -153,36 +171,36 @@ internal constructor(
     return true
   }
 
-  private fun step(initialTransition: Transition) {
-    var currentTransition: Transition? = initialTransition
+  private fun step(initialTransition: ActiveTransition) {
+    var currentActive: ActiveTransition? = initialTransition
 
-    while (currentTransition != null) {
-      val transition = currentTransition
+    while (currentActive != null) {
+      val transition = currentActive.transition
+      val isOr = currentActive.isOr
 
       if (transition.isInternal) {
-        doTransition(transition)
+        doTransition(transition, isOr)
         return
       }
 
-      val target =
-        stateInstances[transition.targetStateName]
-          ?: error("target state '${transition.targetStateName}' not found")
+      val targetName = transition.targetStateName(isOr) ?: error("target state string is null")
+      val target = stateInstances[targetName] ?: error("target state '$targetName' not found")
       val current = activeState ?: error("no active state to transition from")
 
       doExit(current)
-      doTransition(transition)
+      doTransition(transition, isOr)
 
-      currentTransition = doEnter(target)
+      currentActive = doEnter(target)
     }
   }
 
-  private fun trySelect(transitions: List<TransitionSpec>, evalExtent: Extent): Transition? {
+  private fun trySelect(transitions: List<Transition>, evalExtent: Extent): ActiveTransition? {
     val selected =
       transitions.mapNotNull { transition ->
-        val result = transition.evaluate(evalExtent)
+        val spec = transition.specification
         when {
-          result -> transitionFactory.create(transition, isOr = false)
-          transition.or != null -> transitionFactory.create(transition, isOr = true)
+          spec.evaluate(evalExtent) -> ActiveTransition(transition, isOr = false)
+          spec.or != null -> ActiveTransition(transition, isOr = true)
           else -> null
         }
       }
@@ -194,11 +212,11 @@ internal constructor(
     }
   }
 
-  private fun doEnter(state: State): Transition? =
+  private fun doEnter(state: State): ActiveTransition? =
     Observation.createNotStarted("stateMachine.enter", observationRegistry)
       .lowCardinalityKeyValue("stateMachine.instanceName", name)
       .lowCardinalityKeyValue("state.name", state.specification.name)
-      .observe<Transition?> {
+      .observe<ActiveTransition?> {
         activeState = state
 
         execute(state.entryActions, state)
@@ -209,7 +227,7 @@ internal constructor(
         handleTermination()
 
         if (!isTerminated()) {
-          trySelect(specification.getAlwaysTransitionsFromState(state.specification), extent)
+          trySelect(alwaysTransitions[state.specification.name].orEmpty(), extent)
         } else null
       }
 
@@ -222,9 +240,9 @@ internal constructor(
         execute(state.exitActions, state)
       }
 
-  private fun doTransition(transition: Transition) =
+  private fun doTransition(transition: Transition, isOr: Boolean) =
     Observation.createNotStarted("stateMachine.transition", observationRegistry).observe {
-      if (!transition.isOr) {
+      if (!isOr) {
         execute(transition.actions, activeState!!)
       }
     }
