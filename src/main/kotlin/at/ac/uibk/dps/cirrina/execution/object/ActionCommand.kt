@@ -2,9 +2,6 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.Tag
-import io.micrometer.core.instrument.Tags
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
@@ -19,7 +16,6 @@ class ActionExecutor(
   private val selector: ServiceImplementationSelector,
   private val eventHandler: StateMachine.StateMachineEventHandler,
   private val coroutineScope: CoroutineScope,
-  private val meterRegistry: MeterRegistry,
 ) {
   fun execute(action: Action, scope: Scope): List<Action> =
     when (action) {
@@ -30,7 +26,6 @@ class ActionExecutor(
       is TimeoutAction -> listOf(action.triggers)
       is TimeoutResetAction -> emptyList()
       is LogAction -> executeLog(action, scope)
-      is IncrCtrAction -> executeIncrCtr(action, scope)
       else -> error("unknown action type: ${action::class.simpleName}")
     }
 
@@ -87,15 +82,6 @@ class ActionExecutor(
 
   private fun executeLog(action: LogAction, scope: Scope): List<Action> {
     action.message.execute(scope.extent).toString().also { logger.info(it) }
-    return emptyList()
-  }
-
-  private fun executeIncrCtr(action: IncrCtrAction, scope: Scope): List<Action> {
-    val tags =
-      Tags.of(
-        action.tag.map { (key, value) -> Tag.of(key, value.execute(scope.extent).toString()) }
-      )
-    meterRegistry.counter(action.counter, tags).increment(action.by.toDouble())
     return emptyList()
   }
 }

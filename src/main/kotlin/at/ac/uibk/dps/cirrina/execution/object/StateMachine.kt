@@ -46,12 +46,7 @@ internal constructor(
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(runtime.eventHandler)
   private val actionExecutor =
-    ActionExecutor(
-      runtime.selector,
-      stateMachineEventHandler,
-      coroutineScope,
-      runtime.meterRegistry,
-    )
+    ActionExecutor(runtime.selector, stateMachineEventHandler, coroutineScope)
 
   private val stateInstances =
     specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
