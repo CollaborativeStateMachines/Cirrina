@@ -6,26 +6,19 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import org.jgrapht.traverse.TopologicalOrderIterator
 
-class Transition
-@AssistedInject
-internal constructor(@Assisted private val spec: TransitionSpec, @Assisted val isOr: Boolean) {
-  val actions: List<Action> = TopologicalOrderIterator(spec.actions).asSequence().toList()
+class Transition @AssistedInject internal constructor(@Assisted val specification: TransitionSpec) {
+  val actions: List<Action> = TopologicalOrderIterator(specification.actions).asSequence().toList()
 
   val isInternal: Boolean
-    get() = spec.to == null
+    get() = specification.to == null
 
-  val targetStateName: String?
-    get() = if (isOr) spec.or else spec.to
-
-  init {
-    require(!isOr || spec.or != null) { "or transition must have a valid 'or' target state" }
-  }
+  fun targetStateName(isOr: Boolean): String? = if (isOr) specification.or else specification.to
 
   override fun toString(): String =
-    "${this::class.simpleName}(internal='$isInternal', target='$targetStateName', or='$isOr')"
+    "${this::class.simpleName}(internal='$isInternal', target='${specification.to}', or='${specification.or}')"
 
   @AssistedFactory
   interface Factory {
-    fun create(spec: TransitionSpec, isOr: Boolean): Transition
+    fun create(specification: TransitionSpec): Transition
   }
 }
