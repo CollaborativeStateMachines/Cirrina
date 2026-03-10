@@ -4,7 +4,6 @@ import TimeoutActionManager
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
-import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.spec.Instance
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
@@ -47,7 +46,12 @@ internal constructor(
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(runtime.eventHandler)
   private val actionExecutor =
-    ActionExecutor(runtime.selector, stateMachineEventHandler, coroutineScope)
+    ActionExecutor(
+      runtime.selector,
+      stateMachineEventHandler,
+      coroutineScope,
+      runtime.meterRegistry,
+    )
 
   private val stateInstances =
     specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
@@ -140,11 +144,7 @@ internal constructor(
     if (candidates.isEmpty()) return null
 
     val evalExtent =
-      activeState!!
-        .extent
-        .extend(
-          ContextInMemory().apply { event.data.forEach { create(VAR_PREFIX + it.name, it.value) } }
-        )
+      activeState!!.extent.with(event.data.associate { VAR_PREFIX + it.name to it.value })
 
     return trySelect(candidates, evalExtent)?.also {
       event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }

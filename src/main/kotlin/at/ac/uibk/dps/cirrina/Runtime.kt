@@ -32,7 +32,7 @@ constructor(
   @Main main: URI,
   persistentContext: Context?,
   stateMachineFactory: StateMachine.Factory,
-  meterRegistry: MeterRegistry,
+  val meterRegistry: MeterRegistry,
 ) {
   val eventHandler = EventHandler()
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
