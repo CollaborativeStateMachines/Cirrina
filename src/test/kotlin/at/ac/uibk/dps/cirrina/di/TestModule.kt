@@ -3,8 +3,6 @@ package at.ac.uibk.dps.cirrina.di
 import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.cirrina.di.Main
 import at.ac.uibk.dps.cirrina.cirrina.di.Run
-import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactory
-import at.ac.uibk.dps.cirrina.execution.`object`.ActionCommandFactoryImpl
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import dagger.Module
 import dagger.Provides
@@ -32,9 +30,4 @@ class TestModule(
   @Provides @Main fun provideMain() = mainUri
 
   @Provides @Run fun provideRun() = run
-
-  @Provides
-  @Singleton
-  fun provideActionCommandFactory(meterRegistry: MeterRegistry): ActionCommandFactory =
-    ActionCommandFactoryImpl(meterRegistry)
 }

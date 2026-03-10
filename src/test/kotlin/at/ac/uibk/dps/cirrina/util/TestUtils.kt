@@ -31,7 +31,7 @@ object TestUtils {
 
       val out =
         ContextVariableProtos.ContextVariables.newBuilder()
-          .addAllData(output.map { ContextVariableExchange(it).toProto() })
+          .addAllData(output.map { ContextVariableExchange.toProto(it) })
           .build()
           .toByteArray()
 

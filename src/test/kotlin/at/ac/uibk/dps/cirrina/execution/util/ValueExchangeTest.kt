@@ -62,5 +62,5 @@ class ValueExchangeTest {
     }
   }
 
-  private fun Any?.roundTrip(): Any? = ValueExchange.fromBytes(ValueExchange(this).toBytes()).value
+  private fun Any?.roundTrip(): Any? = ValueExchange.fromBytes(ValueExchange.toBytes(this))
 }

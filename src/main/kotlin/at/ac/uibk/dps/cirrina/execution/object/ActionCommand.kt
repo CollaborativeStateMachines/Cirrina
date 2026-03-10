@@ -1,190 +1,87 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
-import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-data class CommandExecutionContext(
-  val scope: Scope,
-  val serviceImplementationSelector: ServiceImplementationSelector,
-  val stateMachineEventHandler: StateMachine.StateMachineEventHandler,
-  val coroutineScope: CoroutineScope,
-  val raisingEvent: Event? = null,
-  val isDuring: Boolean = false,
-)
-
-interface ActionCommandFactory {
-  fun create(action: Action, commandExecutionContext: CommandExecutionContext): ActionCommand
-}
-
-class ActionCommandFactoryImpl(private val meterRegistry: MeterRegistry) : ActionCommandFactory {
-  override fun create(
-    action: Action,
-    commandExecutionContext: CommandExecutionContext,
-  ): ActionCommand =
-    when (action) {
-      is EvalAction -> EvalActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is InvokeAction -> InvokeActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is MatchAction -> MatchActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is EmitAction -> EmitActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is TimeoutAction -> TimeoutActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is TimeoutResetAction ->
-        TimeoutResetActionCommand(action, commandExecutionContext, this, meterRegistry)
-      is LogAction -> LogActionCommand(action, commandExecutionContext, this, meterRegistry)
-      else -> error("unknown action type: ${action::class.simpleName}")
-    }
-}
-
 interface Scope {
   val extent: Extent
 }
 
-abstract class ActionCommand
-internal constructor(
-  protected val commandExecutionContext: CommandExecutionContext,
-  protected val commandFactory: ActionCommandFactory,
-  protected val meterRegistry: MeterRegistry,
+class ActionExecutor(
+  private val selector: ServiceImplementationSelector,
+  private val eventHandler: StateMachine.StateMachineEventHandler,
+  private val coroutineScope: CoroutineScope,
 ) {
-  abstract fun execute(): List<ActionCommand>
-}
+  fun execute(action: Action, scope: Scope): List<Action> =
+    when (action) {
+      is EvalAction -> executeEval(action, scope)
+      is InvokeAction -> executeInvoke(action, scope)
+      is MatchAction -> executeMatch(action, scope)
+      is EmitAction -> executeEmit(action, scope)
+      is TimeoutAction -> listOf(action.triggers)
+      is TimeoutResetAction -> emptyList()
+      is LogAction -> executeLog(action, scope)
+      else -> error("unknown action type: ${action::class.simpleName}")
+    }
 
-class EvalActionCommand
-internal constructor(
-  private val evalAction: EvalAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  override fun execute(): List<ActionCommand> =
-    evalAction.expression.execute(commandExecutionContext.scope.extent).run { emptyList() }
-}
+  private fun executeEval(action: EvalAction, scope: Scope): List<Action> {
+    action.expression.execute(scope.extent)
+    return emptyList()
+  }
 
-class InvokeActionCommand
-internal constructor(
-  private val invokeAction: InvokeAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  private val logger = KotlinLogging.logger {}
+  private fun executeInvoke(action: InvokeAction, scope: Scope): List<Action> {
+    val service =
+      selector.select(action.type, action.mode)
+        ?: error("no service implementation found for type '${action.type}'")
 
-  override fun execute(): List<ActionCommand> {
-    val service = selectServiceImplementation()
-    val input = prepareInput(commandExecutionContext.scope.extent)
+    val input = action.input.map { it.evaluate(scope.extent) }
 
-    commandExecutionContext.coroutineScope.launch {
+    coroutineScope.launch {
       runCatching { service.invoke(input) }
-        .onSuccess { emitEvents(it) }
+        .onSuccess { output ->
+          action.emits.forEach { eventTemplate ->
+            val emittedEvent = eventTemplate.copy(data = output)
+            if (emittedEvent.channel == EventChannel.INTERNAL) {
+              eventHandler.propagateToParent(emittedEvent)
+            } else {
+              eventHandler.emit(emittedEvent)
+            }
+          }
+        }
         .onFailure { logger.error(it) { "service invocation failed" } }
     }
 
     return emptyList()
   }
 
-  private fun selectServiceImplementation(): ServiceImplementation =
-    commandExecutionContext.serviceImplementationSelector.select(
-      invokeAction.type,
-      invokeAction.mode,
-    ) ?: error("no service implementation found for type '${invokeAction.type}'")
+  private fun executeMatch(action: MatchAction, scope: Scope): List<Action> =
+    action.cases.entries
+      .filter { (expression, _) -> expression.execute(scope.extent) == true }
+      .flatMap { it.value }
+      .ifEmpty { listOfNotNull(action.default) }
 
-  private fun prepareInput(extent: Extent): List<ContextVariable> =
-    invokeAction.input.map { it.evaluate(extent) }
-
-  private fun emitEvents(output: List<ContextVariable>) {
-    invokeAction.emits.forEach { eventTemplate ->
-      val event = eventTemplate.copy(data = output)
-      val handler =
-        when (event.channel) {
-          EventChannel.INTERNAL ->
-            commandExecutionContext.stateMachineEventHandler::propagateToParent
-          else -> commandExecutionContext.stateMachineEventHandler::emit
-        }
-      handler(event)
-    }
-  }
-}
-
-class MatchActionCommand
-internal constructor(
-  private val matchAction: MatchAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  override fun execute(): List<ActionCommand> {
-    val extent = commandExecutionContext.scope.extent
-
-    val selectedActions: List<Action> =
-      matchAction.cases.entries
-        .filter { (expression, _) -> expression.execute(extent) == true }
-        .flatMap { it.value }
-        .ifEmpty { listOfNotNull(matchAction.default) }
-
-    return selectedActions.map { commandFactory.create(it, commandExecutionContext) }
-  }
-}
-
-class EmitActionCommand
-internal constructor(
-  private val emitAction: EmitAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  override fun execute(): List<ActionCommand> {
-    val event =
-      emitAction.event.evaluateData(commandExecutionContext.scope.extent).run {
-        val target = emitAction.target?.execute(commandExecutionContext.scope.extent) as? String
+  private fun executeEmit(action: EmitAction, scope: Scope): List<Action> {
+    val emittedEvent =
+      action.event.evaluateData(scope.extent).run {
+        val target = action.target?.execute(scope.extent) as? String
         if (target != null) copy(target = target) else this
       }
 
-    with(commandExecutionContext.stateMachineEventHandler) {
-      if (event.channel == EventChannel.INTERNAL) propagateToParent(event) else emit(event)
+    with(eventHandler) {
+      if (emittedEvent.channel == EventChannel.INTERNAL) propagateToParent(emittedEvent)
+      else emit(emittedEvent)
     }
 
     return emptyList()
   }
-}
 
-class TimeoutActionCommand
-internal constructor(
-  private val timeoutAction: TimeoutAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  override fun execute(): List<ActionCommand> =
-    listOf(commandFactory.create(timeoutAction.triggers, commandExecutionContext))
-}
-
-class TimeoutResetActionCommand
-internal constructor(
-  val timeoutResetAction: TimeoutResetAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  override fun execute(): List<ActionCommand> = emptyList()
-}
-
-class LogActionCommand
-internal constructor(
-  private val logAction: LogAction,
-  commandExecutionContext: CommandExecutionContext,
-  commandFactory: ActionCommandFactory,
-  meterRegistry: MeterRegistry,
-) : ActionCommand(commandExecutionContext, commandFactory, meterRegistry) {
-  override fun execute(): List<ActionCommand> {
-    logAction.message.execute(commandExecutionContext.scope.extent).toString().also {
-      logger.info(it)
-    }
-
+  private fun executeLog(action: LogAction, scope: Scope): List<Action> {
+    action.message.execute(scope.extent).toString().also { logger.info(it) }
     return emptyList()
   }
 }

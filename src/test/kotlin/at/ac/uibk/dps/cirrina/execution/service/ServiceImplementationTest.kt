@@ -55,7 +55,7 @@ class ServiceImplementationTest {
 
     private fun HttpExchange.sendVariables(variables: List<ContextVariable>) =
       variables
-        .map { ContextVariableExchange(it).toProto() }
+        .map { ContextVariableExchange.toProto(it) }
         .let { protos ->
           ContextVariableProtos.ContextVariables.newBuilder()
             .addAllData(protos)

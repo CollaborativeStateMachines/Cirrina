@@ -68,7 +68,7 @@ class EventHandler() : AutoCloseable {
   fun emit(event: Event) {
     val key = event.toKey() ?: return
     val publisher = publishers[key] ?: error("no publisher for topic '${key}'")
-    val payload = ZBytes.from(EventExchange(event).toBytes())
+    val payload = ZBytes.from(EventExchange.toBytes(event))
 
     publisher.put(payload).onFailure { error("failed to send event '$event'") }
   }
@@ -104,7 +104,7 @@ class EventHandler() : AutoCloseable {
   private fun handleIncoming(sample: Sample) {
     runCatching {
         val bytes = sample.payload.toBytes()
-        val event = EventExchange.fromBytes(bytes).event
+        val event = EventExchange.fromBytes(bytes)
 
         propagate(event)
       }

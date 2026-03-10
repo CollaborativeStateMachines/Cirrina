@@ -45,7 +45,7 @@ class EventsTest {
           val event = Event.from(Csml.EventDescription("pe1", EventChannel.PERIPHERAL, mapOf()))
 
           val keyExpr = KeyExpr.tryFrom("events/peripheral/${event.topic}").getOrThrow()
-          val payload = ZBytes.from(EventExchange(event).toBytes())
+          val payload = ZBytes.from(EventExchange.toBytes(event))
 
           Zenoh.open(Config.default()).getOrThrow().put(keyExpr, payload).getOrThrow()
         }

@@ -87,9 +87,9 @@ class ContextEtcd(endpoints: List<String>) : Context {
 
   private fun String.toByteSequence() = ByteSequence.from(this, StandardCharsets.UTF_8)
 
-  private fun Any?.toBytes(): ByteArray = ValueExchange(this).toBytes()
+  private fun Any?.toBytes(): ByteArray = ValueExchange.toBytes(this)
 
-  private fun ByteArray.fromBytes(): Any? = ValueExchange.fromBytes(this).value
+  private fun ByteArray.fromBytes(): Any? = ValueExchange.fromBytes(this)
 
   override fun close() {
     client.close()

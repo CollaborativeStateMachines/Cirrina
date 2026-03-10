@@ -34,7 +34,6 @@ internal constructor(
   @Assisted private val runtime: Runtime,
   @Assisted private val parent: StateMachine? = null,
   private val observationRegistry: ObservationRegistry,
-  private val commandFactory: ActionCommandFactory,
   private val stateFactory: State.Factory,
   private val transitionFactory: Transition.Factory,
 ) : Scope {
@@ -47,6 +46,8 @@ internal constructor(
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
   private val stateMachineEventHandler = StateMachineEventHandler(runtime.eventHandler)
+  private val actionExecutor =
+    ActionExecutor(runtime.selector, stateMachineEventHandler, coroutineScope)
 
   private val stateInstances =
     specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
@@ -76,7 +77,7 @@ internal constructor(
 
     instanceObservation.observe {
       val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
-      doEnter(initial, null)?.let { step(it, null) }
+      doEnter(initial)?.let { step(it) }
 
       started.complete(Unit)
     }
@@ -124,7 +125,7 @@ internal constructor(
       .lowCardinalityKeyValue("event.topic", event.topic)
       .parentObservation(instanceObservation)
       .observe {
-        handleEvent(event)?.let { transition -> step(transition, event) }
+        handleEvent(event)?.let { transition -> step(transition) }
 
         if (event.channel == EventChannel.INTERNAL)
           stateMachineEventHandler.propagateToNested(event)
@@ -157,14 +158,14 @@ internal constructor(
     return true
   }
 
-  private fun step(initialTransition: Transition, event: Event?) {
+  private fun step(initialTransition: Transition) {
     var currentTransition: Transition? = initialTransition
 
     while (currentTransition != null) {
       val transition = currentTransition
 
       if (transition.isInternal) {
-        doTransition(transition, event)
+        doTransition(transition)
         return
       }
 
@@ -173,10 +174,10 @@ internal constructor(
           ?: error("target state '${transition.targetStateName}' not found")
       val current = activeState ?: error("no active state to transition from")
 
-      doExit(current, event)
-      doTransition(transition, event)
+      doExit(current)
+      doTransition(transition)
 
-      currentTransition = doEnter(target, event)
+      currentTransition = doEnter(target)
     }
   }
 
@@ -198,15 +199,15 @@ internal constructor(
     }
   }
 
-  private fun doEnter(state: State, event: Event?): Transition? =
+  private fun doEnter(state: State): Transition? =
     Observation.createNotStarted("stateMachine.enter", observationRegistry)
       .lowCardinalityKeyValue("stateMachine.instanceName", name)
       .lowCardinalityKeyValue("state.name", state.specification.name)
       .observe<Transition?> {
         activeState = state
 
-        execute(state.getEntryActionCommands(createContext(state, event)))
-        execute(state.getDuringActionCommands(createContext(state, event, isDuring = true)))
+        execute(state.entryActions, state)
+        execute(state.duringActions, state)
 
         state.timeout.forEach(::startTimeout)
 
@@ -217,44 +218,33 @@ internal constructor(
         } else null
       }
 
-  private fun doExit(state: State, event: Event?) =
+  private fun doExit(state: State) =
     Observation.createNotStarted("stateMachine.exit", observationRegistry)
       .lowCardinalityKeyValue("state.name", state.specification.name)
       .observe {
         timeoutActionManager.stopAll()
 
-        execute(state.getExitActionCommands(createContext(state, event)))
+        execute(state.exitActions, state)
       }
 
-  private fun doTransition(transition: Transition, event: Event?) =
+  private fun doTransition(transition: Transition) =
     Observation.createNotStarted("stateMachine.transition", observationRegistry).observe {
       if (!transition.isOr) {
-        execute(transition.getActionCommands(createContext(activeState!!, event)))
+        execute(transition.actions, activeState!!)
       }
     }
 
-  private tailrec fun execute(commands: List<ActionCommand>) {
-    if (commands.isEmpty()) return
+  private tailrec fun execute(actions: List<Action>, scope: Scope) {
+    if (actions.isEmpty()) return
 
     val next =
-      commands.flatMap { command ->
-        command.execute().also {
-          if (command is TimeoutResetActionCommand) stopTimeout(command.timeoutResetAction.action)
-        }
+      actions.flatMap { action ->
+        if (action is TimeoutResetAction) stopTimeout(action.action)
+        actionExecutor.execute(action, scope)
       }
 
-    execute(next)
+    execute(next, scope)
   }
-
-  private fun createContext(scope: Scope, event: Event?, isDuring: Boolean = false) =
-    CommandExecutionContext(
-      scope,
-      runtime.selector,
-      stateMachineEventHandler,
-      coroutineScope,
-      event,
-      isDuring,
-    )
 
   private fun startTimeout(timeout: TimeoutAction) {
     val delay =
@@ -263,13 +253,9 @@ internal constructor(
 
     timeoutActionManager.start(timeout.name, delay) {
       val action = timeout.triggers
-      val command = commandFactory.create(action, createContext(this, null))
+      if (action !is EmitAction) error("timeout action '$action' must be an emit action")
 
-      execute(
-        listOf(
-          command as? EmitActionCommand ?: error("timeout action '$action' must be an emit action")
-        )
-      )
+      execute(listOf(action), this)
     }
   }
 
