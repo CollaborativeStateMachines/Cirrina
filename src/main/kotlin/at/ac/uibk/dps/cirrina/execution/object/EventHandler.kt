@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.graph.EventGraph
-import at.ac.uibk.dps.cirrina.execution.util.EventExchange
+import at.ac.uibk.dps.cirrina.execution.util.Serializer
 import io.zenoh.Config
 import io.zenoh.Session
 import io.zenoh.Zenoh
@@ -68,7 +68,7 @@ class EventHandler() : AutoCloseable {
   fun emit(event: Event) {
     val key = event.toKey() ?: return
     val publisher = publishers[key] ?: error("no publisher for topic '${key}'")
-    val payload = ZBytes.from(EventExchange.toBytes(event))
+    val payload = ZBytes.from(Serializer.serialize(event))
 
     publisher.put(payload).onFailure { error("failed to send event '$event'") }
   }
@@ -104,7 +104,7 @@ class EventHandler() : AutoCloseable {
   private fun handleIncoming(sample: Sample) {
     runCatching {
         val bytes = sample.payload.toBytes()
-        val event = EventExchange.fromBytes(bytes)
+        val event = Serializer.deserialize<Event>(bytes)
 
         propagate(event)
       }

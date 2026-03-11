@@ -2,7 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.provider
 
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.util.ValueExchange
+import at.ac.uibk.dps.cirrina.execution.util.Serializer
 import io.etcd.jetcd.ByteSequence
 import io.etcd.jetcd.Client
 import io.etcd.jetcd.op.Cmp
@@ -36,7 +36,7 @@ class ContextEtcd(endpoints: List<String>) : Context {
 
   override fun create(name: String, value: Any?): Int {
     val key = name.toByteSequence()
-    val bytes = value.toBytes()
+    val bytes = value?.toBytes() ?: byteArrayOf()
 
     val txn =
       client.kvClient
@@ -52,7 +52,7 @@ class ContextEtcd(endpoints: List<String>) : Context {
 
   override fun assign(name: String, value: Any?): Int {
     val key = name.toByteSequence()
-    val bytes = value.toBytes()
+    val bytes = value?.toBytes() ?: byteArrayOf()
 
     val txn =
       client.kvClient
@@ -87,9 +87,9 @@ class ContextEtcd(endpoints: List<String>) : Context {
 
   private fun String.toByteSequence() = ByteSequence.from(this, StandardCharsets.UTF_8)
 
-  private fun Any?.toBytes(): ByteArray = ValueExchange.toBytes(this)
+  private fun Any.toBytes(): ByteArray = Serializer.serialize(this)
 
-  private fun ByteArray.fromBytes(): Any? = ValueExchange.fromBytes(this)
+  private fun ByteArray.fromBytes(): Any = Serializer.deserialize(this)
 
   override fun close() {
     client.close()
