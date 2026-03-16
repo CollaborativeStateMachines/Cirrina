@@ -11,6 +11,7 @@ import io.dropwizard.metrics5.MetricRegistry
 import jakarta.inject.Qualifier
 import jakarta.inject.Singleton
 import java.net.URI
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -39,8 +40,11 @@ class CirrinaModule {
   @Singleton
   fun provideMeterRegistry(): MetricRegistry =
     MetricRegistry().apply {
+      val path = Paths.get(EnvironmentVariables.metricsDirectory.get()).toAbsolutePath()
+      Files.createDirectories(path)
+
       CsvReporter.forRegistry(this)
-        .build(Paths.get(EnvironmentVariables.metricsDirectory.get()).toAbsolutePath().toFile())
+        .build(path.toFile())
         .start(EnvironmentVariables.metricsPeriod.get(), TimeUnit.SECONDS)
     }
 
