@@ -40,7 +40,7 @@ class CirrinaModule {
   fun provideMeterRegistry(): MetricRegistry =
     MetricRegistry().apply {
       CsvReporter.forRegistry(this)
-        .build(Paths.get("").toAbsolutePath().toFile())
+        .build(Paths.get(EnvironmentVariables.metricsDirectory.get()).toAbsolutePath().toFile())
         .start(10, TimeUnit.SECONDS)
     }
 
