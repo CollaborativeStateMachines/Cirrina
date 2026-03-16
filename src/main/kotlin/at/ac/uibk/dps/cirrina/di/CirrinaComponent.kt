@@ -5,7 +5,7 @@ import at.ac.uibk.dps.cirrina.cirrina.di.CirrinaModule
 import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import dagger.Component
-import io.micrometer.core.instrument.MeterRegistry
+import io.dropwizard.metrics5.MetricRegistry
 import jakarta.inject.Singleton
 
 @Singleton
@@ -13,7 +13,7 @@ import jakarta.inject.Singleton
 interface CirrinaComponent {
   fun persistentContext(): Context?
 
-  fun meterRegistry(): MeterRegistry
+  fun metricRegistry(): MetricRegistry
 
   fun runtime(): Runtime
 

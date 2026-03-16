@@ -15,11 +15,7 @@ class Cirrina {
     logger.info { "cirrina version ${getBuildVersion()}" }
     logger.info { component.identifier() }
 
-    runCatching {
-        component.persistentContext().use { _ -> component.runtime().run() }
-
-        component.meterRegistry().close()
-      }
+    runCatching { component.persistentContext().use { _ -> component.runtime().run() } }
       .onFailure { ex -> logger.error(ex) { "a fatal error occurred during runtime execution" } }
   }
 
