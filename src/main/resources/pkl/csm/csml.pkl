@@ -134,7 +134,7 @@ class LogDescription extends ActionDescription {
 // For internal use only, not part of the public API
 class CtrDescription extends ActionDescription {
   counter: String
-  by: String?
+  by: Int = 1
   tags: Mapping<String, Expression>?
 }
 

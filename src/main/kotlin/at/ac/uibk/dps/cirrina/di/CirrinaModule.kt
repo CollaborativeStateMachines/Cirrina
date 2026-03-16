@@ -10,8 +10,8 @@ import io.dropwizard.metrics5.CsvReporter
 import io.dropwizard.metrics5.MetricRegistry
 import jakarta.inject.Qualifier
 import jakarta.inject.Singleton
-import java.io.File
 import java.net.URI
+import java.nio.file.Paths
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -39,7 +39,9 @@ class CirrinaModule {
   @Singleton
   fun provideMeterRegistry(): MetricRegistry =
     MetricRegistry().apply {
-      CsvReporter.forRegistry(this).build(File("")).start(10, TimeUnit.SECONDS)
+      CsvReporter.forRegistry(this)
+        .build(Paths.get("").toAbsolutePath().toFile())
+        .start(10, TimeUnit.SECONDS)
     }
 
   @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"

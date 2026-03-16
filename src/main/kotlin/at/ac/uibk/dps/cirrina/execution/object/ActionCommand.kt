@@ -94,7 +94,7 @@ class ActionExecutor(
       action.tag.entries.associate { (key, value) -> key to value.execute(scope.extent).toString() }
 
     val name = MetricName.build(action.counter).tagged(tags)
-    metricRegistry.counter(name).inc(action.by.toLong())
+    metricRegistry.counter(name).inc(action.by)
 
     return emptyList()
   }
