@@ -41,7 +41,7 @@ class CirrinaModule {
     MetricRegistry().apply {
       CsvReporter.forRegistry(this)
         .build(Paths.get(EnvironmentVariables.metricsDirectory.get()).toAbsolutePath().toFile())
-        .start(10, TimeUnit.SECONDS)
+        .start(EnvironmentVariables.metricsPeriod.get(), TimeUnit.SECONDS)
     }
 
   @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"

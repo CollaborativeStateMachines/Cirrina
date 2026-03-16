@@ -25,6 +25,7 @@ object EnvironmentVariables {
     EnvironmentVariable<String?>("ZENOH_EVENT_HANDLER_CONFIG_URI", null)
 
   val metricsDirectory = EnvironmentVariable("METRICS_DIRECTORY", "")
+  val metricsPeriod = EnvironmentVariable("METRICS_PERIOD", 1L)
 
   val mainUri = EnvironmentVariable("MAIN_URI", "file:///app/main.pkl")
 
