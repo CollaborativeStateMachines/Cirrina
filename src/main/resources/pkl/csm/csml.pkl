@@ -103,7 +103,6 @@ class EvalDescription extends ActionDescription {
   expression: Expression
 }
 
-
 class EmitDescription extends ActionDescription {
   event: EventDescription
   target: Expression?
@@ -114,11 +113,9 @@ class TimeoutDescription extends ActionDescription {
   triggers: EmitDescription
 }
 
-
 class ResetDescription extends ActionDescription {
   name: TimeoutName
 }
-
 
 class CaseDescription {
   of: Expression
@@ -193,3 +190,12 @@ typealias Log = LogDescription
 // Event aliases
 typealias Event = EventDescription
 typealias Internal = InternalDescription
+
+// Private API - not meant for production use
+class IncrCtrDescription extends ActionDescription {
+  counter: String
+  by: String?
+  tags: Mapping<String, Expression>?
+}
+
+typealias IncrCtr = IncrCtrDescription
