@@ -44,12 +44,7 @@ dependencies {
 
   implementation("io.github.microutils:kotlin-logging:3.0.5")
   implementation("org.slf4j:slf4j-jdk14:2.0.12")
-  implementation("io.micrometer:micrometer-core:1.17.0-M1")
-  implementation("io.micrometer:micrometer-registry-influx:1.17.0-M1")
-  implementation("io.micrometer:micrometer-tracing:1.7.0-M1")
-  implementation("io.micrometer:micrometer-tracing-bridge-otel:1.7.0-M1")
-  implementation("io.opentelemetry:opentelemetry-exporter-zipkin:1.58.0")
-  implementation("io.opentelemetry.semconv:opentelemetry-semconv:1.39.0")
+  implementation("io.dropwizard.metrics5:metrics-core:5.0.6")
 
   implementation("org.pkl-lang:pkl-config-java:0.30.2")
   implementation("org.pkl-lang:pkl-codegen-java:0.30.2")

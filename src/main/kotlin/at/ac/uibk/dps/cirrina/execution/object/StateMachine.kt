@@ -9,8 +9,6 @@ import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
-import io.micrometer.observation.Observation
-import io.micrometer.observation.ObservationRegistry
 import kotlin.properties.Delegates
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -32,7 +30,6 @@ internal constructor(
   @Assisted val subscriptions: List<String>,
   @Assisted private val runtime: Runtime,
   @Assisted private val parent: StateMachine? = null,
-  private val observationRegistry: ObservationRegistry,
   private val stateFactory: State.Factory,
   private val transitionFactory: Transition.Factory,
 ) : Scope {
@@ -48,9 +45,9 @@ internal constructor(
   private val actionExecutor =
     ActionExecutor(
       runtime.selector,
+      runtime.metricRegistry,
       stateMachineEventHandler,
       coroutineScope,
-      runtime.meterRegistry,
     )
 
   private val stateInstances =
@@ -81,11 +78,6 @@ internal constructor(
 
   override val extent: Extent
 
-  private val instanceObservation =
-    Observation.start("stateMachine.instance", observationRegistry).apply {
-      lowCardinalityKeyValue("stateMachine.instanceName", name)
-    }
-
   init {
     val transientContext = Context.from(specification.transient)
     val instanceData = Context.from(instance.data).getAll()
@@ -98,12 +90,10 @@ internal constructor(
   fun start(): Job {
     logger.info { "'$this' entering initial state" }
 
-    instanceObservation.observe {
-      val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
-      doEnter(initial)?.let { step(it) }
+    val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
+    doEnter(initial)?.let { step(it) }
 
-      started.complete(Unit)
-    }
+    started.complete(Unit)
 
     logger.info { "'$this' starting event processor" }
     return processEvents()
@@ -116,7 +106,6 @@ internal constructor(
     if (isTerminated()) {
       logger.info { "'$this' terminated" }
 
-      instanceObservation.stop()
       timeoutActionManager.shutdown()
 
       eventChannel.close()
@@ -143,16 +132,9 @@ internal constructor(
   private fun processEvent(event: Event) {
     if (isTerminated()) return
 
-    Observation.createNotStarted("stateMachine.event", observationRegistry)
-      .lowCardinalityKeyValue("stateMachine.instanceName", name)
-      .lowCardinalityKeyValue("event.topic", event.topic)
-      .parentObservation(instanceObservation)
-      .observe {
-        handleEvent(event)?.let { transition -> step(transition) }
+    handleEvent(event)?.let { transition -> step(transition) }
 
-        if (event.channel == EventChannel.INTERNAL)
-          stateMachineEventHandler.propagateToNested(event)
-      }
+    if (event.channel == EventChannel.INTERNAL) stateMachineEventHandler.propagateToNested(event)
   }
 
   private fun handleEvent(event: Event): ActiveTransition? {
@@ -217,40 +199,31 @@ internal constructor(
     }
   }
 
-  private fun doEnter(state: State): ActiveTransition? =
-    Observation.createNotStarted("stateMachine.enter", observationRegistry)
-      .lowCardinalityKeyValue("stateMachine.instanceName", name)
-      .lowCardinalityKeyValue("state.name", state.specification.name)
-      .observe<ActiveTransition?> {
-        activeState = state
+  private fun doEnter(state: State): ActiveTransition? {
+    activeState = state
 
-        execute(state.entryActions, state)
-        execute(state.duringActions, state)
+    execute(state.entryActions, state)
+    execute(state.duringActions, state)
 
-        state.timeout.forEach(::startTimeout)
+    state.timeout.forEach(::startTimeout)
 
-        handleTermination()
+    handleTermination()
 
-        if (!isTerminated()) {
-          trySelect(alwaysTransitions[state.specification.name].orEmpty(), extent)
-        } else null
-      }
+    return if (!isTerminated()) {
+      trySelect(alwaysTransitions[state.specification.name].orEmpty(), extent)
+    } else null
+  }
 
-  private fun doExit(state: State) =
-    Observation.createNotStarted("stateMachine.exit", observationRegistry)
-      .lowCardinalityKeyValue("state.name", state.specification.name)
-      .observe {
-        timeoutActionManager.stopAll()
+  private fun doExit(state: State) {
+    timeoutActionManager.stopAll()
+    execute(state.exitActions, state)
+  }
 
-        execute(state.exitActions, state)
-      }
-
-  private fun doTransition(transition: Transition, isOr: Boolean) =
-    Observation.createNotStarted("stateMachine.transition", observationRegistry).observe {
-      if (!isOr) {
-        execute(transition.actions, activeState!!)
-      }
+  private fun doTransition(transition: Transition, isOr: Boolean) {
+    if (!isOr) {
+      execute(transition.actions, activeState!!)
     }
+  }
 
   private tailrec fun execute(actions: List<Action>, scope: Scope) {
     if (actions.isEmpty()) return

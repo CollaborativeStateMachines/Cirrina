@@ -24,14 +24,8 @@ object EnvironmentVariables {
   val zenohEventHandlerConfigUri =
     EnvironmentVariable<String?>("ZENOH_EVENT_HANDLER_CONFIG_URI", null)
 
-  val influxMetricUrl = EnvironmentVariable<String?>("INFLUX_METRIC_URL", null)
-
-  val influxMetricOrg = EnvironmentVariable("INFLUX_METRIC_ORG", "org")
-  val influxMetricBucket = EnvironmentVariable("INFLUX_METRIC_BUCKET", "bucket")
-  val influxMetricToken = EnvironmentVariable("INFLUX_METRIC_TOKEN", "bzO10KmR8x")
-  val influxMetricStep = EnvironmentVariable("INFLUX_METRIC_STEP", 5000L, { it.toLong() })
-
-  val zipkinTraceUrl = EnvironmentVariable<String?>("ZIPKIN_TRACE_URL", null)
+  val metricsDirectory = EnvironmentVariable("METRICS_DIRECTORY", "metrics")
+  val metricsPeriod = EnvironmentVariable("METRICS_PERIOD", 1L)
 
   val mainUri = EnvironmentVariable("MAIN_URI", "file:///app/main.pkl")
 

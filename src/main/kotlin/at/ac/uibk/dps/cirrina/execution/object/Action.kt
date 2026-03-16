@@ -41,10 +41,10 @@ sealed interface Action {
 
         is LogDescription -> LogAction(Expression.create(description.message))
 
-        is IncrCtrDescription ->
-          IncrCtrAction(
+        is CtrDescription ->
+          CtrAction(
             description.counter,
-            description.by ?: "1.0",
+            description.by,
             description.tags?.mapValues { (_, v) -> Expression.create(v) } ?: emptyMap(),
           )
 
@@ -115,8 +115,7 @@ class TimeoutResetAction internal constructor(val action: String) : Action {
 
 class LogAction internal constructor(val message: Expression) : Action
 
-class IncrCtrAction
-internal constructor(val counter: String, val by: String, val tag: Map<String, Expression>) :
-  Action {
-  override fun toString() = "IncrCtrAction(metric='$counter', by='$by', tag='$tag')"
+class CtrAction
+internal constructor(val counter: String, val by: Long, val tag: Map<String, Expression>) : Action {
+  override fun toString() = "CtrAction(metric='$counter', by='$by', tag='$tag')"
 }

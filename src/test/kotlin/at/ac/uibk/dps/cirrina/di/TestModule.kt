@@ -6,12 +6,13 @@ import at.ac.uibk.dps.cirrina.cirrina.di.Run
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import dagger.Module
 import dagger.Provides
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import io.micrometer.observation.ObservationRegistry
+import io.dropwizard.metrics5.CsvReporter
+import io.dropwizard.metrics5.MetricRegistry
 import jakarta.inject.Singleton
+import java.io.File
 import java.net.URI
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 @Module
 class TestModule(
@@ -21,9 +22,12 @@ class TestModule(
 ) {
   @Provides fun provideContext() = context
 
-  @Provides fun provideMeterRegistry(): MeterRegistry = SimpleMeterRegistry()
-
-  @Provides fun provideObservationRegistry(): ObservationRegistry = ObservationRegistry.create()
+  @Provides
+  @Singleton
+  fun provideMeterRegistry(): MetricRegistry =
+    MetricRegistry().apply {
+      CsvReporter.forRegistry(this).build(File("")).start(1, TimeUnit.SECONDS)
+    }
 
   @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
 

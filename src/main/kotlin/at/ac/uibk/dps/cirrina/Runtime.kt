@@ -13,8 +13,8 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.Timer
+import io.dropwizard.metrics5.MetricRegistry
+import io.dropwizard.metrics5.Timer
 import jakarta.inject.Inject
 import java.net.URI
 import kotlin.time.measureTime
@@ -32,7 +32,7 @@ constructor(
   @Main main: URI,
   persistentContext: Context?,
   stateMachineFactory: StateMachine.Factory,
-  val meterRegistry: MeterRegistry,
+  val metricRegistry: MetricRegistry,
 ) {
   val eventHandler = EventHandler()
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
@@ -43,7 +43,7 @@ constructor(
 
   private val graph: EventGraph
 
-  private var completion: Timer = meterRegistry.timer("runtime.completionTime")
+  private var completion: Timer = metricRegistry.timer("runtime.completionTime")
 
   init {
     val spec =
@@ -92,7 +92,7 @@ constructor(
   fun run() = runBlocking {
     measureTime { instances.values.map { it.start() }.joinAll() }
       .also {
-        completion.record(it.toJavaDuration())
+        completion.update(it.toJavaDuration())
         logger.info { "runtime terminated in $it" }
       }
   }
