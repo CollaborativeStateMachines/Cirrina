@@ -30,7 +30,7 @@ class EventExchangeTest {
     assertEquals(originalEvent.data[0].value, "some string")
     assertEquals(originalEvent.source, "source")
     assertEquals(originalEvent.id, "id")
-    assertEquals(originalEvent.createdTime, 1)
+    assertEquals(originalEvent.emittedTime, 1)
 
     // Perform round-trip and verify the event properties
     originalEvent.roundTrip().let { receivedEvent ->
@@ -40,7 +40,7 @@ class EventExchangeTest {
       assertEquals(originalEvent.target, receivedEvent.target)
       assertEquals(originalEvent.source, receivedEvent.source)
       assertEquals(originalEvent.id, receivedEvent.id)
-      assertEquals(originalEvent.createdTime, receivedEvent.createdTime)
+      assertEquals(originalEvent.emittedTime, receivedEvent.emittedTime)
     }
   }
 
