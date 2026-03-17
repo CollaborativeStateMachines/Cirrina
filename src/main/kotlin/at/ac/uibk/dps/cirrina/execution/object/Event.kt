@@ -3,7 +3,6 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription
 import at.ac.uibk.dps.cirrina.util.getInsecureUuid
-import kotlin.time.Clock
 
 data class Event(
   val topic: String,
@@ -12,7 +11,7 @@ data class Event(
   val target: String = "",
   val source: String = "",
   val id: String = getInsecureUuid().toString(),
-  val createdTime: Long = Clock.System.now().epochSeconds,
+  val emittedTime: Long = 0L,
 ) {
   fun evaluateData(extent: Extent): Event = copy(data = data.map { it.evaluate(extent) })
 

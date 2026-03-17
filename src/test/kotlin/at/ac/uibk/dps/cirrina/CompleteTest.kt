@@ -98,7 +98,7 @@ class CompleteTest {
         .addData(contextVariable)
         .setSource("source")
         .setId("someId")
-        .setCreatedTime(1)
+        .setEmittedTime(1)
         .build()
 
     assertThrows<NullPointerException> {

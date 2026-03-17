@@ -22,5 +22,5 @@ message Event {
   string target = 4;
   string source = 5;
   string id = 6;
-  int64 createdTime = 7;
+  int64 emittedTime = 7;
 }

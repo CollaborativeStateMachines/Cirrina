@@ -28,7 +28,7 @@ object EventExchange {
         .setTarget(event.target)
         .setSource(event.source)
         .setId(event.id)
-        .setCreatedTime(event.createdTime)
+        .setEmittedTime(event.emittedTime)
 
     event.data.forEach { variable -> builder.addData(ContextVariableExchange.toProto(variable)) }
 
@@ -66,7 +66,7 @@ object EventExchange {
       proto.target,
       proto.source,
       proto.id,
-      proto.createdTime,
+      proto.emittedTime,
     )
   }
 }
