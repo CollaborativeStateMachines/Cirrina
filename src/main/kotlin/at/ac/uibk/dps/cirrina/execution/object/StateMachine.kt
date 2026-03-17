@@ -9,6 +9,9 @@ import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
+import io.dropwizard.metrics5.MetricName
+import io.dropwizard.metrics5.Timer
+import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -78,6 +81,9 @@ internal constructor(
 
   override val extent: Extent
 
+  private val eventTimer: Timer =
+    runtime.metricRegistry.timer(MetricName.build("event.latency").tagged("id", name))
+
   init {
     val transientContext = Context.from(specification.transient)
     val instanceData = Context.from(instance.data).getAll()
@@ -131,6 +137,8 @@ internal constructor(
 
   private fun processEvent(event: Event) {
     if (isTerminated()) return
+
+    eventTimer.update((System.nanoTime() - event.emittedTime) / 1_000, TimeUnit.MICROSECONDS)
 
     handleEvent(event)?.let { transition -> step(transition) }
 
@@ -255,7 +263,8 @@ internal constructor(
   override fun toString() = "StateMachine(name='$name')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun emit(event: Event) = eventHandler.emit(event.copy(source = name))
+    fun emit(event: Event) =
+      eventHandler.emit(event.copy(source = name, emittedTime = System.nanoTime()))
 
     fun propagateToParent(event: Event) {
       parent?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
