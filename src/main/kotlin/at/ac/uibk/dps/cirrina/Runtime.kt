@@ -13,8 +13,8 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
-import io.dropwizard.metrics5.MetricRegistry
-import io.dropwizard.metrics5.Timer
+import com.codahale.metrics.MetricRegistry
+import com.codahale.metrics.Timer
 import jakarta.inject.Inject
 import java.net.URI
 import kotlin.time.measureTime

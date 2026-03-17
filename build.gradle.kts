@@ -43,8 +43,9 @@ dependencies {
   implementation("io.netty:netty-common:4.1.121.Final")
 
   implementation("io.github.microutils:kotlin-logging:3.0.5")
+  implementation("io.micrometer:micrometer-core:1.16.4")
   implementation("org.slf4j:slf4j-jdk14:2.0.12")
-  implementation("io.dropwizard.metrics5:metrics-core:5.0.6")
+  implementation("io.dropwizard.metrics:metrics-core:4.2.38")
 
   implementation("org.pkl-lang:pkl-config-java:0.30.2")
   implementation("org.pkl-lang:pkl-codegen-java:0.30.2")

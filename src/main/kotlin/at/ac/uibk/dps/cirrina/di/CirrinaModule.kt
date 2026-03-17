@@ -4,10 +4,17 @@ import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.PersistentContextProvider
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.provider.ContextEtcd
+import com.codahale.metrics.CsvReporter
+import com.codahale.metrics.MetricRegistry
 import dagger.Module
 import dagger.Provides
-import io.dropwizard.metrics5.CsvReporter
-import io.dropwizard.metrics5.MetricRegistry
+import io.micrometer.core.instrument.Clock
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics
+import io.micrometer.core.instrument.dropwizard.DropwizardConfig
+import io.micrometer.core.instrument.dropwizard.DropwizardMeterRegistry
+import io.micrometer.core.instrument.util.HierarchicalNameMapper
 import jakarta.inject.Qualifier
 import jakarta.inject.Singleton
 import java.net.URI
@@ -31,7 +38,6 @@ class CirrinaModule {
     when (EnvironmentVariables.contextProvider.get()) {
       PersistentContextProvider.ETCD -> {
         val url = EnvironmentVariables.etcdContextUrl.get() ?: return null
-
         ContextEtcd(listOf(url))
       }
     }
@@ -46,6 +52,25 @@ class CirrinaModule {
       CsvReporter.forRegistry(this)
         .build(path.toFile())
         .start(EnvironmentVariables.metricsPeriod.get(), TimeUnit.SECONDS)
+
+      object :
+          DropwizardMeterRegistry(
+            object : DropwizardConfig {
+              override fun get(key: String): String? = null
+
+              override fun prefix(): String = ""
+            },
+            this,
+            HierarchicalNameMapper.DEFAULT,
+            Clock.SYSTEM,
+          ) {
+          override fun nullGaugeValue(): Double = Double.NaN
+        }
+        .apply {
+          ProcessorMetrics().bindTo(this)
+          JvmMemoryMetrics().bindTo(this)
+          JvmGcMetrics().bindTo(this)
+        }
     }
 
   @Provides @Singleton @Identifier fun provideIdentifier(): String = "cirrina.${UUID.randomUUID()}"
