@@ -4,10 +4,10 @@ import at.ac.uibk.dps.cirrina.cirrina.di.Identifier
 import at.ac.uibk.dps.cirrina.cirrina.di.Main
 import at.ac.uibk.dps.cirrina.cirrina.di.Run
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
+import com.codahale.metrics.CsvReporter
+import com.codahale.metrics.MetricRegistry
 import dagger.Module
 import dagger.Provides
-import io.dropwizard.metrics5.CsvReporter
-import io.dropwizard.metrics5.MetricRegistry
 import jakarta.inject.Singleton
 import java.io.File
 import java.net.URI

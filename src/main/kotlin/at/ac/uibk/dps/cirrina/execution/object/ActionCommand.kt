@@ -2,8 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import io.dropwizard.metrics5.MetricName
-import io.dropwizard.metrics5.MetricRegistry
+import com.codahale.metrics.MetricRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
@@ -91,9 +90,15 @@ class ActionExecutor(
 
   private fun executeCtr(action: CtrAction, scope: Scope): List<Action> {
     val tags =
-      action.tag.entries.associate { (key, value) -> key to value.execute(scope.extent).toString() }
+      action.tag.entries.joinToString(".") { (key, value) -> "$key=${value.execute(scope.extent)}" }
 
-    val name = MetricName.build(action.counter).tagged(tags)
+    val name =
+      if (tags.isEmpty()) {
+        action.counter
+      } else {
+        "${action.counter}.$tags"
+      }
+
     metricRegistry.counter(name).inc(action.by)
 
     return emptyList()
