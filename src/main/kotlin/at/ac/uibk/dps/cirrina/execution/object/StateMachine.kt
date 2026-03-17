@@ -5,8 +5,8 @@ import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.spec.Instance
-import com.codahale.metrics.Timer
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
+import com.codahale.metrics.Timer
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -80,8 +80,7 @@ internal constructor(
 
   override val extent: Extent
 
-  private val eventTimer: Timer =
-    runtime.metricRegistry.timer("event.latency")
+  private val eventTimer: Timer = runtime.metricRegistry.timer("event.latency")
 
   init {
     val transientContext = Context.from(specification.transient)
