@@ -136,7 +136,7 @@ internal constructor(
   private fun processEvent(event: Event) {
     if (isTerminated()) return
 
-    eventTimer.update((System.nanoTime() - event.emittedTime) / 1_000, TimeUnit.MICROSECONDS)
+    recordLatency(event)
 
     handleEvent(event)?.let { transition -> step(transition) }
 
@@ -257,6 +257,14 @@ internal constructor(
   }
 
   private fun stopTimeout(name: String) = timeoutActionManager.stop(name)
+
+  private fun recordLatency(event: Event) {
+    if (event.source == name) return
+    if (event.target != name) return
+    if (event.emittedTime == 0L) return
+
+    eventTimer.update((System.nanoTime() - event.emittedTime) / 1_000, TimeUnit.MICROSECONDS)
+  }
 
   override fun toString() = "StateMachine(name='$name')"
 
