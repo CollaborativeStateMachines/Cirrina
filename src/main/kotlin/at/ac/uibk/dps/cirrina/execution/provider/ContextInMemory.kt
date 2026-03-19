@@ -4,7 +4,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import java.util.concurrent.ConcurrentHashMap
 
-class ContextInMemory() : Context {
+class ContextInMemory : Context {
   private val values = ConcurrentHashMap<String, Any?>()
 
   override fun has(name: String): Boolean = values.containsKey(name)
@@ -40,7 +40,11 @@ class ContextInMemory() : Context {
   }
 
   override fun getAll(): List<ContextVariable> =
-    values.map { (key, value) -> ContextVariable.Companion.eager(key, value) }
+    values.map { (key, value) -> ContextVariable.eager(key, value) }
+
+  override fun clear() {
+    values.clear()
+  }
 
   override fun close() {}
 
