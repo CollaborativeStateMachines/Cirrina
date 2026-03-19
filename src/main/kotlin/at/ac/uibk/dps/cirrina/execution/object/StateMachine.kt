@@ -168,7 +168,7 @@ internal constructor(
 
     if (candidates.isEmpty()) return null
 
-    val eventContext = eventExtent.high ?: error("eventExtent missing context")
+    val eventContext = eventExtent.high!!
 
     event.data.forEach { eventContext.create(VAR_PREFIX + it.name, it.value) }
 
