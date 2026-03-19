@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina
 
+import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.csm.Csml.Type
@@ -7,19 +8,17 @@ import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.`object`.Stdlib
-import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
-import at.ac.uibk.dps.cirrina.execution.`object`.exchange.EventProtos
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
+import at.ac.uibk.dps.cirrina.execution.util.Serializer
 import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 class CompleteTest {
-
   @Test
   fun testCompleteExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
@@ -63,80 +62,46 @@ class CompleteTest {
     }
 
     assertTrue(sizeSet.size > 1)
-    assertTrue(sizeSet.toIntArray()[0] in sizes)
+    assertTrue(sizeSet.first() in sizes)
 
     assertTrue(Stdlib.takeRandom(sizeSet) in sizeSet)
   }
 
   @Test
-  fun testProtos() {
-    val integerValue = ContextVariableProtos.Value.newBuilder().setInteger(123).build()
-    assertEquals(123, integerValue.integer)
-    assertEquals(ContextVariableProtos.Value.ValueCase.INTEGER, integerValue.valueCase)
+  fun testSerialization() {
+    val intVal = 123
+    assertEquals(intVal, Serializer.deserialize(Serializer.serialize(intVal)))
 
-    val stringValue = ContextVariableProtos.Value.newBuilder().setString("test").build()
-    assertEquals("test", stringValue.string)
-    assertEquals(ContextVariableProtos.Value.ValueCase.STRING, stringValue.valueCase)
+    val stringVal = "test"
+    assertEquals(stringVal, Serializer.deserialize<String>(Serializer.serialize(stringVal)))
 
-    val boolValue = ContextVariableProtos.Value.newBuilder().setBool(true).build()
-    assertTrue(boolValue.bool)
-    assertEquals(ContextVariableProtos.Value.ValueCase.BOOL, boolValue.valueCase)
-
-    val contextVariable =
-      ContextVariableProtos.ContextVariable.newBuilder()
-        .setName("test")
-        .setValue(integerValue)
-        .build()
-
-    assertEquals("test", contextVariable.name)
-    assertEquals(123, contextVariable.value.integer)
+    val cv = ContextVariable("testVar", 456)
+    val cvParsed = Serializer.deserialize<ContextVariable>(Serializer.serialize(cv))
+    assertEquals(cv.name, cvParsed.name)
+    assertEquals(cv.value, cvParsed.value)
 
     val event =
-      EventProtos.Event.newBuilder()
-        .setTopic("testEvent")
-        .setChannel(EventProtos.Event.Channel.PERIPHERAL)
-        .addData(contextVariable)
-        .setSource("source")
-        .setId("someId")
-        .setEmittedTime(1)
-        .build()
+      Event(
+        topic = "testEvent",
+        channel = Csml.EventChannel.PERIPHERAL,
+        data = listOf(cv),
+        target = "target",
+        source = "source",
+        id = "someId",
+        emittedTime = 1L,
+      )
 
-    assertThrows<NullPointerException> {
-      EventProtos.Event.newBuilder().setChannel(EventProtos.Event.Channel.forNumber(15))
-    }
+    val eventParsed = Serializer.deserialize<Event>(Serializer.serialize(event))
+    assertEquals(event.topic, eventParsed.topic)
+    assertEquals(event.channel, eventParsed.channel)
+    assertEquals(1, eventParsed.data.size)
+    assertEquals(456, eventParsed.data[0].value)
+    assertEquals("source", eventParsed.source)
 
-    assertNotNull(event)
-    assertEquals("testEvent", event.topic)
-    assertEquals(EventProtos.Event.Channel.PERIPHERAL, event.channel)
-    assertEquals(123, event.getData(0).value.integer)
-    assertEquals("source", event.source)
-    assertEquals("someId", event.id)
-    assertEquals(event, EventProtos.Event.parseFrom(event.toByteArray()))
-
-    val valueCollection =
-      ContextVariableProtos.ValueCollection.newBuilder()
-        .addEntry(integerValue)
-        .addEntry(stringValue)
-        .build()
-
-    val collectionValue = ContextVariableProtos.Value.newBuilder().setList(valueCollection).build()
-    assertEquals(2, collectionValue.list.entryCount)
-
-    val mapEntry =
-      ContextVariableProtos.ValueMapEntry.newBuilder()
-        .setKey(stringValue)
-        .setValue(boolValue)
-        .build()
-
-    val valueMap = ContextVariableProtos.ValueMap.newBuilder().addEntry(mapEntry).build()
-    val mapValue = ContextVariableProtos.Value.newBuilder().setMap(valueMap).build()
-
-    assertTrue(mapValue.hasMap())
-    assertEquals("test", mapValue.map.getEntry(0).key.string)
-
-    val parsed = ContextVariableProtos.ContextVariable.parseFrom(contextVariable.toByteArray())
-    assertEquals(contextVariable.name, parsed.name)
-    assertEquals(contextVariable.value.integer, parsed.value.integer)
+    val complexMap = mapOf("key" to listOf(1, 2, 3), "active" to true)
+    val mapParsed = Serializer.deserialize<Map<String, Any>>(Serializer.serialize(complexMap))
+    assertEquals(complexMap, mapParsed)
+    assertEquals(3, (mapParsed["key"] as List<*>).size)
   }
 
   @Test

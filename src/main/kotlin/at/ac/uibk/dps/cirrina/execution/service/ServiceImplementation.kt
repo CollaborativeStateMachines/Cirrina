@@ -4,8 +4,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.csm.Csml.ServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.exchange.ContextVariableProtos
-import at.ac.uibk.dps.cirrina.execution.util.ContextVariableExchange
+import at.ac.uibk.dps.cirrina.execution.util.Serializer
 import com.google.protobuf.InvalidProtocolBufferException
 import java.net.HttpURLConnection
 import java.net.URI
@@ -55,7 +54,7 @@ class HttpServiceImplementation(
   override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> {
     require(input.none { it.isLazy }) { "all variables must be evaluated before conversion" }
 
-    val payload = serializeInput(input)
+    val payload = Serializer.serialize(input)
     val uri = URI(scheme, null, host, port, endPoint, null, null)
 
     val request =
@@ -71,15 +70,6 @@ class HttpServiceImplementation(
     return handleResponse(response)
   }
 
-  private fun serializeInput(input: List<ContextVariable>): ByteArray {
-    if (input.isEmpty()) return byteArrayOf()
-
-    return ContextVariableProtos.ContextVariables.newBuilder()
-      .addAllData(input.map { ContextVariableExchange.toProto(it) })
-      .build()
-      .toByteArray()
-  }
-
   private fun handleResponse(response: HttpResponse<ByteArray>): List<ContextVariable> {
     val statusCode = response.statusCode()
 
@@ -91,9 +81,7 @@ class HttpServiceImplementation(
     if (body == null || body.isEmpty()) return emptyList()
 
     return try {
-      ContextVariableProtos.ContextVariables.parseFrom(body).dataList.map {
-        ContextVariableExchange.fromProto(it)
-      }
+      Serializer.deserialize(body)
     } catch (_: InvalidProtocolBufferException) {
       error("unexpected http service response format")
     }

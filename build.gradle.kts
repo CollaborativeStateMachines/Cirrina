@@ -1,8 +1,5 @@
-import com.google.protobuf.gradle.id
-
 plugins {
   application
-  id("com.google.protobuf") version "0.9.4"
   id("com.ncorti.ktfmt.gradle") version "0.24.0"
   id("org.pkl-lang") version "0.30.2"
   kotlin("kapt") version "2.3.0"
@@ -39,7 +36,8 @@ dependencies {
   implementation("org.jgrapht:jgrapht-core:1.5.2")
   implementation("org.jgrapht:jgrapht-io:1.5.2")
 
-  implementation("com.google.protobuf:protobuf-java:4.32.0")
+  implementation("org.apache.fory:fory-core:0.15.0")
+  implementation("org.apache.fory:fory-kotlin:0.15.0")
 
   implementation("io.etcd:jetcd-core:0.8.6")
   implementation("org.eclipse.zenoh:zenoh-kotlin:1.7.2")
@@ -118,17 +116,6 @@ pkl {
       sourceModules.addAll("src/main/resources/pkl/csm/csml.pkl")
       generateGetters.set(true)
       generateJavadoc.set(true)
-    }
-  }
-}
-
-protobuf {
-  generateProtoTasks {
-    all().forEach { task ->
-      task.builtins {
-        id("python")
-        id("cpp")
-      }
     }
   }
 }
