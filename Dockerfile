@@ -1,20 +1,27 @@
-FROM gradle:9.3.0-jdk25-alpine AS build
+FROM gradle:9.3.0-jdk25 AS build
 
-ARG GRADLE_OPTS
-
-RUN apk add --no-cache protoc unzip
+RUN apt-get update && apt-get install -y protobuf-compiler unzip
 
 COPY --chown=gradle:gradle . /usr/src/cirrina
+
 WORKDIR /usr/src/cirrina
 
-RUN gradle distZip
+RUN gradle distZip --no-daemon
 
-# Unpack distribution and normalize path
-RUN unzip build/distributions/cirrina.zip -d /tmp \
-    && chmod +x /tmp/cirrina/bin/cirrina
+RUN unzip build/distributions/cirrina.zip -d /tmp
 
 FROM gcr.io/distroless/java25-debian13 AS runtime
 
 COPY --from=build /tmp/cirrina /opt/cirrina
 
-ENTRYPOINT ["java", "-cp", "/opt/cirrina/lib/*", "at.ac.uibk.dps.cirrina.CirrinaKt"]
+ENTRYPOINT [ \
+    "java", \
+    "-XX:+UseZGC", \
+    "-XX:+AlwaysPreTouch", \
+    "-Xms4G", \
+    "-Xmx4G", \
+    "--enable-native-access=ALL-UNNAMED", \
+    "--sun-misc-unsafe-memory-access=allow", \
+    "-cp", "/opt/cirrina/lib/*", \
+    "at.ac.uibk.dps.cirrina.CirrinaKt" \
+]

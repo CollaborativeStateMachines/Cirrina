@@ -13,18 +13,22 @@ group = "ac.at.uibk.dps.cirrina"
 
 version = rootProject.file("version.txt").readText().trim()
 
-application { mainClass.set("at.ac.uibk.dps.cirrina.CirrinaKt") }
-
-java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
-
-ktfmt { googleStyle() }
-
 val jdk25SecurityArgs =
   listOf("--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow")
 
 val standardJvmArgs = listOf("-XX:+UseZGC", "-XX:+AlwaysPreTouch", "-Xms4G", "-Xmx4G")
 
 val allRuntimeArgs = standardJvmArgs + jdk25SecurityArgs
+
+application {
+  mainClass.set("at.ac.uibk.dps.cirrina.CirrinaKt")
+
+  applicationDefaultJvmArgs = allRuntimeArgs
+}
+
+java { toolchain { languageVersion.set(JavaLanguageVersion.of(25)) } }
+
+ktfmt { googleStyle() }
 
 dependencies {
   implementation("com.google.dagger:dagger:2.59")
