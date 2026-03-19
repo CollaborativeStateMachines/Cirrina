@@ -40,6 +40,8 @@ interface Context : AutoCloseable {
 
   fun getAll(): List<ContextVariable>
 
+  fun clear()
+
   companion object {
     fun from(description: Map<String, String>?): Context {
       val ctx = ContextInMemory()
@@ -50,5 +52,7 @@ interface Context : AutoCloseable {
       }
       return ctx
     }
+
+    fun empty() = ContextInMemory()
   }
 }

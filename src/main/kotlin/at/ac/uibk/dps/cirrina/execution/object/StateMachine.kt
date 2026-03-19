@@ -21,7 +21,22 @@ private val logger = KotlinLogging.logger {}
 
 private const val VAR_PREFIX = "$"
 
-private data class ActiveTransition(val transition: Transition, val isOr: Boolean)
+@JvmInline
+value class ActiveTransition(private val wrapped: Any) {
+  val transition: Transition
+    get() = if (wrapped is OrMarker) wrapped.t else wrapped as Transition
+
+  val isOr: Boolean
+    get() = wrapped is OrMarker
+
+  private class OrMarker(val t: Transition)
+
+  companion object {
+    fun standard(t: Transition) = ActiveTransition(t)
+
+    fun or(t: Transition) = ActiveTransition(OrMarker(t))
+  }
+}
 
 class StateMachine
 @AssistedInject
@@ -80,15 +95,19 @@ internal constructor(
 
   override val extent: Extent
 
+  private val eventExtent: Extent
+
   private val eventTimer: Timer = runtime.metricRegistry.timer("event.latency")
 
   init {
-    val transientContext = Context.from(specification.transient)
     val instanceData = Context.from(instance.data).getAll()
+    val transientContext = Context.from(specification.transient)
+    val eventContext = Context.empty()
 
     instanceData.forEach { transientContext.create(it.name, it.value) }
 
     extent = (parent?.extent ?: runtime.extent).extend(transientContext)
+    eventExtent = extent.extend(eventContext)
   }
 
   fun start(): Job {
@@ -149,12 +168,18 @@ internal constructor(
 
     if (candidates.isEmpty()) return null
 
-    val evalExtent =
-      activeState!!.extent.with(event.data.associate { VAR_PREFIX + it.name to it.value })
+    val eventContext = eventExtent.high ?: error("eventExtent missing context")
 
-    return trySelect(candidates, evalExtent)?.also {
-      event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }
-    }
+    event.data.forEach { eventContext.create(VAR_PREFIX + it.name, it.value) }
+
+    val selected =
+      trySelect(candidates, eventExtent)?.also {
+        event.data.forEach { d -> extent.setOrCreate(VAR_PREFIX + d.name, d.value) }
+      }
+
+    eventContext.clear()
+
+    return selected
   }
 
   private fun Event.isValid(): Boolean {
@@ -188,21 +213,13 @@ internal constructor(
   }
 
   private fun trySelect(transitions: List<Transition>, evalExtent: Extent): ActiveTransition? {
-    val selected =
-      transitions.mapNotNull { transition ->
-        val spec = transition.specification
-        when {
-          spec.evaluate(evalExtent) -> ActiveTransition(transition, isOr = false)
-          spec.or != null -> ActiveTransition(transition, isOr = true)
-          else -> null
-        }
-      }
-
-    return when (selected.size) {
-      0 -> null
-      1 -> selected.first()
-      else -> error("non-determinism detected with selected transitions '$selected'")
+    for (i in transitions.indices) {
+      val transition = transitions[i]
+      val spec = transition.specification
+      if (spec.evaluate(evalExtent)) return ActiveTransition.standard(transition)
+      if (spec.or != null) return ActiveTransition.or(transition)
     }
+    return null
   }
 
   private fun doEnter(state: State): ActiveTransition? {
@@ -234,13 +251,22 @@ internal constructor(
   private tailrec fun execute(actions: List<Action>, scope: Scope) {
     if (actions.isEmpty()) return
 
-    val next =
-      actions.flatMap { action ->
-        if (action is TimeoutResetAction) stopTimeout(action.action)
-        actionExecutor.execute(action, scope)
+    val nextActions = mutableListOf<Action>()
+
+    for (i in actions.indices) {
+      val action = actions[i]
+
+      if (action is TimeoutResetAction) {
+        stopTimeout(action.action)
       }
 
-    execute(next, scope)
+      val result = actionExecutor.execute(action, scope)
+      if (result.isNotEmpty()) {
+        nextActions.addAll(result)
+      }
+    }
+
+    execute(nextActions, scope)
   }
 
   private fun startTimeout(timeout: TimeoutAction) {

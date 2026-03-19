@@ -83,6 +83,8 @@ class ContextEtcd(endpoints: List<String>) : Context {
     }
   }
 
+  override fun clear() {}
+
   private fun <T> CompletableFuture<T>.sync(): T = this.get()
 
   private fun String.toByteSequence() = ByteSequence.from(this, StandardCharsets.UTF_8)
