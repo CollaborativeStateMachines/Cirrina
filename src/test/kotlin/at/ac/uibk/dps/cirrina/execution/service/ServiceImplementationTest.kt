@@ -71,9 +71,10 @@ class ServiceImplementationTest {
       assertEquals("result", result.first().name)
       assertEquals(11, result.first().value)
 
-      assertThrows<IllegalStateException> { createService("/error", method).invoke(emptyList()) }
+      val emptyList = ArrayList<ContextVariable>()
+      assertThrows<IllegalStateException> { createService("/error", method).invoke(emptyList) }
 
-      createService("/broken-response1", method).invoke(emptyList())
+      createService("/broken-response1", method).invoke(emptyList)
     }
   }
 

@@ -6,8 +6,11 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import org.apache.fory.Fory
 import org.apache.fory.ThreadSafeFory
 import org.apache.fory.config.Language
+import org.apache.fory.memory.MemoryBuffer
 
 object Serializer {
+  private val threadLocalBuffer = ThreadLocal.withInitial { MemoryBuffer.newHeapBuffer(1024) }
+
   private val fory: ThreadSafeFory =
     Fory.builder().withLanguage(Language.JAVA).buildThreadSafeFory().apply {
       register(Event::class.java)
@@ -19,7 +22,12 @@ object Serializer {
     if (obj is Event && obj.data.any { it.isLazy }) {
       error("event '${obj.topic}' has unevaluated data")
     }
-    return fory.serialize(obj)
+
+    val buffer = threadLocalBuffer.get()
+    buffer.writerIndex(0)
+
+    fory.serialize(buffer, obj)
+    return buffer.getBytes(0, buffer.writerIndex())
   }
 
   @Suppress("UNCHECKED_CAST")
