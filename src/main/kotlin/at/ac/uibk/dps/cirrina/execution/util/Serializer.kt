@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import org.apache.fory.Fory
 import org.apache.fory.ThreadSafeFory
 import org.apache.fory.config.Language
+import org.apache.fory.memory.MemoryBuffer
 
 object Serializer {
   private val fory: ThreadSafeFory =
@@ -15,6 +16,8 @@ object Serializer {
       register(ContextVariable::class.java)
     }
 
+  private val threadBuffer = ThreadLocal.withInitial { MemoryBuffer.newHeapBuffer(1024) }
+
   fun serialize(obj: Any): ByteArray {
     if (obj is Event) {
       val data = obj.data
@@ -23,11 +26,16 @@ object Serializer {
       }
     }
 
-    return fory.serialize(obj)
+    val buffer = threadBuffer.get()
+    buffer.writerIndex(0)
+
+    fory.serialize(buffer, obj)
+
+    return buffer.getBytes(0, buffer.writerIndex())
   }
 
   @Suppress("UNCHECKED_CAST")
-  fun <T> deserialize(data: ByteArray): T {
-    return fory.deserialize(data) as T
+  fun <T> deserialize(bytes: ByteArray): T {
+    return fory.deserialize(bytes) as T
   }
 }

@@ -16,7 +16,6 @@ COPY --from=build /tmp/cirrina /opt/cirrina
 
 ENTRYPOINT [ \
     "java", \
-    "-XX:+UseZGC", \
     "-XX:+AlwaysPreTouch", \
     "-Xms4G", \
     "-Xmx4G", \

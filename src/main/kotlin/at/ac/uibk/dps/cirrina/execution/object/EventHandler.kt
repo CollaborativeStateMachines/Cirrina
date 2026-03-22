@@ -20,16 +20,14 @@ import io.zenoh.pubsub.AdvancedPublisher
 import io.zenoh.pubsub.AdvancedSubscriber
 import io.zenoh.sample.Sample
 import java.io.File
-import java.lang.AutoCloseable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 typealias PropagationHandler = (Event) -> Unit
 
 @OptIn(Unstable::class)
-class EventHandler() : AutoCloseable {
+class EventHandler : AutoCloseable {
   private val handlers: CopyOnWriteArrayList<PropagationHandler> = CopyOnWriteArrayList()
-
   private val session: Session
 
   private val publishers = ConcurrentHashMap<String, AdvancedPublisher>()
@@ -53,8 +51,12 @@ class EventHandler() : AutoCloseable {
     this.handlers.addAll(handlers)
 
     graph.getOutgoing(instanceNames).forEach { flow ->
-      val key = flow.event.toKey() ?: error("cannot create publisher for event '${flow.event}'")
-      publishers.computeIfAbsent(key) { createPublisher(it) }
+      if (flow.event.channel == Csml.EventChannel.EXTERNAL) {
+        val key = "events/${flow.event.source}/${flow.event.topic}"
+        publishers.computeIfAbsent(flow.event.topic) { createPublisher(key) }
+      } else {
+        error("cannot create publisher for event '${flow.event}'")
+      }
     }
 
     subscribedTo.forEach { name ->
@@ -66,8 +68,9 @@ class EventHandler() : AutoCloseable {
   }
 
   fun emit(event: Event) {
-    val key = event.toKey() ?: return
-    val publisher = publishers[key] ?: error("no publisher for topic '${key}'")
+    if (event.channel != Csml.EventChannel.EXTERNAL) return
+
+    val publisher = publishers[event.topic] ?: error("no publisher for topic '${event.topic}'")
     val payload = ZBytes.from(Serializer.serialize(event))
 
     publisher.put(payload).onFailure { error("failed to send event '$event'") }
@@ -102,29 +105,24 @@ class EventHandler() : AutoCloseable {
       .getOrThrow()
 
   private fun handleIncoming(sample: Sample) {
-    runCatching {
-        val bytes = sample.payload.toBytes()
-        val event = Serializer.deserialize<Event>(bytes)
-
-        propagate(event)
-      }
-      .onFailure { error("failed to handle sample from '${sample.keyExpr}'") }
+    try {
+      val event = Serializer.deserialize<Event>(sample.payload.toBytes())
+      propagate(event)
+    } catch (e: Exception) {
+      error("failed to handle sample from '${sample.keyExpr}': ${e.message}")
+    }
   }
 
   private fun propagate(event: Event) {
-    handlers.forEach { it(event) }
+    for (i in 0 until handlers.size) {
+      handlers[i](event)
+    }
   }
 
   private fun String.toKeyExpr() = KeyExpr.tryFrom(this).getOrThrow()
 
-  private fun Event.toKey() =
-    when (channel) {
-      Csml.EventChannel.EXTERNAL -> "events/${source}/${topic}"
-      else -> null
-    }
-
   companion object {
-    val CACHE_SIZE = 1000L
-    val HEARTBEAT_INTERVAL = 500L
+    const val CACHE_SIZE = 1000L
+    const val HEARTBEAT_INTERVAL = 500L
   }
 }

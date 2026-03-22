@@ -2,11 +2,9 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import java.lang.reflect.Array as ReflectArray
 import java.util.LinkedHashSet
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 import org.apache.commons.jexl3.JexlArithmetic
 import org.apache.commons.jexl3.JexlBuilder
-import org.apache.commons.jexl3.JexlContext
 import org.apache.commons.jexl3.JexlEngine
 import org.apache.commons.jexl3.JexlFeatures
 import org.apache.commons.jexl3.JexlScript
@@ -22,27 +20,15 @@ class Expression(val source: String) {
 
   fun execute(extent: Extent): Any? =
     try {
-      jexlScript.execute(ExtentJexlContext(extent))
+      jexlScript.execute(extent)
     } catch (e: Exception) {
       error("failed to execute expression '$source': ${e.localizedMessage}")
     }
 
   override fun toString(): String = "${this::class.simpleName}(source='$source')"
 
-  private class ExtentJexlContext(private val extent: Extent) : JexlContext {
-    override fun get(key: String): Any = extent.resolve(key)
-
-    override fun set(key: String, value: Any?) {
-      extent.set(key, value)
-    }
-
-    override fun has(key: String): Boolean = extent.has(key)
-  }
-
   companion object {
-    private val cache = ConcurrentHashMap<String, Expression>()
-
-    fun create(source: String): Expression = cache.computeIfAbsent(source) { Expression(it) }
+    fun create(source: String): Expression = Expression(source)
   }
 }
 
@@ -56,7 +42,7 @@ private object Provider {
       .cache(CACHE_SIZE)
       .namespaces(mapOf("math" to Math::class.java, "std" to Stdlib::class.java))
       .permissions(JexlPermissions.UNRESTRICTED)
-      .strict(true)
+      .strict(false)
       .silent(false)
       .antish(false)
       .safe(false)
@@ -97,56 +83,107 @@ class Stdlib {
 }
 
 private class CsmlArithmetic(strict: Boolean) : JexlArithmetic(strict) {
-  override fun add(left: Any?, right: Any?): Any? =
-    when (left) {
-      is List<*> -> (left.asSequence() + right.toSequence()).toList()
-      is Set<*> -> (left.asSequence() + right.toSequence()).toCollection(LinkedHashSet())
+
+  override fun add(left: Any?, right: Any?): Any? {
+    return when (left) {
+      is List<*> -> {
+        val result = ArrayList<Any?>((left.size) + (estimateSize(right)))
+        result.addAll(left)
+        appendAll(result, right)
+        result
+      }
+      is Set<*> -> {
+        val result = LinkedHashSet<Any?>((left.size) + (estimateSize(right)))
+        result.addAll(left)
+        appendAll(result, right)
+        result
+      }
       is Map<*, *> -> (right as? Map<*, *>)?.let { left + it } ?: super.add(left, right)
-      else ->
-        left
-          ?.takeIf { it.javaClass.isArray }
-          ?.let { (it.toSequence() + right.toSequence()).toList().toTypedArray() }
-          ?: super.add(left, right)
+      else -> {
+        if (left != null && left.javaClass.isArray) {
+          val result = ArrayList<Any?>(estimateSize(left) + estimateSize(right))
+          appendAll(result, left)
+          appendAll(result, right)
+          result.toTypedArray()
+        } else {
+          super.add(left, right)
+        }
+      }
     }
+  }
 
   override fun subtract(left: Any?, right: Any?): Any? {
-    if (left.isIterableLike() && right.isIterableLike()) {
-      val toRemove = right.toSequence().toSet()
-      val filtered = left.toSequence().filterNot { it in toRemove }
+    if (isIterableLike(left) && isIterableLike(right)) {
+      val toRemove = buildRemovalSet(right)
 
       return when (left) {
-        is List<*> -> filtered.toList()
-        is Set<*> -> filtered.toCollection(LinkedHashSet())
-        else -> filtered.toList().toTypedArray()
+        is List<*> -> left.filterNot { it in toRemove }
+        is Set<*> -> left.filterNotTo(LinkedHashSet()) { it in toRemove }
+        else -> {
+          val result = ArrayList<Any?>()
+          val length = ReflectArray.getLength(left!!)
+          for (i in 0 until length) {
+            val item = ReflectArray.get(left, i)
+            if (item !in toRemove) result.add(item)
+          }
+          result.toTypedArray()
+        }
       }
     }
 
     if (left is Map<*, *>) {
-      val keysToRemove = right.toKeySequence().toSet()
+      val keysToRemove = buildRemovalSet(right)
       return left.filterKeys { it !in keysToRemove }
     }
 
     return super.subtract(left, right)
   }
 
-  private fun Any?.isIterableLike(): Boolean =
-    this is Collection<*> || (this != null && javaClass.isArray)
+  private fun isIterableLike(obj: Any?): Boolean =
+    obj is Collection<*> || (obj != null && obj.javaClass.isArray)
 
-  private fun Any?.toSequence(): Sequence<Any?> =
-    when (this) {
-      null -> emptySequence()
-      is Collection<*> -> asSequence()
-      else ->
-        if (javaClass.isArray) {
-          (0 until ReflectArray.getLength(this)).asSequence().map { ReflectArray.get(this, it) }
+  private fun estimateSize(obj: Any?): Int =
+    when (obj) {
+      is Collection<*> -> obj.size
+      is Map<*, *> -> obj.size
+      null -> 0
+      else -> if (obj.javaClass.isArray) ReflectArray.getLength(obj) else 1
+    }
+
+  private fun appendAll(target: MutableCollection<Any?>, source: Any?) {
+    when (source) {
+      is Collection<*> -> target.addAll(source)
+      null -> return
+      else -> {
+        if (source.javaClass.isArray) {
+          val length = ReflectArray.getLength(source)
+          for (i in 0 until length) {
+            target.add(ReflectArray.get(source, i))
+          }
         } else {
-          sequenceOf(this)
+          target.add(source)
         }
+      }
     }
+  }
 
-  private fun Any?.toKeySequence(): Sequence<Any?> =
-    when (this) {
-      is Map<*, *> -> keys.asSequence()
-      else -> toSequence()
+  private fun buildRemovalSet(obj: Any?): Set<Any?> {
+    val set = HashSet<Any?>(estimateSize(obj))
+    when (obj) {
+      is Map<*, *> -> set.addAll(obj.keys)
+      is Collection<*> -> set.addAll(obj)
+      null -> return set
+      else -> {
+        if (obj.javaClass.isArray) {
+          val length = ReflectArray.getLength(obj)
+          for (i in 0 until length) {
+            set.add(ReflectArray.get(obj, i))
+          }
+        } else {
+          set.add(obj)
+        }
+      }
     }
+    return set
+  }
 }

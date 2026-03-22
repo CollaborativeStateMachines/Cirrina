@@ -1,21 +1,27 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
-class Extent private constructor(private val contexts: Array<Context>) {
+import org.apache.commons.jexl3.JexlContext
+
+class Extent private constructor(private val contexts: Array<Context>) : JexlContext {
   val high: Context? = contexts.lastOrNull()
 
-  fun setOrCreate(name: String, value: Any?): Int =
+  fun setOrCreate(name: String, value: Any?) {
     high?.let { if (it.has(name)) it.assign(name, value) else it.create(name, value) }
       ?: error("extent contains no contexts")
+  }
 
-  fun set(name: String, value: Any?): Int =
+  override fun get(name: String): Any = resolve(name)
+
+  override fun set(name: String, value: Any?) {
     contexts.lastOrNull { it.has(name) }?.assign(name, value)
       ?: error("variable '$name' not found in any context")
+  }
 
   fun resolve(name: String): Any =
     contexts.lastOrNull { it.has(name) }?.get(name)
       ?: error("variable '$name' not found in any context")
 
-  fun has(name: String): Boolean = contexts.any { it.has(name) }
+  override fun has(name: String): Boolean = contexts.any { it.has(name) }
 
   fun extend(high: Context): Extent = Extent(contexts + high)
 
