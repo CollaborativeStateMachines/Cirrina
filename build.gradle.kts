@@ -13,9 +13,7 @@ version = rootProject.file("version.txt").readText().trim()
 val jdk25SecurityArgs =
   listOf("--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow")
 
-val standardJvmArgs = listOf("-XX:+AlwaysPreTouch", "-Xms4G", "-Xmx4G")
-
-val allRuntimeArgs = standardJvmArgs + jdk25SecurityArgs
+val allRuntimeArgs = jdk25SecurityArgs
 
 application {
   mainClass.set("at.ac.uibk.dps.cirrina.CirrinaKt")

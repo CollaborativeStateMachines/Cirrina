@@ -16,9 +16,6 @@ COPY --from=build /tmp/cirrina /opt/cirrina
 
 ENTRYPOINT [ \
     "java", \
-    "-XX:+AlwaysPreTouch", \
-    "-Xms4G", \
-    "-Xmx4G", \
     "--enable-native-access=ALL-UNNAMED", \
     "--sun-misc-unsafe-memory-access=allow", \
     "-cp", "/opt/cirrina/lib/*", \
