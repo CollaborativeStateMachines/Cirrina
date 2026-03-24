@@ -12,6 +12,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
+import kotlin.time.Clock
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onFailure
@@ -155,7 +156,12 @@ internal constructor(
   private fun processEvent(event: Event) {
     if (isTerminated()) return
 
-    recordLatency(event)
+    if (event.channel == EventChannel.EXTERNAL) {
+      val now = Clock.System.now()
+      val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+
+      eventTimer.update(epochNanos - event.emittedTime, TimeUnit.NANOSECONDS)
+    }
 
     handleEvent(event)?.let { transition -> step(transition) }
 
@@ -284,19 +290,15 @@ internal constructor(
 
   private fun stopTimeout(name: String) = timeoutActionManager.stop(name)
 
-  private fun recordLatency(event: Event) {
-    if (event.source == name) return
-    if (event.target != name) return
-    if (event.emittedTime == 0L) return
-
-    eventTimer.update((System.currentTimeMillis() - event.emittedTime), TimeUnit.MILLISECONDS)
-  }
-
   override fun toString() = "StateMachine(name='$name')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun emit(event: Event) =
-      eventHandler.emit(event.copy(source = name, emittedTime = System.currentTimeMillis()))
+    fun emit(event: Event) {
+      val now = Clock.System.now()
+      val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+
+      eventHandler.emit(event.copy(source = name, emittedTime = epochNanos))
+    }
 
     fun propagateToParent(event: Event) {
       parent?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
