@@ -289,14 +289,14 @@ internal constructor(
     if (event.target != name) return
     if (event.emittedTime == 0L) return
 
-    eventTimer.update((System.nanoTime() - event.emittedTime) / 1_000, TimeUnit.MICROSECONDS)
+    eventTimer.update((System.currentTimeMillis() - event.emittedTime), TimeUnit.MILLISECONDS)
   }
 
   override fun toString() = "StateMachine(name='$name')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
     fun emit(event: Event) =
-      eventHandler.emit(event.copy(source = name, emittedTime = System.nanoTime()))
+      eventHandler.emit(event.copy(source = name, emittedTime = System.currentTimeMillis()))
 
     fun propagateToParent(event: Event) {
       parent?.stateMachineEventHandler?.propagateToParent(event) ?: pushEvent(event)
