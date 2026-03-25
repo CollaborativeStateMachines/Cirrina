@@ -158,9 +158,11 @@ internal constructor(
 
     if (event.channel == EventChannel.EXTERNAL) {
       val now = Clock.System.now()
-      val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+      val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
 
-      eventTimer.update(epochNanos - event.emittedTime, TimeUnit.NANOSECONDS)
+      val deltaNanos = (nowNanos - event.emittedTime).coerceAtLeast(0L)
+
+      eventTimer.update(deltaNanos, TimeUnit.NANOSECONDS)
     }
 
     handleEvent(event)?.let { transition -> step(transition) }
