@@ -156,7 +156,7 @@ internal constructor(
   private fun processEvent(event: Event) {
     if (isTerminated()) return
 
-    if (event.channel == EventChannel.EXTERNAL) {
+    if (event.channel == EventChannel.EXTERNAL && event.source != name) {
       val now = Clock.System.now()
       val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
       val deltaNanos = (nowNanos - event.emittedTime).coerceAtLeast(0L)
