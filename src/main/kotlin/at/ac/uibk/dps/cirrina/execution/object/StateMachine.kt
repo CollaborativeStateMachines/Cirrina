@@ -159,7 +159,6 @@ internal constructor(
     if (event.channel == EventChannel.EXTERNAL) {
       val now = Clock.System.now()
       val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
-
       val deltaNanos = (nowNanos - event.emittedTime).coerceAtLeast(0L)
 
       eventTimer.update(deltaNanos, TimeUnit.NANOSECONDS)
