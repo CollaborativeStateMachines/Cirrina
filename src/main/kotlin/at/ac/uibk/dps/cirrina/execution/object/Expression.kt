@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import java.lang.reflect.Array as ReflectArray
+import java.security.SecureRandom
 import java.util.LinkedHashSet
 import kotlin.random.Random
 import org.apache.commons.jexl3.JexlArithmetic
@@ -51,18 +52,38 @@ private object Provider {
 
 class Stdlib {
   companion object {
-    @Volatile private var rng: Random = Random.Default
+    private val seedGenerator = SecureRandom()
+
+    private val threadRng =
+      object : ThreadLocal<Random>() {
+        override fun initialValue(): Random {
+          return Random(seedGenerator.nextLong())
+        }
+      }
 
     @JvmStatic
     fun seed(seed: Long) {
-      rng = Random(seed)
+      threadRng.set(Random(seed))
     }
 
-    @JvmStatic fun randomPayload(sizes: IntArray) = ByteArray(sizes.random(rng))
+    @JvmStatic
+    fun randomPayload(sizes: IntArray): ByteArray {
+      val rng = threadRng.get()
+      return ByteArray(sizes.random(rng))
+    }
 
-    @JvmStatic fun takeRandom(collection: Collection<*>): Any? = collection.randomOrNull(rng)
+    @JvmStatic
+    fun takeRandom(collection: Collection<*>): Any? {
+      return collection.randomOrNull(threadRng.get())
+    }
 
-    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull(rng)
+    @JvmStatic fun takeRandom(array: Array<Any>): Any? = array.randomOrNull(threadRng.get())
+
+    @JvmStatic
+    fun randomAround(base: Int, delta: Int): Int {
+      val rng = threadRng.get()
+      return (base - delta..base + delta).random(rng)
+    }
 
     @JvmStatic fun repeat(item: Boolean, n: Int) = BooleanArray(n) { item }
 
