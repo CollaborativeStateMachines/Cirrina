@@ -13,6 +13,8 @@ import dagger.assisted.AssistedInject
 import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 import kotlin.time.Clock
+import kotlin.time.measureTime
+import kotlin.time.toJavaDuration
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.onFailure
@@ -100,6 +102,8 @@ internal constructor(
 
   private val eventTimer: Timer = runtime.metricRegistry.timer("event.latency")
 
+  private val processEventTimer: Timer = runtime.metricRegistry.timer("processEvent.time")
+
   init {
     val instanceData = Context.from(instance.data).getAll()
     val transientContext = Context.from(specification.transient)
@@ -154,19 +158,26 @@ internal constructor(
     }
 
   private fun processEvent(event: Event) {
-    if (isTerminated()) return
+    val delta = measureTime {
+      if (isTerminated()) return
 
-    if (event.channel == EventChannel.EXTERNAL && event.source != name) {
-      val now = Clock.System.now()
-      val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
-      val deltaNanos = (nowNanos - event.emittedTime).coerceAtLeast(0L)
+      if (
+        (event.channel == EventChannel.EXTERNAL || event.channel == EventChannel.PERIPHERAL) &&
+          event.source != name
+      ) {
+        val now = Clock.System.now()
+        val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+        val deltaNanos = (nowNanos - event.emittedTime).coerceAtLeast(0L)
 
-      eventTimer.update(deltaNanos, TimeUnit.NANOSECONDS)
+        eventTimer.update(deltaNanos, TimeUnit.NANOSECONDS)
+      }
+
+      handleEvent(event)?.let { transition -> step(transition) }
+
+      if (event.channel == EventChannel.INTERNAL) stateMachineEventHandler.propagateToNested(event)
     }
 
-    handleEvent(event)?.let { transition -> step(transition) }
-
-    if (event.channel == EventChannel.INTERNAL) stateMachineEventHandler.propagateToNested(event)
+    processEventTimer.update(delta.toJavaDuration())
   }
 
   private fun handleEvent(event: Event): ActiveTransition? {
