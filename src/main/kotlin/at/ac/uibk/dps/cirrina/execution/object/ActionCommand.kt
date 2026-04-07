@@ -3,6 +3,8 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import com.codahale.metrics.MetricRegistry
+import kotlin.time.measureTime
+import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
@@ -45,18 +47,21 @@ class ActionExecutor(
     val input = action.input.map { it.evaluate(scope.extent) }
 
     coroutineScope.launch {
-      runCatching { service.invoke(input) }
-        .onSuccess { output ->
-          action.emits.forEach { eventTemplate ->
-            val emittedEvent = eventTemplate.copy(data = output)
-            if (emittedEvent.channel == EventChannel.INTERNAL) {
-              eventHandler.propagateToParent(emittedEvent)
-            } else {
-              eventHandler.emit(emittedEvent)
+      val delta = measureTime {
+        runCatching { service.invoke(input) }
+          .onSuccess { output ->
+            action.emits.forEach { eventTemplate ->
+              val emittedEvent = eventTemplate.copy(data = output)
+              if (emittedEvent.channel == EventChannel.INTERNAL) {
+                eventHandler.propagateToParent(emittedEvent)
+              } else {
+                eventHandler.emit(emittedEvent)
+              }
             }
           }
-        }
-        .onFailure { logger.error(it) { "service invocation failed" } }
+          .onFailure { logger.error(it) { "service invocation failed" } }
+      }
+      metricRegistry.timer("invoke.time").update(delta.toJavaDuration())
     }
 
     return emptyList()
