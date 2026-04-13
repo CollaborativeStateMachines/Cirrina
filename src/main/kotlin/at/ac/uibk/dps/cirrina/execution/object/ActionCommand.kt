@@ -50,12 +50,30 @@ class ActionExecutor(
       val delta = measureTime {
         runCatching { service.invoke(input) }
           .onSuccess { output ->
-            action.emits.forEach { eventTemplate ->
-              val emittedEvent = eventTemplate.copy(data = output)
-              if (emittedEvent.channel == EventChannel.INTERNAL) {
-                eventHandler.propagateToParent(emittedEvent)
-              } else {
-                eventHandler.emit(emittedEvent)
+            action.output.forEach { reference ->
+              output
+                .firstOrNull { it.name == reference }
+                ?.let {
+                  runCatching { scope.extent.set(reference, it.value) }
+                    .onFailure { e ->
+                      logger.warn(e) {
+                        "failed to assign service output to variable '${reference}'"
+                      }
+                    }
+                }
+                ?: logger.warn {
+                  "service output does not contain expected variable '${reference}'"
+                }
+            }
+
+            action.emits.forEach { conditionalEvent ->
+              if (conditionalEvent.provided?.evaluate(scope.extent) != false) {
+                val emittedEvent = conditionalEvent.event.copy(data = output)
+                if (emittedEvent.channel == EventChannel.INTERNAL) {
+                  eventHandler.propagateToParent(emittedEvent)
+                } else {
+                  eventHandler.emit(emittedEvent)
+                }
               }
             }
           }

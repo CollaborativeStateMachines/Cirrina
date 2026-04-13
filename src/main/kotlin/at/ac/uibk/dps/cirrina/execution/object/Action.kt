@@ -13,7 +13,8 @@ sealed interface Action {
             description.type,
             description.mode,
             buildVariables(description.input),
-            buildEvents(description.emits),
+            description.output,
+            buildConditionalEvents(description.emits),
           )
 
         is MatchDescription ->
@@ -57,7 +58,8 @@ sealed interface Action {
         ContextVariable.lazy(k, expression)
       }
 
-    private fun buildEvents(events: List<EventDescription>) = events.map { Event.from(it) }
+    private fun buildConditionalEvents(events: List<ConditionalEventDescription>) =
+      events.map { ConditionalEvent.from(it) }
   }
 }
 
@@ -74,12 +76,13 @@ internal constructor(
   val type: String,
   val mode: InvocationMode,
   val input: List<ContextVariable>,
-  val emits: List<Event>,
+  val output: List<String>,
+  val emits: List<ConditionalEvent>,
 ) : EventRaisingAction {
-  override fun raises(): List<Event> = emits
+  override fun raises(): List<Event> = emits.map { it.event }
 
   override fun toString() =
-    "InvokeAction(type='$type', mode='$mode', input='$input', emits='$emits')"
+    "InvokeAction(type='$type', mode='$mode', input='$input', output='$output', emits='$emits')"
 }
 
 class MatchAction

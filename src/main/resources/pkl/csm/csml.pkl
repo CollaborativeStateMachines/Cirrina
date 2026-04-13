@@ -96,7 +96,13 @@ class InvokeDescription extends ActionDescription {
   type: InvocationType
   mode: InvocationMode = "remote"
   input: Context
-  emits: Listing<EventDescription>
+  output: Listing<VariableName>
+  emits: Listing<ConditionalEventDescription>
+}
+
+class ConditionalEventDescription {
+  provided: Expression?
+  event: EventDescription
 }
 
 class EvalDescription extends ActionDescription {
@@ -187,6 +193,7 @@ typealias Transition = TransitionDescription
 typealias Action = ActionDescription
 typealias Eval = EvalDescription
 typealias Invoke = InvokeDescription
+typealias ConditionalEvent = ConditionalEventDescription
 typealias Case = CaseDescription
 typealias Match = MatchDescription
 typealias Emit = EmitDescription

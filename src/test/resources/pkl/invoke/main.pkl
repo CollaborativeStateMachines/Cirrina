@@ -7,7 +7,7 @@ collaborativeStateMachine {
         ["a"] = new Initial {
           after {
             ["timeout"] = new Timeout {
-              delay = "100"
+              delay = "1"
               triggers = new Emit { event = new Internal { topic = "update" } }
             }
           }
@@ -19,24 +19,15 @@ collaborativeStateMachine {
                   type = "increment"
                   mode = "local"
                   input { ["v"] = "v" }
-                  emits { new Internal { topic = "tob" } }
+                  output { "v" }
+                  emits { new ConditionalEvent { provided = "v >= 100"; event = new Internal { topic = "tob" } } }
                 }
-                new Eval { expression = "e = e + 1" }
               }
             }
             ["tob"] = new Transition { to = "b" }
           }
         }
-        ["b"] = new State {
-          entry { new Eval { expression = "v = $v" } }
-          always {
-            new Transition {
-              to = "a"
-              provided = "v < 10"; or = "c"
-            }
-          }
-        }
-        ["c"] = new Terminal {}
+        ["b"] = new Terminal {}
       }
     }
   }

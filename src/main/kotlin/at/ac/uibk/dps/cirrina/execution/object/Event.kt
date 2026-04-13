@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import at.ac.uibk.dps.cirrina.csm.Csml.ConditionalEventDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.EventDescription
 import at.ac.uibk.dps.cirrina.util.getInsecureUuid
@@ -26,6 +27,20 @@ data class Event(
           ContextVariable.lazy(name, expression)
         }
       return Event(description.topic, description.channel, variables)
+    }
+  }
+}
+
+data class ConditionalEvent(val provided: Guard?, val event: Event) {
+  override fun toString(): String =
+    "${this::class.simpleName}(provided='$provided', event='$event')"
+
+  companion object {
+    fun from(description: ConditionalEventDescription): ConditionalEvent {
+      return ConditionalEvent(
+        description.provided?.let { Guard.from(it) },
+        Event.from(description.event),
+      )
     }
   }
 }

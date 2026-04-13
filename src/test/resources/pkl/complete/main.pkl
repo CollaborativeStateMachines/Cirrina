@@ -28,7 +28,7 @@ collaborativeStateMachine {
               type = "increment"
               mode = "local"
               input { ["v"] = "x" }
-              emits { new Internal { topic = "e2" } }
+              emits { new ConditionalEvent { event = new Internal { topic = "e2" } } }
             }
           }
           exit { new Eval { expression = "e = true" } }
