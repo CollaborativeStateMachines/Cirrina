@@ -36,7 +36,7 @@ class InvokeTest {
           val duration = measureTime { runtime.run() }
           println("invoke execution: $duration")
 
-          assertEquals(10, context.get("v"))
+          assertEquals(100, context.get("v"))
         } finally {
           server.stop(1)
         }

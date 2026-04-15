@@ -11,4 +11,5 @@ object DefaultDescriptions {
   val noop: URI by lazy { resourceUri("pkl/noop/main.pkl") }
   val empty: URI by lazy { resourceUri("pkl/empty/main.pkl") }
   val events: URI by lazy { resourceUri("pkl/events/main.pkl") }
+  val loop: URI by lazy { resourceUri("pkl/loop/main.pkl") }
 }
