@@ -1,0 +1,49 @@
+amends "modulepath:/pkl/csm/csml.pkl"
+
+collaborativeStateMachine {
+  stateMachines {
+    ["one"] {
+      states {
+        ["a"] = new Initial {
+          entry {
+            new Emit { event { topic = "e1" }; target = "'two'" }
+          }
+          always {
+            new Transition { to = "b" }
+          }
+        }
+        ["b"] = new Terminal {}
+      }
+    }
+    ["two"] {
+      states {
+        ["a"] = new Initial {
+          after {
+            ["t"] = new Timeout {
+              delay = "1000"
+              triggers = new Emit { event = new Internal { topic = "toc" } }
+            }
+          }
+          on {
+            ["e1"] { to = "b" }
+            ["toc"] { to = "c" }
+          }
+        }
+        ["b"] {
+          entry {
+            new Eval { expression = "v =+ 1" }
+          }
+          always {
+            new Transition { to = "a"; provided = "v < 1000" }
+          }
+        }
+        ["c"] = new Terminal {}
+      }
+    }
+  }
+  persistent { ["v"] = "0" }
+}
+instances {
+  ["one"] { stateMachineName = "one" }
+  ["two"] { stateMachineName = "two" }
+}

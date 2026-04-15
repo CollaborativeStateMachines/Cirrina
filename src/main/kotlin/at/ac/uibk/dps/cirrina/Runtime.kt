@@ -84,7 +84,7 @@ constructor(
     eventHandler.bind(
       graph = graph,
       instanceNames = run,
-      subscribedTo = instances.values.flatMap { it.subscriptions },
+      subscribedTo = instances.values.flatMap { it.subscriptions } /*.toSet()*/,
       handlers = instances.values.map { it::pushEvent },
     )
   }
