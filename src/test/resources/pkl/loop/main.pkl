@@ -31,7 +31,7 @@ collaborativeStateMachine {
         }
         ["b"] {
           entry {
-            new Eval { expression = "v =+ 1" }
+            new Eval { expression = "v += 1" }
           }
           always {
             new Transition { to = "a"; provided = "v < 1000" }
