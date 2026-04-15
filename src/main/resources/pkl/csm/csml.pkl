@@ -10,7 +10,7 @@ typealias StateMachineName = String
 /// The subscription to events raised by state machine instances.
 typealias Subscription = String
 
-class Instance {
+class InstanceDescription {
   stateMachineName: StateMachineName
   subscription: Regex = Regex(#".*"#)
   data: Context?
@@ -137,6 +137,10 @@ class LogDescription extends ActionDescription {
   message: Expression
 }
 
+class InstantiateDescription extends ActionDescription {
+  instances: Mapping<Expression, Instance>
+}
+
 // For internal use only, not part of the public API
 class CtrDescription extends ActionDescription {
   counter: String
@@ -178,6 +182,8 @@ class HttpServiceImplementationBinding extends ServiceImplementationBinding {
 }
 
 // Alias definitions
+typealias Instance = InstanceDescription
+
 typealias CollaborativeStateMachine = CollaborativeStateMachineDescription
 
 typealias StateMachine = StateMachineDescription
@@ -200,6 +206,7 @@ typealias Emit = EmitDescription
 typealias Timeout = TimeoutDescription
 typealias Reset = ResetDescription
 typealias Log = LogDescription
+typealias Instantiate = InstantiateDescription
 typealias Ctr = CtrDescription
 
 // Event aliases

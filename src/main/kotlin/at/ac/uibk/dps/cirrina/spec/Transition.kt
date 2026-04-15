@@ -9,12 +9,19 @@ import org.jgrapht.graph.DefaultEdge
 
 class Transition
 private constructor(
+  val parent: StateMachine,
   val event: String?,
-  val to: String?,
-  val provided: Guard?,
-  val yields: List<Action>,
-  val or: String?,
+  description: TransitionDescription,
 ) : DefaultEdge() {
+
+  val to = description.to
+
+  val provided = description.provided?.let { Guard.from(it) }
+
+  val yields = description.yields.map { Action.create(it) }
+
+  val or = description.or
+
   val actions: ActionGraph = ActionGraph.create(yields)
 
   fun evaluate(extent: Extent): Boolean = provided?.evaluate(extent) ?: true
@@ -26,15 +33,10 @@ private constructor(
   inline fun <reified T : Action> getActionsOfType(): List<T> = actions.getActionsOfType<T>()
 
   companion object {
-    fun create(description: TransitionDescription, event: String? = null): Result<Transition> =
-      runCatching {
-        Transition(
-          event,
-          description.to,
-          description.provided?.let { Guard.from(it) },
-          description.yields.map { Action.create(it) },
-          description.or,
-        )
-      }
+    fun create(
+      parent: StateMachine,
+      description: TransitionDescription,
+      event: String? = null,
+    ): Result<Transition> = runCatching { Transition(parent, event, description) }
   }
 }

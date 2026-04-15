@@ -7,42 +7,28 @@ import at.ac.uibk.dps.cirrina.execution.`object`.Action
 import at.ac.uibk.dps.cirrina.execution.`object`.TimeoutAction
 
 class State
-private constructor(
-  val name: String,
-  val initial: Boolean,
-  val terminal: Boolean,
-  val static: Map<String, String>?,
-  entry: List<Action>,
-  exit: List<Action>,
-  during: List<Action>,
-  after: List<Action>,
-) {
-  val entry = ActionGraph.create(entry)
-  val exit = ActionGraph.create(exit)
-  val during = ActionGraph.create(during)
-  val after = ActionGraph.create(after)
+private constructor(val parent: StateMachine, val name: String, description: StateDescription) {
+  val initial = description.isInitial
+  val terminal = description.isTerminal
+  val static = description.static
 
-  inline fun <reified T : Action> getActionsOfType(): List<T> =
+  val entry = ActionGraph.create(resolveActions(description.entry))
+  val exit = ActionGraph.create(resolveActions(description.exit))
+  val during = ActionGraph.create(resolveActions(description.during))
+  val after = ActionGraph.create(resolveAfterActions(description.after))
+
+  inline fun <reified T : Action> getActionsOfType() =
     listOf(entry, exit, during, after).flatMap { it.getActionsOfType<T>() }
 
   companion object {
-    fun create(description: StateDescription, name: String): Result<State> = runCatching {
-      State(
-        name,
-        description.isInitial,
-        description.isTerminal,
-        description.static,
-        resolveActions(description.entry),
-        resolveActions(description.exit),
-        resolveActions(description.during),
-        resolveAfterActions(description.after),
-      )
+    fun create(parent: StateMachine, description: StateDescription, name: String) = runCatching {
+      State(parent, name, description)
     }
 
-    private fun resolveActions(descriptions: List<ActionDescription>): List<Action> =
+    private fun resolveActions(descriptions: List<ActionDescription>) =
       descriptions.map { Action.create(it) }
 
-    private fun resolveAfterActions(descriptions: Map<String, ActionDescription>): List<Action> =
+    private fun resolveAfterActions(descriptions: Map<String, ActionDescription>) =
       descriptions
         .map { (name, desc) -> Action.create(desc, name) }
         .also { actions ->

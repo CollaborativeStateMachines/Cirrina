@@ -1,0 +1,63 @@
+amends "modulepath:/pkl/csm/csml.pkl"
+
+collaborativeStateMachine {
+  stateMachines {
+    ["instantiator"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          after {
+            ["timeout"] = new Timeout {
+              delay = "1"
+              triggers = new Emit { event = new Internal { topic = "instantiate" } }
+            }
+          }
+          on {
+            ["instantiate"] = new Transition {
+              to = "a"
+              yields {
+                new Instantiate {
+                  instances {
+                    ["i"] = new Instance {
+                      stateMachineName = "instantiated"
+                      subscription = Regex("instantiator")
+                      data { ["i"] = "i" }
+                    }
+                  }
+                }
+                new Eval { expression = "++i" }
+              }
+              provided = "i < 10"
+              or = "c"
+            }
+          }
+        }
+        ["c"] = new Terminal {
+          entry {
+            new Emit { event { topic = "e" } }
+          }
+        }
+      }
+      transient {
+        ["i"] = "0"
+      }
+    }
+    ["instantiated"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          on {
+            ["e"] = new Transition { to = "b" }
+          }
+        }
+        ["b"] = new Terminal {
+          entry {
+            new Eval { expression = "v += i" }
+          }
+        }
+      }
+    }
+  }
+  persistent { ["v"] = "0" }
+}
+instances {
+  ["instantiator"] = new Instance { stateMachineName = "instantiator" }
+}

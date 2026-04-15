@@ -9,10 +9,13 @@ import org.jgrapht.graph.DirectedPseudograph
 
 class StateMachine
 internal constructor(
+  val parent: CollaborativeStateMachine,
   val name: String,
   val nested: List<StateMachine>,
-  val transient: Map<String, String>?,
+  description: StateMachineDescription,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
+  val transient = description.transient
+
   val initial: State by lazy {
     vertexSet().firstOrNull { it.initial }
       ?: error("state machine '$name' must have an initial state")
@@ -36,64 +39,52 @@ internal constructor(
 
   private val stateNames: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
 
-  private val onTransitions: Map<State, Map<String, List<Transition>>> by lazy {
-    vertexSet().associateWith { state ->
-      outgoingEdgesOf(state).filter { it.event != null }.groupBy { it.event!! }
+  init {
+    description.states.forEach { (stateName, stateDesc) ->
+      addVertex(State.create(this, stateDesc, stateName).getOrThrow())
+    }
+
+    description.states.forEach { (sourceName, stateDesc) ->
+      val source = getStateClassByName(sourceName)!!
+
+      stateDesc.on.forEach { (event, transDesc) -> buildGraph(this, source, event, transDesc) }
+      stateDesc.always.forEach { transDesc -> buildGraph(this, source, null, transDesc) }
     }
   }
 
-  private val alwaysTransitions: Map<State, List<Transition>> by lazy {
-    vertexSet().associateWith { state -> outgoingEdgesOf(state).filter { it.event == null } }
+  fun getStateClassByName(name: String) = stateNames[name]
+
+  private fun buildGraph(
+    graph: StateMachine,
+    source: State,
+    event: String?,
+    desc: TransitionDescription,
+  ) {
+    val target =
+      desc.to?.let { targetName ->
+        graph.getStateClassByName(targetName)
+          ?: error("state machine '${graph.name}' has invalid transition target '$targetName'")
+      } ?: source
+
+    val transition = Transition.create(this, desc, event).getOrThrow()
+
+    require(graph.addEdge(source, target, transition)) {
+      "illegal transition in state machine '${graph.name}' from '${source.name}'"
+    }
   }
 
-  fun getStateClassByName(name: String): State? = stateNames[name]
-
-  fun getOnTransitionsFromStateByEventName(from: State, name: String): List<Transition> =
-    onTransitions[from]?.get(name).orEmpty()
-
-  fun getAlwaysTransitionsFromState(from: State): List<Transition> =
-    alwaysTransitions[from].orEmpty()
-
   companion object {
-    fun create(description: StateMachineDescription, name: String = ""): Result<StateMachine> =
-      runCatching {
-        val nested =
-          description.nested.map { (nestedName, smDesc) -> create(smDesc, nestedName).getOrThrow() }
-
-        val spec = StateMachine(name, nested, description.transient)
-
-        description.states.forEach { (stateName, stateDesc) ->
-          spec.addVertex(State.create(stateDesc, stateName).getOrThrow())
+    fun create(
+      parent: CollaborativeStateMachine,
+      description: StateMachineDescription,
+      name: String = "",
+    ): Result<StateMachine> = runCatching {
+      val nested =
+        description.nested.map { (nestedName, smDesc) ->
+          create(parent, smDesc, nestedName).getOrThrow()
         }
 
-        description.states.forEach { (sourceName, stateDesc) ->
-          val source = spec.getStateClassByName(sourceName)!!
-
-          stateDesc.on.forEach { (event, transDesc) -> buildGraph(spec, source, event, transDesc) }
-
-          stateDesc.always.forEach { transDesc -> buildGraph(spec, source, null, transDesc) }
-        }
-
-        spec
-      }
-
-    private fun buildGraph(
-      graph: StateMachine,
-      source: State,
-      event: String?,
-      desc: TransitionDescription,
-    ) {
-      val target =
-        desc.to?.let { targetName ->
-          graph.getStateClassByName(targetName)
-            ?: error("state machine '${graph.name}' has invalid transition target '$targetName'")
-        } ?: source
-
-      val transition = Transition.create(desc, event).getOrThrow()
-
-      require(graph.addEdge(source, target, transition)) {
-        "illegal transition in state machine '${graph.name}' from '${source.name}'"
-      }
+      StateMachine(parent, name, nested, description)
     }
   }
 }

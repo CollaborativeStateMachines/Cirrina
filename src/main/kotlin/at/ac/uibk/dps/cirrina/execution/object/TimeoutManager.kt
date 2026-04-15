@@ -10,7 +10,6 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger {}
 
 class TimeoutActionManager(private val coroutineScope: CoroutineScope) {
-
   private val timeoutJobs = ConcurrentHashMap<String, Job>()
 
   fun start(actionName: String, delayInMs: Number, task: suspend () -> Unit) {

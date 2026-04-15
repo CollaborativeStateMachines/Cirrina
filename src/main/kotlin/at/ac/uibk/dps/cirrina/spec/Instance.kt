@@ -1,16 +1,24 @@
 package at.ac.uibk.dps.cirrina.spec
 
-import at.ac.uibk.dps.cirrina.csm.Csml.Instance as InstanceDescription
+import at.ac.uibk.dps.cirrina.csm.Csml.InstanceDescription
 
 class Instance
 private constructor(
-  val name: String,
+  val parent: Csml,
   val stateMachine: StateMachine,
-  val data: Map<String, String>?,
-  val subscription: Regex,
+  val name: String,
+  description: InstanceDescription,
 ) {
+  val data = description.data
+
+  val subscription: Regex = description.subscription.toRegex()
+
   companion object {
-    fun create(description: InstanceDescription, stateMachine: StateMachine, name: String) =
-      Instance(name, stateMachine, description.data, description.subscription.toRegex())
+    fun create(
+      parent: Csml,
+      description: InstanceDescription,
+      stateMachine: StateMachine,
+      name: String,
+    ) = runCatching { Instance(parent, stateMachine, name, description) }
   }
 }

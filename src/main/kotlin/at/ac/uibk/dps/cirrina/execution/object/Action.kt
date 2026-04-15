@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.csm.Csml.*
+import at.ac.uibk.dps.cirrina.spec.Instance
 
 sealed interface Action {
   companion object {
@@ -42,6 +43,8 @@ sealed interface Action {
 
         is LogDescription -> LogAction(Expression.create(description.message))
 
+        // is InstantiateDescription -> InstantiateAction(buildInstances(description.instances))
+
         is CtrDescription ->
           CtrAction(
             description.counter,
@@ -60,6 +63,9 @@ sealed interface Action {
 
     private fun buildConditionalEvents(events: List<ConditionalEventDescription>) =
       events.map { ConditionalEvent.from(it) }
+
+    /*private fun buildInstances(instances: Map<String, InstanceDescription>) =
+    instances.map { (k, v) -> Instance.create(v, null, k) }*/
   }
 }
 
@@ -116,7 +122,13 @@ class TimeoutResetAction internal constructor(val action: String) : Action {
   override fun toString() = "TimeoutResetAction(action='$action')"
 }
 
-class LogAction internal constructor(val message: Expression) : Action
+class LogAction internal constructor(val message: Expression) : Action {
+  override fun toString() = "LogAction(message='$message')"
+}
+
+class InstantiateAction internal constructor(val instances: Map<String, Instance>) : Action {
+  override fun toString() = "InstantiateAction(instances='$instances')"
+}
 
 class CtrAction
 internal constructor(val counter: String, val by: Long, val tag: Map<String, Expression>) : Action {
