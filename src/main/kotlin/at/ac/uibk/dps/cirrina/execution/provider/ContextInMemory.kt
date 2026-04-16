@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.provider
 
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import java.util.concurrent.ConcurrentHashMap
 
 class ContextInMemory : Context {
@@ -40,7 +40,7 @@ class ContextInMemory : Context {
   }
 
   override fun getAll(): List<ContextVariable> =
-    values.map { (key, value) -> ContextVariable.eager(key, value) }
+    values.map { (key, value) -> ContextVariable(key, value) }
 
   override fun clear() {
     values.clear()

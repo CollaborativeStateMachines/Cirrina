@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 class ExpressionTest {
-
   private fun withExpressionContext(block: ContextScope.() -> Unit) =
     ContextInMemory().use { context -> ContextScope(context, Extent.of(context)).block() }
 
@@ -103,9 +102,9 @@ class ExpressionTest {
   fun testMultiLineExpression() = withExpressionContext {
     context.create("varOneInt", 1)
     """
-        let varExpressionLocal = 1; 
-        varExpressionLocal += varOneInt; 
-        varExpressionLocal
+    let varExpressionLocal = 1; 
+    varExpressionLocal += varOneInt; 
+    varExpressionLocal
     """
       .trimIndent() isEqualTo 2
   }
@@ -119,8 +118,7 @@ class ExpressionTest {
   }
 
   class ContextScope(val context: ContextInMemory, val extent: Extent) {
-
-    fun String.eval(): Any? = Expression.create(this).execute(extent)
+    fun String.eval(): Any? = this.evaluate(extent)
 
     infix fun String.isEqualTo(expected: Any?) {
       Assertions.assertEquals(expected, this.eval())

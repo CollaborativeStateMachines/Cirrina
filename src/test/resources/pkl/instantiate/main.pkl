@@ -7,7 +7,7 @@ collaborativeStateMachine {
         ["a"] = new Initial {
           after {
             ["timeout"] = new Timeout {
-              delay = "1"
+              delay = "100"
               triggers = new Emit { event = new Internal { topic = "instantiate" } }
             }
           }

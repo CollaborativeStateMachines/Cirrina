@@ -4,7 +4,8 @@ import TimeoutActionManager
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
-import at.ac.uibk.dps.cirrina.spec.Instance
+import at.ac.uibk.dps.cirrina.spec.Event
+import at.ac.uibk.dps.cirrina.spec.Instance as InstanceSpec
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import com.codahale.metrics.Timer
 import dagger.assisted.Assisted
@@ -45,8 +46,8 @@ class StateMachine
 @AssistedInject
 internal constructor(
   @Assisted val name: String,
-  @Assisted val specification: StateMachineSpec,
-  @Assisted val instance: Instance,
+  @Assisted val stateMachineSpec: StateMachineSpec,
+  @Assisted val instanceSpec: InstanceSpec,
   @Assisted val subscriptions: List<String>,
   @Assisted private val runtime: Runtime,
   @Assisted private val parent: StateMachine? = null,
@@ -71,12 +72,12 @@ internal constructor(
     )
 
   private val stateInstances =
-    specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
+    stateMachineSpec.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
   private val onTransitions: Map<String, Map<String, List<Transition>>> =
-    specification.vertexSet().associate { state ->
+    stateMachineSpec.vertexSet().associate { state ->
       state.name to
-        specification
+        stateMachineSpec
           .outgoingEdgesOf(state)
           .filter { it.event != null }
           .groupBy { it.event!! }
@@ -84,9 +85,9 @@ internal constructor(
     }
 
   private val alwaysTransitions: Map<String, List<Transition>> =
-    specification.vertexSet().associate { state ->
+    stateMachineSpec.vertexSet().associate { state ->
       state.name to
-        specification
+        stateMachineSpec
           .outgoingEdgesOf(state)
           .filter { it.event == null }
           .map { transitionFactory.create(it) }
@@ -105,11 +106,13 @@ internal constructor(
   private val processEventTimer: Timer = runtime.metricRegistry.timer("processEvent.time")
 
   init {
-    val instanceData = Context.from(instance.data).getAll()
-    val transientContext = Context.from(specification.transient)
-    val eventContext = Context.empty()
+    val transientContext =
+      Context.empty().apply {
+        stateMachineSpec.transient.forEach { this.create(it.name, it.value) }
+        instanceSpec.data.forEach { this.create(it.name, it.value) }
+      }
 
-    instanceData.forEach { transientContext.create(it.name, it.value) }
+    val eventContext = Context.empty()
 
     extent = (parent?.extent ?: runtime.extent).extend(transientContext)
     eventExtent = extent.extend(eventContext)
@@ -118,7 +121,7 @@ internal constructor(
   fun start(): Job {
     logger.info { "'$this' entering initial state" }
 
-    val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
+    val initial = stateInstances[stateMachineSpec.initial.name] ?: error("initial state not found")
     doEnter(initial)?.let { step(it) }
 
     started.complete(Unit)
@@ -234,7 +237,11 @@ internal constructor(
     for (i in transitions.indices) {
       val transition = transitions[i]
       val spec = transition.specification
-      if (spec.evaluate(evalExtent)) return ActiveTransition.standard(transition)
+
+      if (spec.provided?.evaluatesToTrue(evalExtent) ?: true) {
+        return ActiveTransition.standard(transition)
+      }
+
       if (spec.or != null) return ActiveTransition.or(transition)
     }
     return null
@@ -289,7 +296,7 @@ internal constructor(
 
   private fun startTimeout(timeout: TimeoutAction) {
     val delay =
-      timeout.delay.execute(extent) as? Number
+      timeout.delay.evaluate(extent) as? Number
         ?: error("timeout delay '${timeout.delay}' is non-numeric")
 
     timeoutActionManager.start(timeout.name, delay) {
@@ -328,8 +335,8 @@ internal constructor(
   interface Factory {
     fun create(
       name: String,
-      specification: StateMachineSpec,
-      instance: Instance,
+      stateMachineSpec: StateMachineSpec,
+      instanceSpec: InstanceSpec,
       subscriptions: List<String>,
       runtime: Runtime,
       parent: StateMachine?,
@@ -339,19 +346,19 @@ internal constructor(
 
 fun Factory.createHierarchy(
   name: String,
-  specification: StateMachineSpec,
-  instance: Instance,
+  stateMachineSpec: StateMachineSpec,
+  instanceSpec: InstanceSpec,
   subscriptions: List<String>,
   runtime: Runtime,
   parent: StateMachine?,
 ): List<StateMachine> =
-  create(name, specification, instance, subscriptions, runtime, parent).let { current ->
-    specification.nested
+  create(name, stateMachineSpec, instanceSpec, subscriptions, runtime, parent).let { current ->
+    stateMachineSpec.nested
       .flatMapIndexed { index, nested ->
         createHierarchy(
           "${current.name}.$index@${nested.name}",
           nested,
-          instance,
+          instanceSpec,
           subscriptions,
           runtime,
           current,

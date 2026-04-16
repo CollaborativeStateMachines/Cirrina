@@ -4,13 +4,19 @@ import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
 import at.ac.uibk.dps.cirrina.execution.graph.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.Action
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.TimeoutAction
 
 class State
 private constructor(val parent: StateMachine, val name: String, description: StateDescription) {
+  /** The boolean indicating the initial status */
   val initial = description.isInitial
+
+  /** The boolean indicating the terminal status */
   val terminal = description.isTerminal
-  val static = description.static
+
+  /** The static data context variables */
+  val static = Context.from(description.static).getAll()
 
   val entry = ActionGraph.create(resolveActions(description.entry))
   val exit = ActionGraph.create(resolveActions(description.exit))

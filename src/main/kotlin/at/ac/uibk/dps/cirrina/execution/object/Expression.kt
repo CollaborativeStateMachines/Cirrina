@@ -8,28 +8,26 @@ import org.apache.commons.jexl3.JexlArithmetic
 import org.apache.commons.jexl3.JexlBuilder
 import org.apache.commons.jexl3.JexlEngine
 import org.apache.commons.jexl3.JexlFeatures
-import org.apache.commons.jexl3.JexlScript
 import org.apache.commons.jexl3.introspection.JexlPermissions
 
-class Expression(val source: String) {
-  private val jexlScript: JexlScript =
+fun String.evaluatesToTrue(extent: Extent): Boolean {
+  val result = this.evaluate(extent)
+  require(result is Boolean) { "guard expression '$this' did not produce a boolean" }
+  return result
+}
+
+fun String.evaluate(extent: Extent): Any? {
+  val script =
     try {
-      Provider.engine.createScript(source)
+      Provider.engine.createScript(this)
     } catch (e: Exception) {
-      error("could not parse expression '$source': ${e.localizedMessage}")
+      error("could not parse expression '$this': ${e.localizedMessage}")
     }
 
-  fun execute(extent: Extent): Any? =
-    try {
-      jexlScript.execute(extent)
-    } catch (e: Exception) {
-      error("failed to execute expression '$source': ${e.localizedMessage}")
-    }
-
-  override fun toString(): String = "${this::class.simpleName}(source='$source')"
-
-  companion object {
-    fun create(source: String): Expression = Expression(source)
+  return try {
+    script.execute(extent)
+  } catch (e: Exception) {
+    error("failed to execute expression '$this': ${e.localizedMessage}")
   }
 }
 

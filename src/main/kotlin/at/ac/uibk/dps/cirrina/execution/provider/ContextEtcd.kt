@@ -1,8 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.provider
 
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import io.etcd.jetcd.ByteSequence
 import io.etcd.jetcd.Client
 import io.etcd.jetcd.op.Cmp
@@ -79,7 +79,7 @@ class ContextEtcd(endpoints: List<String>) : Context {
   override fun getAll(): List<ContextVariable> {
     val resp = client.kvClient.get(rootKey, matchAll).sync()
     return resp.kvs.map { kv ->
-      ContextVariable.eager(kv.key.toString(StandardCharsets.UTF_8), kv.value.bytes.fromBytes())
+      ContextVariable(kv.key.toString(StandardCharsets.UTF_8), kv.value.bytes.fromBytes())
     }
   }
 

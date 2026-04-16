@@ -18,7 +18,11 @@ internal constructor(
   val exitActions = specification.exit.toTopologicalList()
   val timeout = specification.after.toTopologicalList().filterIsInstance<TimeoutAction>()
 
-  override val extent: Extent by lazy { parent.extent.extend(Context.from(specification.static)) }
+  override val extent: Extent by lazy {
+    parent.extent.extend(
+      Context.empty().apply { specification.static.forEach { this.create(it.name, it.value) } }
+    )
+  }
 
   private fun <V, E> Graph<V, E>.toTopologicalList(): List<V> =
     TopologicalOrderIterator(this).asSequence().toList()

@@ -1,29 +1,11 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
+import at.ac.uibk.dps.cirrina.spec.LazyContextVariable
 
-data class ContextVariable(val name: String, val value: Any?, val isLazy: Boolean = false) {
-  init {
-    require(name.isNotBlank()) { "name cannot be blank" }
-  }
-
-  fun evaluate(extent: Extent): ContextVariable =
-    if (isLazy) {
-      val expression =
-        value as? Expression
-          ?: error("variable '$name' is marked lazy but value is not an expression")
-      copy(value = expression.execute(extent), isLazy = false)
-    } else this
-
-  override fun toString(): String =
-    "ContextVariable(name='$name', value='$value', isLazy='$isLazy')"
-
-  companion object {
-    fun lazy(name: String, expression: Expression) = ContextVariable(name, expression, true)
-
-    fun eager(name: String, value: Any?) = ContextVariable(name, value, false)
-  }
-}
+fun LazyContextVariable.evaluate(extent: Extent) =
+  ContextVariable(name, expression.evaluate(extent))
 
 interface Context : AutoCloseable {
   fun has(name: String): Boolean
@@ -46,8 +28,7 @@ interface Context : AutoCloseable {
     fun from(description: Map<String, String>?): Context {
       val ctx = ContextInMemory()
       description?.forEach { (name, expr) ->
-        val expression = Expression.create(expr)
-        val value = expression.execute(Extent.empty())
+        val value = expr.evaluate(Extent.empty())
         ctx.create(name, value)
       }
       return ctx

@@ -65,8 +65,8 @@ constructor(
         .flatMap { instance ->
           stateMachineFactory.createHierarchy(
             name = instance.name,
-            specification = instance.stateMachine,
-            instance = instance,
+            stateMachineSpec = instance.stateMachine,
+            instanceSpec = instance,
             subscriptions =
               spec.instances.filter { instance.subscription.matches(it.name) }.map { it.name },
             runtime = this,

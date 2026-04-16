@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.spec
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
-import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.execution.`object`.Context
 import at.ac.uibk.dps.cirrina.execution.`object`.EventRaisingAction
 import org.jgrapht.graph.DirectedPseudograph
 
@@ -14,19 +14,23 @@ internal constructor(
   val nested: List<StateMachine>,
   description: StateMachineDescription,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
-  val transient = description.transient
+  /** The transient data context variables */
+  val transient = Context.from(description.transient).getAll()
 
+  /** The initial state specification. */
   val initial: State by lazy {
     vertexSet().firstOrNull { it.initial }
       ?: error("state machine '$name' must have an initial state")
   }
 
+  /** The list of input events (the event topics this state machine responds to). */
   val inputEvents: List<String> by lazy {
     val localEvents = edgeSet().mapNotNull { it.event }
     val nestedEvents = nested.flatMap { it.inputEvents }
     (localEvents + nestedEvents).distinct()
   }
 
+  /** The list of output events (the event topics this state machine generates). */
   val outputEvents: List<Event> by lazy {
     val localEvents =
       (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
@@ -37,7 +41,8 @@ internal constructor(
     (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
   }
 
-  private val stateNames: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
+  /** The map of state names to state specifications. */
+  private val states: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
 
   init {
     description.states.forEach { (stateName, stateDesc) ->
@@ -52,7 +57,7 @@ internal constructor(
     }
   }
 
-  fun getStateClassByName(name: String) = stateNames[name]
+  fun getStateClassByName(name: String) = states[name]
 
   private fun buildGraph(
     graph: StateMachine,

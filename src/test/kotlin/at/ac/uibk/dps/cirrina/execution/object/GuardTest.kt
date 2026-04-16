@@ -6,7 +6,6 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
 class GuardTest {
-
   @Test
   fun testGuard() {
     ContextInMemory().use { context ->
@@ -14,13 +13,13 @@ class GuardTest {
       val extent = Extent.of(context)
 
       // Success case
-      assertDoesNotThrow { Guard.from("v==5").evaluate(extent) }
+      assertDoesNotThrow { "v==5".evaluatesToTrue(extent) }
 
       // Success case
-      assertDoesNotThrow { Guard.from("v==6").evaluate(extent) }
+      assertDoesNotThrow { "v==6".evaluatesToTrue(extent) }
 
       // Error case
-      assertThrows<IllegalArgumentException> { Guard.from("v").evaluate(extent) }
+      assertThrows<IllegalArgumentException> { "v".evaluatesToTrue(extent) }
     }
   }
 }

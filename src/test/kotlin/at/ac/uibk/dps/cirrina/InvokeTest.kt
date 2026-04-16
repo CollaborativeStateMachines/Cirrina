@@ -3,8 +3,8 @@ package at.ac.uibk.dps.cirrina
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.util.TestUtils.mockHttpServer
 import java.time.Duration
 import kotlin.time.measureTime

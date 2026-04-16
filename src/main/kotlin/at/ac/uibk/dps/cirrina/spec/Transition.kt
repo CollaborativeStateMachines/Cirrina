@@ -3,8 +3,6 @@ package at.ac.uibk.dps.cirrina.spec
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
 import at.ac.uibk.dps.cirrina.execution.graph.ActionGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.Action
-import at.ac.uibk.dps.cirrina.execution.`object`.Extent
-import at.ac.uibk.dps.cirrina.execution.`object`.Guard
 import org.jgrapht.graph.DefaultEdge
 
 class Transition
@@ -13,18 +11,18 @@ private constructor(
   val event: String?,
   description: TransitionDescription,
 ) : DefaultEdge() {
-
+  /** The target state name. */
   val to = description.to
 
-  val provided = description.provided?.let { Guard.from(it) }
+  /** The transition guard. */
+  val provided = description.provided
 
   val yields = description.yields.map { Action.create(it) }
 
+  /** The alternate target state name. */
   val or = description.or
 
   val actions: ActionGraph = ActionGraph.create(yields)
-
-  fun evaluate(extent: Extent): Boolean = provided?.evaluate(extent) ?: true
 
   public override fun getSource(): State = super.getSource() as State
 

@@ -2,6 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
+import at.ac.uibk.dps.cirrina.spec.LazyContextVariable
 import com.codahale.metrics.MetricRegistry
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
@@ -35,7 +36,7 @@ class ActionExecutor(
     }
 
   private fun executeEval(action: EvalAction, scope: Scope): List<Action> {
-    action.expression.execute(scope.extent)
+    action.expression.evaluate(scope.extent)
     return emptyList()
   }
 
@@ -44,7 +45,8 @@ class ActionExecutor(
       selector.select(action.type, action.mode)
         ?: error("no service implementation found for type '${action.type}'")
 
-    val input = action.input.map { it.evaluate(scope.extent) }
+    val input =
+      action.input.map { if (it is LazyContextVariable) it.evaluate(scope.extent) else it }
 
     coroutineScope.launch {
       val delta = measureTime {
@@ -67,7 +69,9 @@ class ActionExecutor(
             }
 
             action.emits.forEach { conditionalEvent ->
-              if (conditionalEvent.provided?.evaluate(scope.extent) != false) {
+              val shouldEmit = conditionalEvent.provided?.evaluate(scope.extent) ?: true
+
+              if (shouldEmit != false) {
                 val emittedEvent = conditionalEvent.event.copy(data = output)
                 if (emittedEvent.channel == EventChannel.INTERNAL) {
                   eventHandler.propagateToParent(emittedEvent)
@@ -87,15 +91,23 @@ class ActionExecutor(
 
   private fun executeMatch(action: MatchAction, scope: Scope): List<Action> =
     action.cases.entries
-      .filter { (expression, _) -> expression.execute(scope.extent) == true }
+      .filter { (expression, _) -> expression.evaluate(scope.extent) == true }
       .flatMap { it.value }
       .ifEmpty { listOfNotNull(action.default) }
 
   private fun executeEmit(action: EmitAction, scope: Scope): List<Action> {
     val emittedEvent =
-      action.event.evaluateData(scope.extent).run {
-        val target = action.target?.execute(scope.extent) as? String
-        if (target != null) copy(target = target) else this
+      action.event.run {
+        val evaluatedData =
+          data.map { item ->
+            if (item is LazyContextVariable) item.evaluate(scope.extent) else item
+          }
+
+        copy(data = evaluatedData).let { eventWithData ->
+          val target = action.target?.let { source -> source.evaluate(scope.extent) as? String }
+
+          if (target != null) eventWithData.copy(target = target) else eventWithData
+        }
       }
 
     with(eventHandler) {
@@ -107,13 +119,15 @@ class ActionExecutor(
   }
 
   private fun executeLog(action: LogAction, scope: Scope): List<Action> {
-    action.message.execute(scope.extent).toString().also { logger.info(it) }
+    action.message.evaluate(scope.extent).toString().also { logger.info(it) }
     return emptyList()
   }
 
   private fun executeCtr(action: CtrAction, scope: Scope): List<Action> {
     val tags =
-      action.tag.entries.joinToString(".") { (key, value) -> "$key=${value.execute(scope.extent)}" }
+      action.tag.entries.joinToString(".") { (key, value) ->
+        "$key=${value.evaluate(scope.extent)}"
+      }
 
     val name =
       if (tags.isEmpty()) {

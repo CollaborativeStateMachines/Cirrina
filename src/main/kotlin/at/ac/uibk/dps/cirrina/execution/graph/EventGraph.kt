@@ -1,11 +1,10 @@
 package at.ac.uibk.dps.cirrina.execution.graph
 
-import at.ac.uibk.dps.cirrina.execution.`object`.Event
+import at.ac.uibk.dps.cirrina.spec.Event
 import at.ac.uibk.dps.cirrina.spec.Instance
 import org.jgrapht.graph.DirectedMultigraph
 
 class EventGraph : DirectedMultigraph<String, EventGraph.Flow>(Flow::class.java) {
-
   fun getOutgoing(vertices: Collection<String>) = vertices.flatMap { outgoingEdgesOf(it) }
 
   data class Flow(val source: String, val target: String, val event: Event)

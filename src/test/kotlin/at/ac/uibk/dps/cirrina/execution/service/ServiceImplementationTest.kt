@@ -1,9 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.service
 
 import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
-import at.ac.uibk.dps.cirrina.execution.`object`.Extent
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
@@ -26,7 +25,7 @@ class ServiceImplementationTest {
               exchange.readVariables().let { vars ->
                 val v1 = vars.first { it.name == "varOne" }.value as Int
                 val v2 = vars.first { it.name == "varTwo" }.value as Int
-                listOf(ContextVariable.eager("result", v1 + v2))
+                listOf(ContextVariable("result", v1 + v2))
               }
             exchange.sendVariables(result)
           }
@@ -59,12 +58,7 @@ class ServiceImplementationTest {
     listOf(Csml.HttpMethod.POST, Csml.HttpMethod.GET).forEach { method ->
       val result = assertDoesNotThrow {
         createService("/plus", method)
-          .invoke(
-            listOf(
-              ContextVariable.eager("varOne", 5).evaluate(Extent.empty()),
-              ContextVariable.eager("varTwo", 6).evaluate(Extent.empty()),
-            )
-          )
+          .invoke(listOf(ContextVariable("varOne", 5), ContextVariable("varTwo", 6)))
       }
 
       assertEquals(1, result.size)
