@@ -31,6 +31,8 @@ fun String.evaluate(extent: Extent): Any? {
   }
 }
 
+fun String.evaluate() = this.evaluate(Extent.empty())
+
 private object Provider {
   private const val CACHE_SIZE = 1024
 

@@ -9,15 +9,7 @@ class Csml private constructor(description: Csml) {
 
   /** The list of instance specifications. */
   val instances =
-    description.instances.map { (name, desc) ->
-      Instance.create(
-          this,
-          desc,
-          collaborativeStateMachine.getStateMachine(desc.stateMachineName),
-          name,
-        )
-        .getOrThrow()
-    }
+    description.instances.map { (name, desc) -> Instance.create(this, desc, name).getOrThrow() }
 
   // TODO: This should have a specification
   val bindings = description.bindings

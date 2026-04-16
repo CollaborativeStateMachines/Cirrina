@@ -6,6 +6,7 @@ import at.ac.uibk.dps.cirrina.spec.Action
 import at.ac.uibk.dps.cirrina.spec.Ctr
 import at.ac.uibk.dps.cirrina.spec.Emit
 import at.ac.uibk.dps.cirrina.spec.Eval
+import at.ac.uibk.dps.cirrina.spec.Instantiate
 import at.ac.uibk.dps.cirrina.spec.Invoke
 import at.ac.uibk.dps.cirrina.spec.LazyContextVariable
 import at.ac.uibk.dps.cirrina.spec.Log
@@ -33,28 +34,24 @@ class ActionExecutor(
 ) {
   fun execute(spec: Action, scope: Scope): List<Action> =
     when (spec) {
-      is Eval -> executeEval(spec, scope)
       is Invoke -> executeInvoke(spec, scope)
-      is Match -> executeMatch(spec, scope)
+      is Eval -> executeEval(spec, scope)
       is Emit -> executeEmit(spec, scope)
       is Timeout -> listOf(spec.triggers)
       is Reset -> emptyList()
+      is Match -> executeMatch(spec, scope)
       is Log -> executeLog(spec, scope)
+      is Instantiate -> executeInstantiate(spec, scope)
       is Ctr -> executeCtr(spec, scope)
       else -> error("unknown action type '${spec::class.simpleName}'")
     }
-
-  private fun executeEval(spec: Eval, scope: Scope): List<Action> {
-    spec.expression.evaluate(scope.extent)
-    return emptyList()
-  }
 
   private fun executeInvoke(spec: Invoke, scope: Scope): List<Action> {
     val service =
       selector.select(spec.type, spec.mode)
         ?: error("no service implementation found for type '${spec.type}'")
 
-    val input = spec.input.map { if (it is LazyContextVariable) it.evaluate(scope.extent) else it }
+    val input = spec.input.map { it.evaluate(scope.extent) }
 
     coroutineScope.launch {
       val delta = measureTime {
@@ -97,11 +94,10 @@ class ActionExecutor(
     return emptyList()
   }
 
-  private fun executeMatch(spec: Match, scope: Scope): List<Action> =
-    spec.cases.entries
-      .filter { (expression, _) -> expression.evaluate(scope.extent) == true }
-      .flatMap { it.value }
-      .ifEmpty { listOfNotNull(spec.default) }
+  private fun executeEval(spec: Eval, scope: Scope): List<Action> {
+    spec.expression.evaluate(scope.extent)
+    return emptyList()
+  }
 
   private fun executeEmit(spec: Emit, scope: Scope): List<Action> {
     val emittedEvent =
@@ -126,8 +122,18 @@ class ActionExecutor(
     return emptyList()
   }
 
+  private fun executeMatch(spec: Match, scope: Scope): List<Action> =
+    spec.cases.entries
+      .filter { (expression, _) -> expression.evaluate(scope.extent) == true }
+      .flatMap { it.value }
+      .ifEmpty { listOfNotNull(spec.default) }
+
   private fun executeLog(spec: Log, scope: Scope): List<Action> {
     spec.message.evaluate(scope.extent).toString().also { logger.info(it) }
+    return emptyList()
+  }
+
+  private fun executeInstantiate(spec: Instantiate, scope: Scope): List<Action> {
     return emptyList()
   }
 

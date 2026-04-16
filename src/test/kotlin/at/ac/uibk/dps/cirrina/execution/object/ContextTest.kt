@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 abstract class ContextTest {
-
   protected abstract fun createContext(): Context
 
   @Test

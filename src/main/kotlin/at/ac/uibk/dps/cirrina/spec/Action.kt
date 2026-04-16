@@ -16,18 +16,18 @@ import kotlin.collections.component2
 
 sealed interface Action {
   companion object {
-    fun create(description: ActionDescription, name: String? = null): Action =
+    fun create(csml: Csml, description: ActionDescription, name: String? = null) =
       when (description) {
+        is InvokeDescription -> Invoke(description)
         is EvalDescription -> Eval(description)
         is EmitDescription -> Emit(description)
-        is TimeoutDescription -> Timeout(name ?: error("timeout action name required"), description)
+        is TimeoutDescription ->
+          Timeout(csml, name ?: error("timeout action name required"), description)
         is ResetDescription -> Reset(description.name)
-        is InvokeDescription -> Invoke(description)
-        is MatchDescription -> Match(description)
+        is MatchDescription -> Match(csml, description)
         is LogDescription -> Log(description)
-        is InstantiateDescription -> Instantiate(description)
+        is InstantiateDescription -> Instantiate(csml, description)
         is CtrDescription -> Ctr(description)
-
         else -> error("unknown action type '${description.javaClass.simpleName}'")
       }
   }
@@ -35,31 +35,6 @@ sealed interface Action {
 
 interface EventRaisingAction : Action {
   fun raises(): List<Event>
-}
-
-class Eval internal constructor(description: EvalDescription) : Action {
-  val expression = description.expression
-}
-
-class Emit internal constructor(description: EmitDescription) : EventRaisingAction {
-  val event = Event.from(description.event)
-
-  val target: String? = description.target
-
-  override fun raises(): List<Event> = listOf(event)
-}
-
-class Timeout internal constructor(val name: String, description: TimeoutDescription) :
-  EventRaisingAction {
-  val delay = description.delay
-
-  val triggers = create(description.triggers)
-
-  override fun raises(): List<Event> = (triggers as? Emit)?.let { listOf(it.event) } ?: emptyList()
-}
-
-class Reset internal constructor(val action: String) : Action {
-  override fun toString() = "ResetAction(action='$action')"
 }
 
 class Invoke internal constructor(description: InvokeDescription) : EventRaisingAction {
@@ -76,10 +51,35 @@ class Invoke internal constructor(description: InvokeDescription) : EventRaising
   override fun raises(): List<Event> = emits.map { it.event }
 }
 
-class Match internal constructor(description: MatchDescription) : EventRaisingAction {
-  val cases = description.cases.associate { it.of to it.yields.map { desc -> create(desc) } }
+class Eval internal constructor(description: EvalDescription) : Action {
+  val expression = description.expression
+}
 
-  val default = description.default?.let { create(it) }
+class Emit internal constructor(description: EmitDescription) : EventRaisingAction {
+  val event = Event.from(description.event)
+
+  val target: String? = description.target
+
+  override fun raises(): List<Event> = listOf(event)
+}
+
+class Timeout internal constructor(csml: Csml, val name: String, description: TimeoutDescription) :
+  EventRaisingAction {
+  val delay = description.delay
+
+  val triggers = create(csml, description.triggers)
+
+  override fun raises(): List<Event> = (triggers as? Emit)?.let { listOf(it.event) } ?: emptyList()
+}
+
+class Reset internal constructor(val action: String) : Action {
+  override fun toString() = "ResetAction(action='$action')"
+}
+
+class Match internal constructor(csml: Csml, description: MatchDescription) : EventRaisingAction {
+  val cases = description.cases.associate { it.of to it.yields.map { desc -> create(csml, desc) } }
+
+  val default = description.default?.let { create(csml, it) }
 
   override fun raises(): List<Event> =
     (cases.values.flatten() + listOfNotNull(default))
@@ -91,7 +91,9 @@ class Log internal constructor(description: LogDescription) : Action {
   val message = description.message
 }
 
-class Instantiate internal constructor(description: InstantiateDescription) : Action
+class Instantiate internal constructor(csml: Csml, description: InstantiateDescription) : Action {
+  val instances = description.instances.map { Instance.create(csml, it.value, it.key).getOrThrow() }
+}
 
 class Ctr internal constructor(description: CtrDescription) : Action {
   val counter: String = description.counter

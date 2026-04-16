@@ -112,8 +112,8 @@ internal constructor(
   init {
     val transientContext =
       Context.empty().apply {
-        stateMachineSpec.transient.forEach { this.create(it.name, it.value) }
-        instanceSpec.data.forEach { this.create(it.name, it.value) }
+        stateMachineSpec.transient?.forEach { (k, v) -> this.create(k, v.evaluate()) }
+        instanceSpec.data?.forEach { (k, v) -> this.create(k, v.evaluate()) }
       }
 
     val eventContext = Context.empty()

@@ -25,15 +25,6 @@ interface Context : AutoCloseable {
   fun clear()
 
   companion object {
-    fun from(description: Map<String, String>?): Context {
-      val ctx = ContextInMemory()
-      description?.forEach { (name, expr) ->
-        val value = expr.evaluate(Extent.empty())
-        ctx.create(name, value)
-      }
-      return ctx
-    }
-
     fun empty() = ContextInMemory()
   }
 }

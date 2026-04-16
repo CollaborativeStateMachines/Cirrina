@@ -21,7 +21,9 @@ internal constructor(
 
   override val extent: Extent by lazy {
     parent.extent.extend(
-      Context.empty().apply { specification.static.forEach { this.create(it.name, it.value) } }
+      Context.empty().apply {
+        specification.static?.forEach { (k, v) -> this.create(k, v.evaluate()) }
+      }
     )
   }
 

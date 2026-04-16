@@ -8,6 +8,7 @@ import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
+import at.ac.uibk.dps.cirrina.spec.Instantiate
 import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
@@ -51,17 +52,19 @@ constructor(
       RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings ?: emptyList()))
 
     persistentContext?.let { context ->
-      spec.collaborativeStateMachine.persistentContext.forEach { variable ->
-        runCatching { context.create(variable.name, variable.value) }
-          .onFailure {
-            logger.warn { "variable '${variable.name}' already exists or failed to create" }
-          }
+      spec.collaborativeStateMachine.persistentContext?.forEach { (k, v) ->
+        runCatching { context.create(k, v.evaluate()) }
+          .onFailure { logger.warn { "variable '${k}' already exists or failed to create" } }
       }
     }
 
     instances =
-      spec.instances
-        .filter { it.name in run }
+      (spec.instances.filter { it.name in run } // Static instances
+        +
+          spec.collaborativeStateMachine.getAllActions().filterIsInstance<Instantiate>().flatMap {
+            it.instances
+          } // Dynamic instances
+        )
         .flatMap { instance ->
           stateMachineFactory.createHierarchy(
             name = instance.name,
