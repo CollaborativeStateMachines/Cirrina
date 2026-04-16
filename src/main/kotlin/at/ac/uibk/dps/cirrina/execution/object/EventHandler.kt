@@ -71,7 +71,7 @@ class EventHandler : AutoCloseable {
   fun emit(event: Event) {
     if (event.channel != Csml.EventChannel.EXTERNAL) return
 
-    val publisher = publishers[event.topic] ?: error("no publisher for topic '${event.topic}'")
+    val publisher = publishers[event.topic] ?: return
     val payload = ZBytes.from(Serializer.serialize(event))
 
     publisher.put(payload).onFailure { error("failed to send event '$event'") }

@@ -5,13 +5,13 @@ import at.ac.uibk.dps.cirrina.spec.graph.ActionGraph
 import org.jgrapht.graph.DefaultEdge
 
 class Transition
-private constructor(csml: Csml, val event: String?, description: TransitionDescription) :
+private constructor(val event: String?, csml: Csml, description: TransitionDescription) :
   DefaultEdge() {
   /** The target state name. */
   val to = description.to
 
   /** The transition guard. */
-  val provided = description.provided
+  val provided = description.provided?.let { Expression(it) }
 
   val yields = description.yields.map { Action.create(csml, it) }
 
@@ -31,6 +31,6 @@ private constructor(csml: Csml, val event: String?, description: TransitionDescr
       csml: Csml,
       description: TransitionDescription,
       event: String? = null,
-    ): Result<Transition> = runCatching { Transition(csml, event, description) }
+    ): Result<Transition> = runCatching { Transition(event, csml, description) }
   }
 }

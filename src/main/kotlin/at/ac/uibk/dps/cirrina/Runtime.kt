@@ -7,13 +7,15 @@ import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelec
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
-import at.ac.uibk.dps.cirrina.spec.Instantiate
 import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import jakarta.inject.Inject
 import java.net.URI
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.joinAll
@@ -25,13 +27,14 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
+  private val stateMachineFactory: StateMachine.Factory,
   @Run private val run: List<String>,
   @Main main: URI,
-  persistentContext: Context?,
-  stateMachineFactory: StateMachine.Factory,
   val metricRegistry: MetricRegistry,
+  persistentContext: Context? = null,
 ) {
   val eventHandler = EventHandler()
+
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
   val selector: ServiceImplementationSelector
@@ -52,24 +55,20 @@ constructor(
       RandomServiceImplementationSelector(ServiceImplementation.from(spec.bindings ?: emptyList()))
 
     persistentContext?.let { context ->
-      spec.collaborativeStateMachine.persistentContext?.forEach { (k, v) ->
+      spec.collaborativeStateMachine.persistentContext.forEach { (k, v) ->
         runCatching { context.create(k, v.evaluate()) }
           .onFailure { logger.warn { "variable '${k}' already exists or failed to create" } }
       }
     }
 
     instances =
-      (spec.instances.filter { it.name in run } // Static instances
-        +
-          spec.collaborativeStateMachine.getAllActions().filterIsInstance<Instantiate>().flatMap {
-            it.instances
-          } // Dynamic instances
-        )
+      spec.instances
+        .filter { it.name in run }
         .flatMap { instance ->
           stateMachineFactory.createHierarchy(
             name = instance.name,
-            stateMachineSpec = instance.stateMachine,
-            instanceSpec = instance,
+            spec = instance.stateMachine,
+            data = instance.data.map { (k, v) -> ContextVariable(k, v.evaluate()) },
             subscriptions =
               spec.instances.filter { instance.subscription.matches(it.name) }.map { it.name },
             runtime = this,

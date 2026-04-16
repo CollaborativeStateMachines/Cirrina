@@ -13,7 +13,7 @@ typealias Subscription = String
 class InstanceDescription {
   stateMachineName: StateMachineName
   subscription: Regex = Regex(#".*"#)
-  data: Context?
+  data: Context
 }
 
 /// The CSML version.
@@ -23,9 +23,9 @@ fixed version: String = "4.0.0"
 collaborativeStateMachine: CollaborativeStateMachineDescription
 
 /// State machine instances from the collaborative state machine declaration to instantiate.
-instances: Mapping<String, Instance>?
+instances: Mapping<String, Instance>
 
-bindings: Listing<ServiceImplementationBinding>?
+bindings: Listing<ServiceImplementationBinding>
 
 /// An expression, see <https://commons.apache.org/proper/commons-jexl/reference/syntax.html> for
 /// the JEXL expression syntax.
@@ -38,7 +38,7 @@ typealias VariableName = String
 typealias Context = Mapping<VariableName, Expression>
 
 class CollaborativeStateMachineDescription {
-  persistent: Context?
+  persistent: Context
   stateMachines: Mapping<StateMachineName, StateMachineDescription>
 }
 
@@ -47,7 +47,7 @@ typealias StateName = String
 class StateMachineDescription {
   states: Mapping<StateName, StateDescription>
   nested: Mapping<StateMachineName, StateMachineDescription>
-  transient: Context?
+  transient: Context
 }
 
 typealias EventName = String
@@ -57,7 +57,7 @@ typealias TimeoutName = String
 open class StateDescription {
   initial: Boolean = false
   terminal: Boolean = false
-  static: Context?
+  static: Context
   entry: Listing<ActionDescription>
   exit: Listing<ActionDescription>
   during: Listing<ActionDescription>
@@ -159,7 +159,7 @@ class InstantiateDescription extends ActionDescription {
 class CtrDescription extends ActionDescription {
   counter: String
   by: Int = 1
-  tags: Mapping<String, Expression>?
+  tags: Mapping<String, Expression>
 }
 
 typealias Type = "HTTP"

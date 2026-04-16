@@ -5,9 +5,9 @@ import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.spec.Action
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Emit
 import at.ac.uibk.dps.cirrina.spec.Event
-import at.ac.uibk.dps.cirrina.spec.Instance as InstanceSpec
 import at.ac.uibk.dps.cirrina.spec.Reset
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
 import at.ac.uibk.dps.cirrina.spec.Timeout
@@ -50,10 +50,10 @@ class StateMachine
 @AssistedInject
 internal constructor(
   @Assisted val name: String,
-  @Assisted val stateMachineSpec: StateMachineSpec,
-  @Assisted val instanceSpec: InstanceSpec,
+  @Assisted val spec: StateMachineSpec,
+  @Assisted val data: List<ContextVariable>,
   @Assisted val subscriptions: List<String>,
-  @Assisted private val runtime: Runtime,
+  @Assisted override val runtime: Runtime,
   @Assisted private val parent: StateMachine? = null,
   private val stateFactory: State.Factory,
   private val transitionFactory: Transition.Factory,
@@ -76,12 +76,12 @@ internal constructor(
     )
 
   private val stateInstances =
-    stateMachineSpec.vertexSet().associate { it.name to stateFactory.create(it, this) }
+    spec.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
   private val onTransitions: Map<String, Map<String, List<Transition>>> =
-    stateMachineSpec.vertexSet().associate { state ->
+    spec.vertexSet().associate { state ->
       state.name to
-        stateMachineSpec
+        spec
           .outgoingEdgesOf(state)
           .filter { it.event != null }
           .groupBy { it.event!! }
@@ -89,12 +89,9 @@ internal constructor(
     }
 
   private val alwaysTransitions: Map<String, List<Transition>> =
-    stateMachineSpec.vertexSet().associate { state ->
+    spec.vertexSet().associate { state ->
       state.name to
-        stateMachineSpec
-          .outgoingEdgesOf(state)
-          .filter { it.event == null }
-          .map { transitionFactory.create(it) }
+        spec.outgoingEdgesOf(state).filter { it.event == null }.map { transitionFactory.create(it) }
     }
 
   private val started = CompletableDeferred<Unit>()
@@ -112,8 +109,8 @@ internal constructor(
   init {
     val transientContext =
       Context.empty().apply {
-        stateMachineSpec.transient?.forEach { (k, v) -> this.create(k, v.evaluate()) }
-        instanceSpec.data?.forEach { (k, v) -> this.create(k, v.evaluate()) }
+        spec.transient?.forEach { (k, v) -> create(k, v.evaluate()) }
+        data.forEach { create(it.name, it.value) }
       }
 
     val eventContext = Context.empty()
@@ -125,7 +122,7 @@ internal constructor(
   fun start(): Job {
     logger.info { "'$this' entering initial state" }
 
-    val initial = stateInstances[stateMachineSpec.initial.name] ?: error("initial state not found")
+    val initial = stateInstances[spec.initial.name] ?: error("initial state not found")
     doEnter(initial)?.let { step(it) }
 
     started.complete(Unit)
@@ -339,8 +336,8 @@ internal constructor(
   interface Factory {
     fun create(
       name: String,
-      stateMachineSpec: StateMachineSpec,
-      instanceSpec: InstanceSpec,
+      spec: StateMachineSpec,
+      data: List<ContextVariable>,
       subscriptions: List<String>,
       runtime: Runtime,
       parent: StateMachine?,
@@ -350,19 +347,19 @@ internal constructor(
 
 fun Factory.createHierarchy(
   name: String,
-  stateMachineSpec: StateMachineSpec,
-  instanceSpec: InstanceSpec,
+  spec: StateMachineSpec,
+  data: List<ContextVariable>,
   subscriptions: List<String>,
   runtime: Runtime,
   parent: StateMachine?,
 ): List<StateMachine> =
-  create(name, stateMachineSpec, instanceSpec, subscriptions, runtime, parent).let { current ->
-    stateMachineSpec.nested
+  create(name, spec, data, subscriptions, runtime, parent).let { current ->
+    spec.nested
       .flatMapIndexed { index, nested ->
         createHierarchy(
           "${current.name}.$index@${nested.name}",
           nested,
-          instanceSpec,
+          data,
           subscriptions,
           runtime,
           current,

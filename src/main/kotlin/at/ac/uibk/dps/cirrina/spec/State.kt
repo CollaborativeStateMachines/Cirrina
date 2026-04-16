@@ -4,7 +4,7 @@ import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
 import at.ac.uibk.dps.cirrina.spec.graph.ActionGraph
 
-class State private constructor(csml: Csml, val name: String, description: StateDescription) {
+class State private constructor(val name: String, csml: Csml, description: StateDescription) {
   /** The boolean indicating the initial status */
   val initial = description.isInitial
 
@@ -12,7 +12,7 @@ class State private constructor(csml: Csml, val name: String, description: State
   val terminal = description.isTerminal
 
   /** The static data context variables */
-  val static: Map<String, String>? = description.static
+  val static: Map<String, Expression> = description.static.mapValues { (_, v) -> Expression(v) }
 
   val entry = ActionGraph.create(resolveActions(csml, description.entry))
   val exit = ActionGraph.create(resolveActions(csml, description.exit))
@@ -24,7 +24,7 @@ class State private constructor(csml: Csml, val name: String, description: State
 
   companion object {
     fun create(csml: Csml, description: StateDescription, name: String) = runCatching {
-      State(csml, name, description)
+      State(name, csml, description)
     }
 
     private fun resolveActions(csml: Csml, descriptions: List<ActionDescription>) =

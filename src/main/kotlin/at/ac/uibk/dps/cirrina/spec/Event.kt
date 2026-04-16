@@ -20,19 +20,22 @@ data class Event(
   companion object {
     fun from(description: EventDescription): Event {
       val variables =
-        description.data.map { (name, exprSource) -> LazyContextVariable(name, exprSource) }
+        description.data.map { (name, source) -> LazyContextVariable(name, Expression(source)) }
       return Event(description.topic, description.channel, variables)
     }
   }
 }
 
-data class ConditionalEvent(val provided: String?, val event: Event) {
+data class ConditionalEvent(val provided: Expression?, val event: Event) {
   override fun toString(): String =
     "${this::class.simpleName}(provided='$provided', event='$event')"
 
   companion object {
     fun from(description: ConditionalEventDescription): ConditionalEvent {
-      return ConditionalEvent(description.provided, Event.from(description.event))
+      return ConditionalEvent(
+        description.provided?.let { Expression(it) },
+        Event.from(description.event),
+      )
     }
   }
 }

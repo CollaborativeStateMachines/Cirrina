@@ -1,8 +1,10 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.spec.Action
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Ctr
 import at.ac.uibk.dps.cirrina.spec.Emit
 import at.ac.uibk.dps.cirrina.spec.Eval
@@ -14,6 +16,8 @@ import at.ac.uibk.dps.cirrina.spec.Match
 import at.ac.uibk.dps.cirrina.spec.Reset
 import at.ac.uibk.dps.cirrina.spec.Timeout
 import com.codahale.metrics.MetricRegistry
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +27,8 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger {}
 
 interface Scope {
+  val runtime: Runtime
+
   val extent: Extent
 }
 
@@ -134,6 +140,11 @@ class ActionExecutor(
   }
 
   private fun executeInstantiate(spec: Instantiate, scope: Scope): List<Action> {
+    spec.instances.forEach {
+      val data = it.data.map { (k, v) -> ContextVariable(k, v.evaluate(scope.extent)) }
+      println(data)
+    }
+
     return emptyList()
   }
 

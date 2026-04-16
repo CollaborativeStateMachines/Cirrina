@@ -7,13 +7,14 @@ import org.jgrapht.graph.DirectedPseudograph
 
 class StateMachine
 internal constructor(
-  csml: Csml,
   val name: String,
   val nested: List<StateMachine>,
+  csml: Csml,
   description: StateMachineDescription,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
   /** The transient data context variables */
-  val transient: Map<String, String>? = description.transient
+  val transient: Map<String, Expression> =
+    description.transient.mapValues { (_, v) -> Expression(v) }
 
   /** The initial state specification. */
   val initial: State by lazy {
@@ -82,7 +83,7 @@ internal constructor(
           create(csml, smDesc, nestedName).getOrThrow()
         }
 
-      StateMachine(csml, name, nested, description)
+      StateMachine(name, nested, csml, description)
     }
   }
 }

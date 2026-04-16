@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import at.ac.uibk.dps.cirrina.spec.Expression
 import java.lang.reflect.Array as ReflectArray
 import java.security.SecureRandom
 import java.util.LinkedHashSet
@@ -10,16 +11,16 @@ import org.apache.commons.jexl3.JexlEngine
 import org.apache.commons.jexl3.JexlFeatures
 import org.apache.commons.jexl3.introspection.JexlPermissions
 
-fun String.evaluatesToTrue(extent: Extent): Boolean {
+fun Expression.evaluatesToTrue(extent: Extent): Boolean {
   val result = this.evaluate(extent)
-  require(result is Boolean) { "guard expression '$this' did not produce a boolean" }
+  require(result is Boolean) { "expression '$this' did not produce a boolean" }
   return result
 }
 
-fun String.evaluate(extent: Extent): Any? {
+fun Expression.evaluate(extent: Extent): Any? {
   val script =
     try {
-      Provider.engine.createScript(this)
+      Provider.engine.createScript(source)
     } catch (e: Exception) {
       error("could not parse expression '$this': ${e.localizedMessage}")
     }
@@ -31,7 +32,7 @@ fun String.evaluate(extent: Extent): Any? {
   }
 }
 
-fun String.evaluate() = this.evaluate(Extent.empty())
+fun Expression.evaluate() = evaluate(Extent.empty())
 
 private object Provider {
   private const val CACHE_SIZE = 1024

@@ -22,7 +22,7 @@ sealed interface Action {
         is EvalDescription -> Eval(description)
         is EmitDescription -> Emit(description)
         is TimeoutDescription ->
-          Timeout(csml, name ?: error("timeout action name required"), description)
+          Timeout(name ?: error("timeout action name required"), csml, description)
         is ResetDescription -> Reset(description.name)
         is MatchDescription -> Match(csml, description)
         is LogDescription -> Log(description)
@@ -42,7 +42,7 @@ class Invoke internal constructor(description: InvokeDescription) : EventRaising
 
   val mode = description.mode
 
-  val input = description.input.map { (k, v) -> LazyContextVariable(k, v) }
+  val input = description.input.map { (k, v) -> LazyContextVariable(k, Expression(v)) }
 
   val output = description.output
 
@@ -52,20 +52,20 @@ class Invoke internal constructor(description: InvokeDescription) : EventRaising
 }
 
 class Eval internal constructor(description: EvalDescription) : Action {
-  val expression = description.expression
+  val expression = Expression(description.expression)
 }
 
 class Emit internal constructor(description: EmitDescription) : EventRaisingAction {
   val event = Event.from(description.event)
 
-  val target: String? = description.target
+  val target: Expression? = description.target?.let { Expression(it) }
 
   override fun raises(): List<Event> = listOf(event)
 }
 
-class Timeout internal constructor(csml: Csml, val name: String, description: TimeoutDescription) :
+class Timeout internal constructor(val name: String, csml: Csml, description: TimeoutDescription) :
   EventRaisingAction {
-  val delay = description.delay
+  val delay = Expression(description.delay)
 
   val triggers = create(csml, description.triggers)
 
@@ -77,7 +77,10 @@ class Reset internal constructor(val action: String) : Action {
 }
 
 class Match internal constructor(csml: Csml, description: MatchDescription) : EventRaisingAction {
-  val cases = description.cases.associate { it.of to it.yields.map { desc -> create(csml, desc) } }
+  val cases =
+    description.cases.associate {
+      Expression(it.of) to it.yields.map { desc -> create(csml, desc) }
+    }
 
   val default = description.default?.let { create(csml, it) }
 
@@ -88,10 +91,11 @@ class Match internal constructor(csml: Csml, description: MatchDescription) : Ev
 }
 
 class Log internal constructor(description: LogDescription) : Action {
-  val message = description.message
+  val message = Expression(description.message)
 }
 
 class Instantiate internal constructor(csml: Csml, description: InstantiateDescription) : Action {
+  // TODO: it.key is an expression?
   val instances = description.instances.map { Instance.create(csml, it.value, it.key).getOrThrow() }
 }
 
@@ -100,5 +104,5 @@ class Ctr internal constructor(description: CtrDescription) : Action {
 
   val by = description.by
 
-  val tags: Map<String, String>? = description.tags
+  val tags: Map<String, Expression>? = description.tags?.mapValues { (_, v) -> Expression(v) }
 }

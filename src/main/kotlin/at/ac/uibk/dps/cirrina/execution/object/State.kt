@@ -19,6 +19,8 @@ internal constructor(
   val exitActions = specification.exit.toTopologicalList()
   val timeout = specification.after.toTopologicalList().filterIsInstance<Timeout>()
 
+  override val runtime = parent.runtime
+
   override val extent: Extent by lazy {
     parent.extent.extend(
       Context.empty().apply {

@@ -8,7 +8,7 @@ open class ContextVariable(val name: String, open val value: Any?) {
   override fun toString(): String = "ContextVariable(name='$name', value=$value)"
 }
 
-class LazyContextVariable(name: String, val expression: String) :
+class LazyContextVariable(name: String, val expression: Expression) :
   ContextVariable(name, expression) {
 
   override fun toString(): String = "LazyContextVariable(name='$name', expression=$expression)"
