@@ -7,13 +7,11 @@ import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import java.time.Duration
 import kotlin.time.measureTime
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertTimeout
 
 class InstantiateTest {
-  @Disabled
   @Test
   fun testInstantiateExecute() {
     assertTimeout(Duration.ofSeconds(10)) {
@@ -23,7 +21,11 @@ class InstantiateTest {
         val runtime =
           DaggerTestComponent.builder()
             .testModule(
-              TestModule(context, DefaultDescriptions.instantiate, listOf("instantiator"))
+              TestModule(
+                context,
+                DefaultDescriptions.instantiate,
+                listOf("instantiator", "consumer"),
+              )
             )
             .build()
             .runtime()
@@ -31,7 +33,7 @@ class InstantiateTest {
         val duration = measureTime { runtime.run() }
         println("instantiator execution: $duration")
 
-        assertEquals(100_000, context.get("v"))
+        assertEquals(10, context.get("v"))
       }
     }
   }

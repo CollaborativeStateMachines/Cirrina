@@ -140,9 +140,12 @@ class ActionExecutor(
   }
 
   private fun executeInstantiate(spec: Instantiate, scope: Scope): List<Action> {
-    spec.instances.forEach {
+    val instances = spec.instances.map { it.evaluate(scope.extent).getOrThrow() }
+
+    instances.forEach {
+      // TODO: Inject instance data
       val data = it.data.map { (k, v) -> ContextVariable(k, v.evaluate(scope.extent)) }
-      println(data)
+      scope.runtime.instantiate(it)
     }
 
     return emptyList()

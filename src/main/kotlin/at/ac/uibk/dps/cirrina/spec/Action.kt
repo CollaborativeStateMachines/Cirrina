@@ -95,8 +95,10 @@ class Log internal constructor(description: LogDescription) : Action {
 }
 
 class Instantiate internal constructor(csml: Csml, description: InstantiateDescription) : Action {
-  // TODO: it.key is an expression?
-  val instances = description.instances.map { Instance.create(csml, it.value, it.key).getOrThrow() }
+  val instances =
+    description.instances.map {
+      DynamicInstance.create(csml, it.value, Expression(it.key)).getOrThrow()
+    }
 }
 
 class Ctr internal constructor(description: CtrDescription) : Action {
