@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import at.ac.uibk.dps.cirrina.spec.Action
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory

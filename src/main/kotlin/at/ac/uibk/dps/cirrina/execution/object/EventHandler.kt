@@ -2,9 +2,9 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
-import at.ac.uibk.dps.cirrina.execution.graph.EventGraph
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
 import at.ac.uibk.dps.cirrina.spec.Event
+import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import io.zenoh.Config
 import io.zenoh.Session
 import io.zenoh.Zenoh

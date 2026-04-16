@@ -1,6 +1,7 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
 import at.ac.uibk.dps.cirrina.spec.State as StateSpec
+import at.ac.uibk.dps.cirrina.spec.Timeout
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -16,7 +17,7 @@ internal constructor(
   val entryActions = specification.entry.toTopologicalList()
   val duringActions = specification.during.toTopologicalList()
   val exitActions = specification.exit.toTopologicalList()
-  val timeout = specification.after.toTopologicalList().filterIsInstance<TimeoutAction>()
+  val timeout = specification.after.toTopologicalList().filterIsInstance<Timeout>()
 
   override val extent: Extent by lazy {
     parent.extent.extend(

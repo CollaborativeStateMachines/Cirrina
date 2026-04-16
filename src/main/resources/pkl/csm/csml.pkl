@@ -88,9 +88,28 @@ class TransitionDescription {
 
 abstract class ActionDescription {}
 
+typealias EventTopic = String
+
+typealias EventChannel = "internal"|"external"|"peripheral"
+
+open class EventDescription {
+  topic: EventTopic
+  channel: EventChannel = "external"
+  data: Context
+}
+
+class InternalDescription extends EventDescription {
+  channel: EventChannel = "internal"
+}
+
 typealias InvocationType = String
 
 typealias InvocationMode = "local"|"remote"
+
+class ConditionalEventDescription {
+  provided: Expression?
+  event: EventDescription
+}
 
 class InvokeDescription extends ActionDescription {
   type: InvocationType
@@ -98,11 +117,6 @@ class InvokeDescription extends ActionDescription {
   input: Context
   output: Listing<VariableName>
   emits: Listing<ConditionalEventDescription>
-}
-
-class ConditionalEventDescription {
-  provided: Expression?
-  event: EventDescription
 }
 
 class EvalDescription extends ActionDescription {
@@ -141,25 +155,11 @@ class InstantiateDescription extends ActionDescription {
   instances: Mapping<Expression, Instance>
 }
 
-// For internal use only, not part of the public API
+// For internal use only
 class CtrDescription extends ActionDescription {
   counter: String
   by: Int = 1
   tags: Mapping<String, Expression>?
-}
-
-typealias EventTopic = String
-
-typealias EventChannel = "internal"|"external"|"peripheral"
-
-open class EventDescription {
-  topic: EventTopic
-  channel: EventChannel = "external"
-  data: Context
-}
-
-class InternalDescription extends EventDescription {
-  channel: EventChannel = "internal"
 }
 
 typealias Type = "HTTP"

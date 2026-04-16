@@ -2,10 +2,8 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
-import at.ac.uibk.dps.cirrina.execution.graph.ActionGraph
-import at.ac.uibk.dps.cirrina.execution.`object`.Action
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.TimeoutAction
+import at.ac.uibk.dps.cirrina.spec.graph.ActionGraph
 
 class State
 private constructor(val parent: StateMachine, val name: String, description: StateDescription) {
@@ -38,9 +36,7 @@ private constructor(val parent: StateMachine, val name: String, description: Sta
       descriptions
         .map { (name, desc) -> Action.create(desc, name) }
         .also { actions ->
-          require(actions.all { it is TimeoutAction }) {
-            "all 'after' actions must be timeout actions"
-          }
+          require(actions.all { it is Timeout }) { "all 'after' actions must be timeout actions" }
         }
   }
 }

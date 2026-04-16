@@ -2,13 +2,13 @@ package at.ac.uibk.dps.cirrina
 
 import at.ac.uibk.dps.cirrina.cirrina.di.Main
 import at.ac.uibk.dps.cirrina.cirrina.di.Run
-import at.ac.uibk.dps.cirrina.execution.graph.EventGraph
 import at.ac.uibk.dps.cirrina.execution.`object`.*
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
+import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import jakarta.inject.Inject

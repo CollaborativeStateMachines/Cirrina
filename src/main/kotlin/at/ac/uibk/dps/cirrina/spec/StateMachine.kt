@@ -4,7 +4,6 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
 import at.ac.uibk.dps.cirrina.execution.`object`.Context
-import at.ac.uibk.dps.cirrina.execution.`object`.EventRaisingAction
 import org.jgrapht.graph.DirectedPseudograph
 
 class StateMachine

@@ -4,9 +4,13 @@ import TimeoutActionManager
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
+import at.ac.uibk.dps.cirrina.spec.Action
+import at.ac.uibk.dps.cirrina.spec.Emit
 import at.ac.uibk.dps.cirrina.spec.Event
 import at.ac.uibk.dps.cirrina.spec.Instance as InstanceSpec
+import at.ac.uibk.dps.cirrina.spec.Reset
 import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
+import at.ac.uibk.dps.cirrina.spec.Timeout
 import com.codahale.metrics.Timer
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -281,7 +285,7 @@ internal constructor(
     for (i in actions.indices) {
       val action = actions[i]
 
-      if (action is TimeoutResetAction) {
+      if (action is Reset) {
         stopTimeout(action.action)
       }
 
@@ -294,14 +298,14 @@ internal constructor(
     execute(nextActions, scope)
   }
 
-  private fun startTimeout(timeout: TimeoutAction) {
+  private fun startTimeout(timeout: Timeout) {
     val delay =
       timeout.delay.evaluate(extent) as? Number
         ?: error("timeout delay '${timeout.delay}' is non-numeric")
 
     timeoutActionManager.start(timeout.name, delay) {
       val action = timeout.triggers
-      if (action !is EmitAction) error("timeout action '$action' must be an emit action")
+      if (action !is Emit) error("timeout action '$action' must be an emit action")
 
       execute(listOf(action), this)
     }
