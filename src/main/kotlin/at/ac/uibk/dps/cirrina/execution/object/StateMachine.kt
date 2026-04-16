@@ -119,7 +119,7 @@ internal constructor(
     eventExtent = extent.extend(eventContext)
   }
 
-  fun start(): Job {
+  fun start(parentContext: Job): Job {
     logger.info { "'$this' entering initial state" }
 
     val initial = stateInstances[spec.initial.name] ?: error("initial state not found")
@@ -128,7 +128,7 @@ internal constructor(
     started.complete(Unit)
 
     logger.info { "'$this' starting event processor" }
-    return processEvents()
+    return processEvents(parentContext)
   }
 
   private fun isTerminated(): Boolean =
@@ -150,8 +150,8 @@ internal constructor(
       eventChannel.trySend(event).onFailure { logger.error(it) { "failed to push event" } }
   }
 
-  private fun processEvents() =
-    coroutineScope.launch {
+  private fun processEvents(parentContext: Job) =
+    coroutineScope.launch(parentContext) {
       started.await()
 
       for (event in eventChannel) try {
@@ -355,9 +355,9 @@ fun Factory.createHierarchy(
 ): List<StateMachine> =
   create(name, spec, data, subscriptions, runtime, parent).let { current ->
     spec.nested
-      .flatMapIndexed { index, nested ->
+      .flatMap { nested ->
         createHierarchy(
-          "${current.name}.$index@${nested.name}",
+          "${current.name}@${nested.name}",
           nested,
           data,
           subscriptions,

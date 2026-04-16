@@ -22,17 +22,15 @@ import io.zenoh.pubsub.AdvancedSubscriber
 import io.zenoh.sample.Sample
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 
 typealias PropagationHandler = (Event) -> Unit
 
 @OptIn(Unstable::class)
-class EventHandler : AutoCloseable {
-  private val handlers: CopyOnWriteArrayList<PropagationHandler> = CopyOnWriteArrayList()
+class EventHandler(private val handler: PropagationHandler) : AutoCloseable {
   private val session: Session
 
   private val publishers = ConcurrentHashMap<String, AdvancedPublisher>()
-  private val subscribers = CopyOnWriteArrayList<AdvancedSubscriber<Unit>>()
+  private val subscribers = ConcurrentHashMap<String, AdvancedSubscriber<Unit>>()
 
   init {
     val config =
@@ -41,20 +39,16 @@ class EventHandler : AutoCloseable {
       } ?: Config.default()
 
     session = Zenoh.open(config).getOrThrow()
+
+    val key = "events/peripheral/**"
+    subscribers.computeIfAbsent(key) { createSubscriber(key, subscriberDetection = false) }
   }
 
-  fun bind(
-    graph: EventGraph,
-    instanceNames: Collection<String>,
-    subscribedTo: Collection<String>,
-    handlers: List<PropagationHandler>,
-  ) {
-    this.handlers.addAll(handlers)
-
+  fun bind(graph: EventGraph, instanceNames: Collection<String>, subscribedTo: Collection<String>) {
     graph.getOutgoing(instanceNames).forEach { flow ->
       if (flow.event.channel == Csml.EventChannel.EXTERNAL) {
         val key = "events/${flow.event.source}/${flow.event.topic}"
-        publishers.computeIfAbsent(flow.event.topic) { createPublisher(key) }
+        publishers.computeIfAbsent(key) { createPublisher(key) }
       } else {
         error("cannot create publisher for event '${flow.event}'")
       }
@@ -62,24 +56,23 @@ class EventHandler : AutoCloseable {
 
     subscribedTo.forEach { name ->
       val key = "events/$name/**"
-      subscribers.add(createSubscriber(key, subscriberDetection = true))
+      subscribers.computeIfAbsent(key) { createSubscriber(key, subscriberDetection = true) }
     }
-
-    subscribers.add(createSubscriber("events/peripheral/**", subscriberDetection = false))
   }
 
   fun emit(event: Event) {
     if (event.channel != Csml.EventChannel.EXTERNAL) return
 
-    val publisher = publishers[event.topic] ?: return
+    val key = "events/${event.source}/${event.topic}"
+    val publisher = publishers[key] ?: return
     val payload = ZBytes.from(Serializer.serialize(event))
 
     publisher.put(payload).onFailure { error("failed to send event '$event'") }
   }
 
   override fun close() {
-    subscribers.forEach { it.close() }
     publishers.values.forEach { it.close() }
+    subscribers.values.forEach { it.close() }
     session.close()
   }
 
@@ -108,15 +101,9 @@ class EventHandler : AutoCloseable {
   private fun handleIncoming(sample: Sample) {
     try {
       val event = Serializer.deserialize<Event>(sample.payload.toBytes())
-      propagate(event)
+      handler(event)
     } catch (e: Exception) {
       error("failed to handle sample from '${sample.keyExpr}': ${e.message}")
-    }
-  }
-
-  private fun propagate(event: Event) {
-    for (i in 0 until handlers.size) {
-      handlers[i](event)
     }
   }
 
