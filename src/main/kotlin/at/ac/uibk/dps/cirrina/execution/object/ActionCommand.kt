@@ -125,9 +125,9 @@ class ActionExecutor(
 
   private fun executeCtr(action: CtrAction, scope: Scope): List<Action> {
     val tags =
-      action.tag.entries.joinToString(".") { (key, value) ->
+      action.tags?.entries?.joinToString(".") { (key, value) ->
         "$key=${value.evaluate(scope.extent)}"
-      }
+      } ?: ""
 
     val name =
       if (tags.isEmpty()) {

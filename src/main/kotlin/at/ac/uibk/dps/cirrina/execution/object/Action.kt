@@ -120,6 +120,6 @@ class InstantiateAction internal constructor(val instances: Map<String, Instance
 }
 
 class CtrAction
-internal constructor(val counter: String, val by: Long, val tag: Map<String, String>) : Action {
-  override fun toString() = "CtrAction(metric='$counter', by='$by', tag='$tag')"
+internal constructor(val counter: String, val by: Long, val tags: Map<String, String>?) : Action {
+  override fun toString() = "CtrAction(metric='$counter', by='$by', tags='$tags')"
 }
