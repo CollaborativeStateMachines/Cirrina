@@ -14,17 +14,20 @@ internal constructor(
   @Assisted val specification: StateSpec,
   @Assisted private val parent: StateMachine,
 ) : Scope {
-  val entryActions = specification.entry.toTopologicalList()
-  val duringActions = specification.during.toTopologicalList()
-  val exitActions = specification.exit.toTopologicalList()
+  val entry = specification.entry.toTopologicalList()
+
+  val during = specification.during.toTopologicalList()
+
+  val exit = specification.exit.toTopologicalList()
+
   val timeout = specification.after.toTopologicalList().filterIsInstance<Timeout>()
 
-  override val runtime = parent.runtime
+  override val instanceRegistry = parent.instanceRegistry
 
   override val extent: Extent by lazy {
     parent.extent.extend(
       Context.empty().apply {
-        specification.static?.forEach { (k, v) -> this.create(k, v.evaluate()) }
+        specification.static.forEach { (k, v) -> this.create(k, v.evaluate()) }
       }
     )
   }

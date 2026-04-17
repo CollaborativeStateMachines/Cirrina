@@ -2,44 +2,57 @@ package at.ac.uibk.dps.cirrina.spec.graph
 
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine
 import at.ac.uibk.dps.cirrina.spec.Event
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
 import org.jgrapht.graph.DirectedMultigraph
 
-class EventGraph : DirectedMultigraph<String, EventGraph.Flow>(Flow::class.java) {
-  private val stateMachines = ConcurrentHashMap<String, StateMachine>()
+class EventGraph {
+  private val delegate = DirectedMultigraph<StateMachine, Flow>(Flow::class.java)
+
+  private val lock = ReentrantReadWriteLock()
+
+  val instances: List<StateMachine>
+    get() = lock.read { delegate.vertexSet().toList() }
 
   data class Flow(val source: String, val target: String, val event: Event)
 
   fun addInstance(stateMachine: StateMachine) {
-    val name = stateMachine.name
-    if (stateMachines.containsKey(name)) return
+    lock.write {
+      if (delegate.vertexSet().any { it.name == stateMachine.name }) return
 
-    addVertex(name)
-    stateMachines[name] = stateMachine
+      delegate.addVertex(stateMachine)
 
-    val newInputs = stateMachine.spec.inputEvents
-    val newOutputs = stateMachine.spec.outputEvents
+      val newInputs = stateMachine.specification.inputEvents
+      val newOutputs = stateMachine.specification.outputEvents
 
-    stateMachines.values.forEach { existing ->
-      if (existing.name == name) return@forEach
+      delegate.vertexSet().forEach { existing ->
+        if (existing.name == stateMachine.name) return@forEach
 
-      newOutputs.forEach { event ->
-        if (event.topic in existing.spec.inputEvents) {
-          addEdge(name, existing.name, Flow(name, existing.name, event.copy(source = name)))
+        newOutputs.forEach { event ->
+          if (event.topic in existing.specification.inputEvents) {
+            delegate.addEdge(
+              stateMachine,
+              existing,
+              Flow(stateMachine.name, existing.name, event.copy(source = stateMachine.name)),
+            )
+          }
         }
-      }
 
-      existing.spec.outputEvents.forEach { event ->
-        if (event.topic in newInputs) {
-          addEdge(
-            existing.name,
-            name,
-            Flow(existing.name, name, event.copy(source = existing.name)),
-          )
+        existing.specification.outputEvents.forEach { event ->
+          if (event.topic in newInputs) {
+            delegate.addEdge(
+              existing,
+              stateMachine,
+              Flow(existing.name, stateMachine.name, event.copy(source = existing.name)),
+            )
+          }
         }
       }
     }
   }
 
-  fun getOutgoing(vertices: Collection<String>) = vertices.flatMap { outgoingEdgesOf(it) }
+  fun getOutgoing(vertices: List<StateMachine>): List<Flow> {
+    return lock.read { vertices.flatMap { delegate.outgoingEdgesOf(it) } }
+  }
 }

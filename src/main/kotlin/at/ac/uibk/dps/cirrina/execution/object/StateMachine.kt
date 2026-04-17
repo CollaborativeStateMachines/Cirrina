@@ -4,13 +4,15 @@ import TimeoutActionManager
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
+import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.spec.Action
 import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Emit
 import at.ac.uibk.dps.cirrina.spec.Event
 import at.ac.uibk.dps.cirrina.spec.Reset
-import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpec
+import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpecification
 import at.ac.uibk.dps.cirrina.spec.Timeout
+import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -50,14 +52,24 @@ class StateMachine
 @AssistedInject
 internal constructor(
   @Assisted val name: String,
-  @Assisted val spec: StateMachineSpec,
-  @Assisted val data: List<ContextVariable>,
-  @Assisted val subscriptions: List<String>,
-  @Assisted override val runtime: Runtime,
-  @Assisted private val parent: StateMachine? = null,
-  private val stateFactory: State.Factory,
-  private val transitionFactory: Transition.Factory,
+  @Assisted val specification: StateMachineSpecification,
+  @Assisted val instanceData: List<ContextVariable>,
+  @Assisted val instanceSubscription: Regex,
+  @Assisted override val instanceRegistry: Runtime.InstanceRegistry,
+  @Assisted private val parent: StateMachine?,
+  @Assisted runtimeExtent: Extent,
+  @Assisted eventHandler: EventHandler,
+  @Assisted serviceImplementationSelector: ServiceImplementationSelector,
+  stateFactory: State.Factory,
+  transitionFactory: Transition.Factory,
+  metricRegistry: MetricRegistry,
 ) : Scope {
+  override val extent: Extent
+
+  val subscriptions: List<String>
+    get() =
+      instanceRegistry.instances.filter { instanceSubscription.matches(it.name) }.map { it.name }
+
   var nested: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
       if (old.isNotEmpty()) error("nested instance names is already set")
@@ -65,23 +77,26 @@ internal constructor(
     }
 
   private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+
   private val timeoutActionManager = TimeoutActionManager(coroutineScope)
-  private val stateMachineEventHandler = StateMachineEventHandler(runtime.eventHandler)
+
+  private val stateMachineEventHandler = StateMachineEventHandler(eventHandler)
+
   private val actionExecutor =
     ActionExecutor(
-      runtime.selector,
-      runtime.metricRegistry,
+      serviceImplementationSelector,
+      metricRegistry,
       stateMachineEventHandler,
       coroutineScope,
     )
 
   private val stateInstances =
-    spec.vertexSet().associate { it.name to stateFactory.create(it, this) }
+    specification.vertexSet().associate { it.name to stateFactory.create(it, this) }
 
   private val onTransitions: Map<String, Map<String, List<Transition>>> =
-    spec.vertexSet().associate { state ->
+    specification.vertexSet().associate { state ->
       state.name to
-        spec
+        specification
           .outgoingEdgesOf(state)
           .filter { it.event != null }
           .groupBy { it.event!! }
@@ -89,40 +104,43 @@ internal constructor(
     }
 
   private val alwaysTransitions: Map<String, List<Transition>> =
-    spec.vertexSet().associate { state ->
+    specification.vertexSet().associate { state ->
       state.name to
-        spec.outgoingEdgesOf(state).filter { it.event == null }.map { transitionFactory.create(it) }
+        specification
+          .outgoingEdgesOf(state)
+          .filter { it.event == null }
+          .map { transitionFactory.create(it) }
     }
 
   private val started = CompletableDeferred<Unit>()
-  private val eventChannel = Channel<Event>(Channel.UNLIMITED)
-  private var activeState: State? = null
 
-  override val extent: Extent
+  private val eventChannel = Channel<Event>(Channel.UNLIMITED)
+
+  private var activeState: State? = null
 
   private val eventExtent: Extent
 
-  private val eventTimer: Timer = runtime.metricRegistry.timer("event.latency")
+  private val eventTimer: Timer = metricRegistry.timer("event.latency")
 
-  private val processEventTimer: Timer = runtime.metricRegistry.timer("processEvent.time")
+  private val processEventTimer: Timer = metricRegistry.timer("processEvent.time")
 
   init {
     val transientContext =
       Context.empty().apply {
-        spec.transient?.forEach { (k, v) -> create(k, v.evaluate()) }
-        data.forEach { create(it.name, it.value) }
+        specification.transient.forEach { (k, v) -> create(k, v.evaluate()) }
+        instanceData.forEach { create(it.name, it.value) }
       }
 
     val eventContext = Context.empty()
 
-    extent = (parent?.extent ?: runtime.extent).extend(transientContext)
+    extent = (parent?.extent ?: runtimeExtent).extend(transientContext)
     eventExtent = extent.extend(eventContext)
   }
 
   fun start(parentContext: Job): Job {
     logger.info { "'$this' entering initial state" }
 
-    val initial = stateInstances[spec.initial.name] ?: error("initial state not found")
+    val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
     doEnter(initial)?.let { step(it) }
 
     started.complete(Unit)
@@ -251,8 +269,8 @@ internal constructor(
   private fun doEnter(state: State): ActiveTransition? {
     activeState = state
 
-    execute(state.entryActions, state)
-    execute(state.duringActions, state)
+    execute(state.entry, state)
+    execute(state.during, state)
 
     state.timeout.forEach(::startTimeout)
 
@@ -265,12 +283,12 @@ internal constructor(
 
   private fun doExit(state: State) {
     timeoutActionManager.stopAll()
-    execute(state.exitActions, state)
+    execute(state.exit, state)
   }
 
   private fun doTransition(transition: Transition, isOr: Boolean) {
     if (!isOr) {
-      execute(transition.actions, activeState!!)
+      execute(transition.yields, activeState!!)
     }
   }
 
@@ -326,7 +344,7 @@ internal constructor(
 
     fun propagateToNested(event: Event) {
       nested.forEach { name ->
-        runtime.findStateMachineInstance(name)?.pushEvent(event)
+        instanceRegistry.findStateMachineInstance(name)?.pushEvent(event)
           ?: error("nested state machine instance '$name' missing")
       }
     }
@@ -336,37 +354,57 @@ internal constructor(
   interface Factory {
     fun create(
       name: String,
-      spec: StateMachineSpec,
-      data: List<ContextVariable>,
-      subscriptions: List<String>,
-      runtime: Runtime,
+      specification: StateMachineSpecification,
+      instanceData: List<ContextVariable>,
+      instanceSubscription: Regex,
+      instanceRegistry: Runtime.InstanceRegistry,
       parent: StateMachine?,
+      runtimeExtent: Extent,
+      eventHandler: EventHandler,
+      serviceImplementationSelector: ServiceImplementationSelector,
     ): StateMachine
   }
 }
 
 fun Factory.createHierarchy(
   name: String,
-  spec: StateMachineSpec,
-  data: List<ContextVariable>,
-  subscriptions: List<String>,
-  runtime: Runtime,
+  specification: StateMachineSpecification,
+  instanceData: List<ContextVariable>,
+  instanceSubscription: Regex,
+  instanceRegistry: Runtime.InstanceRegistry,
   parent: StateMachine?,
+  runtimeExtent: Extent,
+  eventHandler: EventHandler,
+  serviceImplementationSelector: ServiceImplementationSelector,
 ): List<StateMachine> =
-  create(name, spec, data, subscriptions, runtime, parent).let { current ->
-    spec.nested
-      .flatMap { nested ->
-        createHierarchy(
-          "${current.name}@${nested.name}",
-          nested,
-          data,
-          subscriptions,
-          runtime,
-          current,
-        )
-      }
-      .let { nestedInstances ->
-        current.apply { nested = nestedInstances.map { it.name } }
-        listOf(current) + nestedInstances
-      }
-  }
+  create(
+      name,
+      specification,
+      instanceData,
+      instanceSubscription,
+      instanceRegistry,
+      parent,
+      runtimeExtent,
+      eventHandler,
+      serviceImplementationSelector,
+    )
+    .let { current ->
+      specification.nested
+        .flatMap { nested ->
+          createHierarchy(
+            "${current.name}@${nested.name}",
+            nested,
+            instanceData,
+            instanceSubscription,
+            instanceRegistry,
+            current,
+            runtimeExtent,
+            eventHandler,
+            serviceImplementationSelector,
+          )
+        }
+        .let { nestedInstances ->
+          current.apply { nested = nestedInstances.map { it.name } }
+          listOf(current) + nestedInstances
+        }
+    }

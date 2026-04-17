@@ -27,7 +27,7 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger {}
 
 interface Scope {
-  val runtime: Runtime
+  val instanceRegistry: Runtime.InstanceRegistry
 
   val extent: Extent
 }
@@ -145,7 +145,8 @@ class ActionExecutor(
     instances.forEach {
       // TODO: Inject instance data
       val data = it.data.map { (k, v) -> ContextVariable(k, v.evaluate(scope.extent)) }
-      scope.runtime.instantiate(it)
+
+      scope.instanceRegistry.instantiate(it)
     }
 
     return emptyList()

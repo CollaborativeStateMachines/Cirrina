@@ -4,7 +4,6 @@ import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.csm.Csml
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
 import at.ac.uibk.dps.cirrina.spec.Event
-import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import io.zenoh.Config
 import io.zenoh.Session
 import io.zenoh.Zenoh
@@ -44,17 +43,19 @@ class EventHandler(private val handler: PropagationHandler) : AutoCloseable {
     subscribers.computeIfAbsent(key) { createSubscriber(key, subscriberDetection = false) }
   }
 
-  fun bind(graph: EventGraph, instanceNames: Collection<String>, subscribedTo: Collection<String>) {
-    graph.getOutgoing(instanceNames).forEach { flow ->
-      if (flow.event.channel == Csml.EventChannel.EXTERNAL) {
-        val key = "events/${flow.event.source}/${flow.event.topic}"
+  fun addPublishers(events: List<Event>) {
+    events.forEach {
+      if (it.channel == Csml.EventChannel.EXTERNAL) {
+        val key = "events/${it.source}/${it.topic}"
         publishers.computeIfAbsent(key) { createPublisher(key) }
       } else {
-        error("cannot create publisher for event '${flow.event}'")
+        error("cannot create publisher for event '${it}'")
       }
     }
+  }
 
-    subscribedTo.forEach { name ->
+  fun addSubscribers(instanceNames: List<String>) {
+    instanceNames.forEach { name ->
       val key = "events/$name/**"
       subscribers.computeIfAbsent(key) { createSubscriber(key, subscriberDetection = true) }
     }
@@ -101,6 +102,7 @@ class EventHandler(private val handler: PropagationHandler) : AutoCloseable {
   private fun handleIncoming(sample: Sample) {
     try {
       val event = Serializer.deserialize<Event>(sample.payload.toBytes())
+
       handler(event)
     } catch (e: Exception) {
       error("failed to handle sample from '${sample.keyExpr}': ${e.message}")

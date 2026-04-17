@@ -15,7 +15,8 @@ import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import jakarta.inject.Inject
 import java.net.URI
-import java.util.concurrent.ConcurrentHashMap
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.SupervisorJob
@@ -28,11 +29,11 @@ private val logger = KotlinLogging.logger {}
 class Runtime
 @Inject
 constructor(
-  private val stateMachineFactory: StateMachine.Factory,
   @Run run: List<String>,
   @Main main: URI,
-  val metricRegistry: MetricRegistry,
-  persistentContext: Context? = null,
+  metricRegistry: MetricRegistry,
+  persistentContext: Context?,
+  stateMachineFactory: StateMachine.Factory,
 ) : PropagationHandler {
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
@@ -43,16 +44,48 @@ constructor(
       .onFailure { logger.error(it) { "failed to initialize collaborative state machine class" } }
       .getOrThrow()
 
-  val selector =
+  val serviceImplementationSelector =
     RandomServiceImplementationSelector(ServiceImplementation.from(csml.bindings ?: emptyList()))
-
-  private val graph = EventGraph()
-
-  private val instances = ConcurrentHashMap<String, StateMachine>()
 
   private val runtimeJob = SupervisorJob()
 
   private var completion: Timer = metricRegistry.timer("runtime.completionTime")
+
+  inner class InstanceRegistry(private val stateMachineFactory: StateMachine.Factory) {
+    private val graph = EventGraph()
+
+    val instances: List<StateMachine>
+      get() = graph.instances
+
+    fun instantiate(instance: Instance) {
+      val hierarchy =
+        stateMachineFactory.createHierarchy(
+          name = instance.name,
+          specification = instance.stateMachine,
+          instanceData = instance.data.map { (k, v) -> ContextVariable(k, v.evaluate()) },
+          instanceSubscription = instance.subscription,
+          instanceRegistry = this,
+          parent = null,
+          runtimeExtent = extent,
+          eventHandler = eventHandler,
+          serviceImplementationSelector = serviceImplementationSelector,
+        )
+
+      hierarchy.forEach { machine -> graph.addInstance(machine) }
+
+      val instances = graph.instances
+
+      eventHandler.addPublishers(graph.getOutgoing(instances).map { it.event })
+      eventHandler.addSubscribers(instances.flatMap { it.subscriptions })
+
+      hierarchy.forEach { machine -> machine.start(parentContext = runtimeJob) }
+    }
+
+    fun findStateMachineInstance(name: String): StateMachine? =
+      graph.instances.filter { it.name == name }.firstOrNull()
+  }
+
+  private val instanceRegistry = InstanceRegistry(stateMachineFactory)
 
   init {
     persistentContext?.let { context ->
@@ -61,33 +94,7 @@ constructor(
           .onFailure { logger.warn { "variable '${k}' already exists or failed to create" } }
       }
     }
-    csml.instances.filter { it.name in run }.forEach { instantiate(it) }
-  }
-
-  fun instantiate(instance: Instance) {
-    val hierarchy =
-      stateMachineFactory.createHierarchy(
-        name = instance.name,
-        spec = instance.stateMachine,
-        data = instance.data.map { (k, v) -> ContextVariable(k, v.evaluate()) },
-        subscriptions =
-          csml.instances.filter { instance.subscription.matches(it.name) }.map { it.name },
-        runtime = this,
-        parent = null,
-      )
-
-    hierarchy.forEach { machine ->
-      instances[machine.name] = machine
-      graph.addInstance(machine)
-    }
-
-    eventHandler.bind(
-      graph = graph,
-      instanceNames = instances.keys.toList(),
-      subscribedTo = instances.values.flatMap { it.subscriptions },
-    )
-
-    hierarchy.forEach { machine -> machine.start(parentContext = runtimeJob) }
+    csml.instances.filter { it.name in run }.forEach { instanceRegistry.instantiate(it) }
   }
 
   fun run() = runBlocking {
@@ -104,10 +111,7 @@ constructor(
       }
   }
 
-  fun findStateMachineInstance(stateMachineObjectName: String): StateMachine? =
-    instances[stateMachineObjectName]
-
   override fun invoke(event: Event) {
-    instances.values.forEach { it.pushEvent(event) }
+    instanceRegistry.instances.forEach { it.pushEvent(event) }
   }
 }
