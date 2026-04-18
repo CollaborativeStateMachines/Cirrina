@@ -143,10 +143,9 @@ class ActionExecutor(
     val instances = spec.instances.map { it.evaluate(scope.extent).getOrThrow() }
 
     instances.forEach {
-      // TODO: Inject instance data
-      val data = it.data.map { (k, v) -> ContextVariable(k, v.evaluate(scope.extent)) }
+      val instanceData = it.data.map { (k, v) -> ContextVariable(k, v.evaluate(scope.extent)) }
 
-      scope.instanceRegistry.instantiate(it)
+      scope.instanceRegistry.instantiate(it, instanceData)
     }
 
     return emptyList()

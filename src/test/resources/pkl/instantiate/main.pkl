@@ -20,7 +20,7 @@ collaborativeStateMachine {
                     ["'' + i"] = new Instance {
                       stateMachineName = "instantiated"
                       subscription = Regex("instantiator")
-                      // data { ["i"] = "i" }
+                      data { ["i"] = "i" }
                     }
                   }
                 }
@@ -50,7 +50,7 @@ collaborativeStateMachine {
         }
         ["b"] = new Terminal {
           entry {
-            new Emit { event { topic = "increment" } }
+            new Emit { event { topic = "increment"; data { ["i"] = "i" } } }
           }
         }
       }
@@ -61,9 +61,13 @@ collaborativeStateMachine {
           on {
             ["increment"] = new Transition {
               to = "a"
-              provided = "v < 10"
-              yields { new Eval { expression = "v += 1" }; new Log { message = "v" } }
-              or = "b"
+              yields { new Eval { expression = "v += $i" } }
+            }
+          }
+          always {
+            new Transition {
+              to = "b"
+              provided = "v >= 45"
             }
           }
         }

@@ -57,12 +57,16 @@ constructor(
     val instances: List<StateMachine>
       get() = graph.instances
 
-    fun instantiate(instance: Instance) {
+    fun instantiate(
+      instance: Instance,
+      instanceData: List<ContextVariable> =
+        instance.data.map { (k, v) -> ContextVariable(k, v.evaluate()) },
+    ) {
       val hierarchy =
         stateMachineFactory.createHierarchy(
           name = instance.name,
           specification = instance.stateMachine,
-          instanceData = instance.data.map { (k, v) -> ContextVariable(k, v.evaluate()) },
+          instanceData = instanceData,
           instanceSubscription = instance.subscription,
           instanceRegistry = this,
           parent = null,
