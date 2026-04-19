@@ -2,53 +2,39 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml.ActionDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.StateDescription
-import at.ac.uibk.dps.cirrina.execution.graph.ActionGraph
-import at.ac.uibk.dps.cirrina.execution.`object`.Action
-import at.ac.uibk.dps.cirrina.execution.`object`.TimeoutAction
+import at.ac.uibk.dps.cirrina.spec.graph.ActionGraph
 
-class State
-private constructor(
-  val name: String,
-  val initial: Boolean,
-  val terminal: Boolean,
-  val static: Map<String, String>?,
-  entry: List<Action>,
-  exit: List<Action>,
-  during: List<Action>,
-  after: List<Action>,
-) {
-  val entry = ActionGraph.create(entry)
-  val exit = ActionGraph.create(exit)
-  val during = ActionGraph.create(during)
-  val after = ActionGraph.create(after)
+class State private constructor(val name: String, csml: Csml, description: StateDescription) {
+  /** The boolean indicating the initial status */
+  val initial = description.isInitial
 
-  inline fun <reified T : Action> getActionsOfType(): List<T> =
+  /** The boolean indicating the terminal status */
+  val terminal = description.isTerminal
+
+  /** The static data context variables */
+  val static: Map<String, Expression> = description.static.mapValues { (_, v) -> Expression(v) }
+
+  val entry = ActionGraph.create(resolveActions(csml, description.entry))
+  val exit = ActionGraph.create(resolveActions(csml, description.exit))
+  val during = ActionGraph.create(resolveActions(csml, description.during))
+  val after = ActionGraph.create(resolveAfterActions(csml, description.after))
+
+  inline fun <reified T : Action> getActionsOfType() =
     listOf(entry, exit, during, after).flatMap { it.getActionsOfType<T>() }
 
   companion object {
-    fun create(description: StateDescription, name: String): Result<State> = runCatching {
-      State(
-        name,
-        description.isInitial,
-        description.isTerminal,
-        description.static,
-        resolveActions(description.entry),
-        resolveActions(description.exit),
-        resolveActions(description.during),
-        resolveAfterActions(description.after),
-      )
+    fun create(csml: Csml, description: StateDescription, name: String) = runCatching {
+      State(name, csml, description)
     }
 
-    private fun resolveActions(descriptions: List<ActionDescription>): List<Action> =
-      descriptions.map { Action.create(it) }
+    private fun resolveActions(csml: Csml, descriptions: List<ActionDescription>) =
+      descriptions.map { Action.create(csml, it) }
 
-    private fun resolveAfterActions(descriptions: Map<String, ActionDescription>): List<Action> =
+    private fun resolveAfterActions(csml: Csml, descriptions: Map<String, ActionDescription>) =
       descriptions
-        .map { (name, desc) -> Action.create(desc, name) }
+        .map { (name, desc) -> Action.create(csml, desc, name) }
         .also { actions ->
-          require(actions.all { it is TimeoutAction }) {
-            "all 'after' actions must be timeout actions"
-          }
+          require(actions.all { it is Timeout }) { "all 'after' actions must be timeout actions" }
         }
   }
 }

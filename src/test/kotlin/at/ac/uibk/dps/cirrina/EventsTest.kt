@@ -5,9 +5,9 @@ import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.data.DefaultDescriptions
 import at.ac.uibk.dps.cirrina.di.DaggerTestComponent
 import at.ac.uibk.dps.cirrina.di.TestModule
-import at.ac.uibk.dps.cirrina.execution.`object`.Event
 import at.ac.uibk.dps.cirrina.execution.provider.ContextInMemory
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
+import at.ac.uibk.dps.cirrina.spec.Event
 import io.zenoh.Config
 import io.zenoh.Zenoh
 import io.zenoh.bytes.ZBytes
@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 
 class EventsTest {
-
   @Test
   fun testEventsExecute() = runBlocking {
     assertDoesNotThrow {

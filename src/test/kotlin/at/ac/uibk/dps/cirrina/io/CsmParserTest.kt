@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
 class CsmParserTest {
-
   @Test
   fun testCsmlPositive() {
     CsmParser.parseCsml(DefaultDescriptions.complete)

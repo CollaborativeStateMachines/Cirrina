@@ -1,0 +1,83 @@
+amends "modulepath:/pkl/csm/csml.pkl"
+
+collaborativeStateMachine {
+  stateMachines {
+    ["instantiator"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          after {
+            ["timeout"] = new Timeout {
+              delay = "100"
+              triggers = new Emit { event = new Internal { topic = "instantiate" } }
+            }
+          }
+          on {
+            ["instantiate"] = new Transition {
+              to = "a"
+              yields {
+                new Instantiate {
+                  instances {
+                    ["'' + i"] = new Instance {
+                      stateMachineName = "instantiated"
+                      subscription = Regex("instantiator")
+                      data { ["i"] = "i" }
+                    }
+                  }
+                }
+                new Eval { expression = "++i" }
+              }
+              provided = "i < 10"
+              or = "c"
+            }
+          }
+        }
+        ["c"] = new Terminal {
+          entry {
+            new Emit { event { topic = "e" } }
+          }
+        }
+      }
+      transient {
+        ["i"] = "0"
+      }
+    }
+    ["instantiated"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          on {
+            ["e"] = new Transition { to = "b" }
+          }
+        }
+        ["b"] = new Terminal {
+          entry {
+            new Emit { event { topic = "increment"; data { ["i"] = "i" } } }
+          }
+        }
+      }
+    }
+    ["consumer"] = new StateMachine {
+      states {
+        ["a"] = new Initial {
+          on {
+            ["increment"] = new Transition {
+              to = "a"
+              yields { new Eval { expression = "v += $i" } }
+            }
+          }
+          always {
+            new Transition {
+              to = "b"
+              provided = "v >= 45"
+            }
+          }
+        }
+        ["b"] = new Terminal {}
+      }
+    }
+  }
+  persistent { ["v"] = "0" }
+}
+instances {
+  ["instantiator"] = new Instance { stateMachineName = "instantiator" }
+  ["consumer"] = new Instance { stateMachineName = "consumer" }
+}

@@ -3,27 +3,33 @@ package at.ac.uibk.dps.cirrina.spec
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.csm.Csml.StateMachineDescription
 import at.ac.uibk.dps.cirrina.csm.Csml.TransitionDescription
-import at.ac.uibk.dps.cirrina.execution.`object`.Event
-import at.ac.uibk.dps.cirrina.execution.`object`.EventRaisingAction
 import org.jgrapht.graph.DirectedPseudograph
 
 class StateMachine
 internal constructor(
   val name: String,
   val nested: List<StateMachine>,
-  val transient: Map<String, String>?,
+  csml: Csml,
+  description: StateMachineDescription,
 ) : DirectedPseudograph<State, Transition>(Transition::class.java) {
+  /** The transient data context variables */
+  val transient: Map<String, Expression> =
+    description.transient.mapValues { (_, v) -> Expression(v) }
+
+  /** The initial state specification. */
   val initial: State by lazy {
     vertexSet().firstOrNull { it.initial }
       ?: error("state machine '$name' must have an initial state")
   }
 
+  /** The list of input events (the event topics this state machine responds to). */
   val inputEvents: List<String> by lazy {
     val localEvents = edgeSet().mapNotNull { it.event }
     val nestedEvents = nested.flatMap { it.inputEvents }
     (localEvents + nestedEvents).distinct()
   }
 
+  /** The list of output events (the event topics this state machine generates). */
   val outputEvents: List<Event> by lazy {
     val localEvents =
       (vertexSet().flatMap { it.getActionsOfType<EventRaisingAction>() } +
@@ -34,66 +40,50 @@ internal constructor(
     (localEvents + nestedEvents).distinct().filter { it.channel != EventChannel.INTERNAL }
   }
 
-  private val stateNames: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
+  /** The map of state names to state specifications. */
+  private val states: Map<String, State> by lazy { vertexSet().associateBy { it.name } }
 
-  private val onTransitions: Map<State, Map<String, List<Transition>>> by lazy {
-    vertexSet().associateWith { state ->
-      outgoingEdgesOf(state).filter { it.event != null }.groupBy { it.event!! }
+  init {
+    description.states.forEach { (stateName, stateDesc) ->
+      addVertex(State.create(csml, stateDesc, stateName).getOrThrow())
+    }
+
+    description.states.forEach { (sourceName, stateDesc) ->
+      val source = getStateClassByName(sourceName)!!
+
+      stateDesc.on.forEach { (event, transDesc) -> buildGraph(csml, source, event, transDesc) }
+      stateDesc.always.forEach { transDesc -> buildGraph(csml, source, null, transDesc) }
     }
   }
 
-  private val alwaysTransitions: Map<State, List<Transition>> by lazy {
-    vertexSet().associateWith { state -> outgoingEdgesOf(state).filter { it.event == null } }
+  fun getStateClassByName(name: String) = states[name]
+
+  private fun buildGraph(csml: Csml, source: State, event: String?, desc: TransitionDescription) {
+    val target =
+      desc.to?.let { targetName ->
+        getStateClassByName(targetName)
+          ?: error("state machine '${name}' has invalid transition target '$targetName'")
+      } ?: source
+
+    val transition = Transition.create(csml, desc, event).getOrThrow()
+
+    require(addEdge(source, target, transition)) {
+      "illegal transition in state machine '${name}' from '${source.name}'"
+    }
   }
 
-  fun getStateClassByName(name: String): State? = stateNames[name]
-
-  fun getOnTransitionsFromStateByEventName(from: State, name: String): List<Transition> =
-    onTransitions[from]?.get(name).orEmpty()
-
-  fun getAlwaysTransitionsFromState(from: State): List<Transition> =
-    alwaysTransitions[from].orEmpty()
-
   companion object {
-    fun create(description: StateMachineDescription, name: String = ""): Result<StateMachine> =
-      runCatching {
-        val nested =
-          description.nested.map { (nestedName, smDesc) -> create(smDesc, nestedName).getOrThrow() }
-
-        val spec = StateMachine(name, nested, description.transient)
-
-        description.states.forEach { (stateName, stateDesc) ->
-          spec.addVertex(State.create(stateDesc, stateName).getOrThrow())
+    fun create(
+      csml: Csml,
+      description: StateMachineDescription,
+      name: String = "",
+    ): Result<StateMachine> = runCatching {
+      val nested =
+        description.nested.map { (nestedName, smDesc) ->
+          create(csml, smDesc, nestedName).getOrThrow()
         }
 
-        description.states.forEach { (sourceName, stateDesc) ->
-          val source = spec.getStateClassByName(sourceName)!!
-
-          stateDesc.on.forEach { (event, transDesc) -> buildGraph(spec, source, event, transDesc) }
-
-          stateDesc.always.forEach { transDesc -> buildGraph(spec, source, null, transDesc) }
-        }
-
-        spec
-      }
-
-    private fun buildGraph(
-      graph: StateMachine,
-      source: State,
-      event: String?,
-      desc: TransitionDescription,
-    ) {
-      val target =
-        desc.to?.let { targetName ->
-          graph.getStateClassByName(targetName)
-            ?: error("state machine '${graph.name}' has invalid transition target '$targetName'")
-        } ?: source
-
-      val transition = Transition.create(desc, event).getOrThrow()
-
-      require(graph.addEdge(source, target, transition)) {
-        "illegal transition in state machine '${graph.name}' from '${source.name}'"
-      }
+      StateMachine(name, nested, csml, description)
     }
   }
 }

@@ -3,8 +3,9 @@ package at.ac.uibk.dps.cirrina.execution.service
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpMethod
 import at.ac.uibk.dps.cirrina.csm.Csml.HttpServiceImplementationBinding
 import at.ac.uibk.dps.cirrina.csm.Csml.ServiceImplementationBinding
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
+import at.ac.uibk.dps.cirrina.spec.LazyContextVariable
 import com.google.protobuf.InvalidProtocolBufferException
 import java.net.HttpURLConnection
 import java.net.URI
@@ -52,7 +53,9 @@ class HttpServiceImplementation(
     HttpClient.newBuilder().executor(Executors.newVirtualThreadPerTaskExecutor()).build()
 
   override suspend fun invoke(input: List<ContextVariable>): List<ContextVariable> {
-    require(input.none { it.isLazy }) { "all variables must be evaluated before conversion" }
+    require(input.none { it is LazyContextVariable }) {
+      "all variables must be evaluated before conversion"
+    }
 
     val payload = Serializer.serialize(input)
     val uri = URI(scheme, null, host, port, endPoint, null, null)

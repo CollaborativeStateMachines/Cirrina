@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit
 
 @Module
 class CirrinaModule {
-
   @Provides
   @Singleton
   fun providePersistentContext(): Context? =

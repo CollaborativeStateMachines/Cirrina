@@ -9,7 +9,6 @@ private val logger = KotlinLogging.logger {}
 
 class Cirrina {
   fun run() {
-
     val component = DaggerCirrinaComponent.create()
 
     logger.info { "cirrina version ${getBuildVersion()}" }

@@ -1,7 +1,7 @@
 package at.ac.uibk.dps.cirrina.util
 
-import at.ac.uibk.dps.cirrina.execution.`object`.ContextVariable
 import at.ac.uibk.dps.cirrina.execution.util.Serializer
+import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.net.URI

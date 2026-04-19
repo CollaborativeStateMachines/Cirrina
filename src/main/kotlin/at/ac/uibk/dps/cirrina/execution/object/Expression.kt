@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import at.ac.uibk.dps.cirrina.spec.Expression
 import java.lang.reflect.Array as ReflectArray
 import java.security.SecureRandom
 import java.util.LinkedHashSet
@@ -8,30 +9,30 @@ import org.apache.commons.jexl3.JexlArithmetic
 import org.apache.commons.jexl3.JexlBuilder
 import org.apache.commons.jexl3.JexlEngine
 import org.apache.commons.jexl3.JexlFeatures
-import org.apache.commons.jexl3.JexlScript
 import org.apache.commons.jexl3.introspection.JexlPermissions
 
-class Expression(val source: String) {
-  private val jexlScript: JexlScript =
+fun Expression.evaluatesToTrue(extent: Extent): Boolean {
+  val result = this.evaluate(extent)
+  require(result is Boolean) { "expression '$this' did not produce a boolean" }
+  return result
+}
+
+fun Expression.evaluate(extent: Extent): Any? {
+  val script =
     try {
       Provider.engine.createScript(source)
     } catch (e: Exception) {
-      error("could not parse expression '$source': ${e.localizedMessage}")
+      error("could not parse expression '$this': ${e.localizedMessage}")
     }
 
-  fun execute(extent: Extent): Any? =
-    try {
-      jexlScript.execute(extent)
-    } catch (e: Exception) {
-      error("failed to execute expression '$source': ${e.localizedMessage}")
-    }
-
-  override fun toString(): String = "${this::class.simpleName}(source='$source')"
-
-  companion object {
-    fun create(source: String): Expression = Expression(source)
+  return try {
+    script.execute(extent)
+  } catch (e: Exception) {
+    error("failed to execute expression '$this': ${e.localizedMessage}")
   }
 }
+
+fun Expression.evaluate() = evaluate(Extent.empty())
 
 private object Provider {
   private const val CACHE_SIZE = 1024

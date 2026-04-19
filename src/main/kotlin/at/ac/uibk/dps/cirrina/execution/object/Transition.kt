@@ -1,5 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.`object`
 
+import at.ac.uibk.dps.cirrina.spec.Action
 import at.ac.uibk.dps.cirrina.spec.Transition as TransitionSpec
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -7,7 +8,7 @@ import dagger.assisted.AssistedInject
 import org.jgrapht.traverse.TopologicalOrderIterator
 
 class Transition @AssistedInject internal constructor(@Assisted val specification: TransitionSpec) {
-  val actions: List<Action> = TopologicalOrderIterator(specification.actions).asSequence().toList()
+  val yields: List<Action> = TopologicalOrderIterator(specification.yields).asSequence().toList()
 
   val isInternal: Boolean
     get() = specification.to == null

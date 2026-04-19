@@ -1,6 +1,6 @@
-package at.ac.uibk.dps.cirrina.execution.graph
+package at.ac.uibk.dps.cirrina.spec.graph
 
-import at.ac.uibk.dps.cirrina.execution.`object`.Action
+import at.ac.uibk.dps.cirrina.spec.Action
 import kotlin.collections.forEach
 import org.jgrapht.graph.DefaultEdge
 import org.jgrapht.graph.SimpleDirectedGraph

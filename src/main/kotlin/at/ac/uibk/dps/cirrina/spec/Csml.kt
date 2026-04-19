@@ -2,28 +2,19 @@ package at.ac.uibk.dps.cirrina.spec
 
 import at.ac.uibk.dps.cirrina.csm.Csml
 
-class Csml
-private constructor(
-  val collaborativeStateMachine: CollaborativeStateMachine,
-  val instances: List<Instance>,
-  val bindings: List<Csml.ServiceImplementationBinding>?,
-) {
+class Csml private constructor(description: Csml) {
+  /** The collaborative machine specification. */
+  val collaborativeStateMachine =
+    CollaborativeStateMachine.create(this, description.collaborativeStateMachine).getOrThrow()
+
+  /** The list of instance specifications. */
+  val instances =
+    description.instances.map { (name, desc) -> Instance.create(this, desc, name).getOrThrow() }
+
+  // TODO: This should have a specification
+  val bindings = description.bindings
+
   companion object {
-    fun create(description: Csml): Result<at.ac.uibk.dps.cirrina.spec.Csml> = runCatching {
-      val spec =
-        CollaborativeStateMachine.create(description.collaborativeStateMachine).getOrThrow()
-
-      val instances =
-        description.instances.map { (name, desc) ->
-          Instance.create(
-            desc,
-            spec.stateMachines[desc.stateMachineName]
-              ?: error("state machine class '${desc.stateMachineName}' not found"),
-            name,
-          )
-        }
-
-      Csml(spec, instances, description.bindings)
-    }
+    fun create(description: Csml) = runCatching { Csml(description) }
   }
 }
