@@ -14,6 +14,9 @@ import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpecification
 import at.ac.uibk.dps.cirrina.spec.Timeout
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
+import com.google.common.cache.CacheBuilder
+import com.google.common.cache.CacheLoader
+import com.google.common.cache.LoadingCache
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -66,9 +69,21 @@ internal constructor(
 ) : Scope {
   override val extent: Extent
 
+  private val subscriptionCache: LoadingCache<Long, List<String>> =
+    CacheBuilder.newBuilder()
+      .maximumSize(1)
+      .build(
+        object : CacheLoader<Long, List<String>>() {
+          override fun load(key: Long): List<String> {
+            return instanceRegistry.instances
+              .filter { instanceSubscription.matches(it.name) }
+              .map { it.name }
+          }
+        }
+      )
+
   val subscriptions: List<String>
-    get() =
-      instanceRegistry.instances.filter { instanceSubscription.matches(it.name) }.map { it.name }
+    get() = subscriptionCache.get(instanceRegistry.version)
 
   var nested: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->

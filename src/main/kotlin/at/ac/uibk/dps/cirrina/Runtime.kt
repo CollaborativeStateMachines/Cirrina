@@ -52,6 +52,10 @@ constructor(
   private var completion: Timer = metricRegistry.timer("runtime.completionTime")
 
   inner class InstanceRegistry(private val stateMachineFactory: StateMachine.Factory) {
+    @Volatile
+    var version = 0L
+      private set
+
     private val graph = EventGraph()
 
     val instances: List<StateMachine>
@@ -76,6 +80,8 @@ constructor(
         )
 
       hierarchy.forEach { machine -> graph.addInstance(machine) }
+
+      ++version
 
       val instances = graph.instances
 
@@ -103,11 +109,12 @@ constructor(
 
   fun run() = runBlocking {
     measureTime {
-        runtimeJob.children.forEach { it.join() }
-
         while (runtimeJob.children.any()) {
           runtimeJob.children.toList().joinAll()
         }
+
+        runtimeJob.complete()
+        runtimeJob.join()
       }
       .also {
         completion.update(it.toJavaDuration())
