@@ -38,32 +38,32 @@ class ActionExecutor(
   private val eventHandler: StateMachine.StateMachineEventHandler,
   private val coroutineScope: CoroutineScope,
 ) {
-  fun execute(spec: Action, scope: Scope): List<Action> =
-    when (spec) {
-      is Invoke -> executeInvoke(spec, scope)
-      is Eval -> executeEval(spec, scope)
-      is Emit -> executeEmit(spec, scope)
-      is Timeout -> listOf(spec.triggers)
+  fun execute(specification: Action, scope: Scope): List<Action> =
+    when (specification) {
+      is Invoke -> executeInvoke(specification, scope)
+      is Eval -> executeEval(specification, scope)
+      is Emit -> executeEmit(specification, scope)
+      is Timeout -> listOf(specification.triggers)
       is Reset -> emptyList()
-      is Match -> executeMatch(spec, scope)
-      is Log -> executeLog(spec, scope)
-      is Instantiate -> executeInstantiate(spec, scope)
-      is Ctr -> executeCtr(spec, scope)
-      else -> error("unknown action type '${spec::class.simpleName}'")
+      is Match -> executeMatch(specification, scope)
+      is Log -> executeLog(specification, scope)
+      is Instantiate -> executeInstantiate(specification, scope)
+      is Ctr -> executeCtr(specification, scope)
+      else -> error("unknown action type '${specification::class.simpleName}'")
     }
 
-  private fun executeInvoke(spec: Invoke, scope: Scope): List<Action> {
+  private fun executeInvoke(specification: Invoke, scope: Scope): List<Action> {
     val service =
-      selector.select(spec.type, spec.mode)
-        ?: error("no service implementation found for type '${spec.type}'")
+      selector.select(specification.type, specification.mode)
+        ?: error("no service implementation found for type '${specification.type}'")
 
-    val input = spec.input.map { it.evaluate(scope.extent) }
+    val input = specification.input.map { it.evaluate(scope.extent) }
 
     coroutineScope.launch {
       val delta = measureTime {
         runCatching { service.invoke(input) }
           .onSuccess { output ->
-            spec.output.forEach { reference ->
+            specification.output.forEach { reference ->
               output
                 .firstOrNull { it.name == reference }
                 ?.let {
@@ -79,7 +79,7 @@ class ActionExecutor(
                 }
             }
 
-            spec.emits.forEach { conditionalEvent ->
+            specification.emits.forEach { conditionalEvent ->
               val shouldEmit = conditionalEvent.provided?.evaluate(scope.extent) ?: true
 
               if (shouldEmit != false) {
@@ -100,21 +100,22 @@ class ActionExecutor(
     return emptyList()
   }
 
-  private fun executeEval(spec: Eval, scope: Scope): List<Action> {
-    spec.expression.evaluate(scope.extent)
+  private fun executeEval(specification: Eval, scope: Scope): List<Action> {
+    specification.expression.evaluate(scope.extent)
     return emptyList()
   }
 
-  private fun executeEmit(spec: Emit, scope: Scope): List<Action> {
+  private fun executeEmit(specification: Emit, scope: Scope): List<Action> {
     val emittedEvent =
-      spec.event.run {
+      specification.event.run {
         val evaluatedData =
           data.map { item ->
             if (item is LazyContextVariable) item.evaluate(scope.extent) else item
           }
 
         copy(data = evaluatedData).let { eventWithData ->
-          val target = spec.target?.let { source -> source.evaluate(scope.extent) as? String }
+          val target =
+            specification.target?.let { source -> source.evaluate(scope.extent) as? String }
 
           if (target != null) eventWithData.copy(target = target) else eventWithData
         }
@@ -128,19 +129,19 @@ class ActionExecutor(
     return emptyList()
   }
 
-  private fun executeMatch(spec: Match, scope: Scope): List<Action> =
-    spec.cases.entries
+  private fun executeMatch(specification: Match, scope: Scope): List<Action> =
+    specification.cases.entries
       .filter { (expression, _) -> expression.evaluate(scope.extent) == true }
       .flatMap { it.value }
-      .ifEmpty { listOfNotNull(spec.default) }
+      .ifEmpty { listOfNotNull(specification.default) }
 
   private fun executeLog(spec: Log, scope: Scope): List<Action> {
     spec.message.evaluate(scope.extent).toString().also { logger.info(it) }
     return emptyList()
   }
 
-  private fun executeInstantiate(spec: Instantiate, scope: Scope): List<Action> {
-    val instances = spec.instances.map { it.evaluate(scope.extent).getOrThrow() }
+  private fun executeInstantiate(specification: Instantiate, scope: Scope): List<Action> {
+    val instances = specification.instances.map { it.evaluate(scope.extent).getOrThrow() }
 
     instances.forEach {
       val instanceData = it.data.map { (k, v) -> ContextVariable(k, v.evaluate(scope.extent)) }
@@ -151,20 +152,20 @@ class ActionExecutor(
     return emptyList()
   }
 
-  private fun executeCtr(spec: Ctr, scope: Scope): List<Action> {
+  private fun executeCtr(specification: Ctr, scope: Scope): List<Action> {
     val tags =
-      spec.tags?.entries?.joinToString(".") { (key, value) ->
+      specification.tags?.entries?.joinToString(".") { (key, value) ->
         "$key=${value.evaluate(scope.extent)}"
       } ?: ""
 
     val name =
       if (tags.isEmpty()) {
-        spec.counter
+        specification.counter
       } else {
-        "${spec.counter}.$tags"
+        "${specification.counter}.$tags"
       }
 
-    metricRegistry.counter(name).inc(spec.by)
+    metricRegistry.counter(name).inc(specification.by)
 
     return emptyList()
   }

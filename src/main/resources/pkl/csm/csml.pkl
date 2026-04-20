@@ -151,8 +151,10 @@ class LogDescription extends ActionDescription {
   message: Expression
 }
 
+typealias DynamicInstanceName = Pair<String, Expression>
+
 class InstantiateDescription extends ActionDescription {
-  instances: Mapping<Expression, Instance>
+  instances: Mapping<DynamicInstanceName, Instance>
 }
 
 // For internal use only

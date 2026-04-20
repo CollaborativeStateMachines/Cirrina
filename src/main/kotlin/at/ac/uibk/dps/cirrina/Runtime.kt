@@ -10,6 +10,7 @@ import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
 import at.ac.uibk.dps.cirrina.spec.Event
 import at.ac.uibk.dps.cirrina.spec.Instance
+import at.ac.uibk.dps.cirrina.spec.Instantiate
 import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
@@ -61,6 +62,18 @@ constructor(
     val instances: List<StateMachine>
       get() = graph.instances
 
+    init {
+      eventHandler.addSubscribers(csml.instances.map { it.name })
+
+      eventHandler.addDynamicSubscribers(
+        csml.collaborativeStateMachine
+          .getAllActions()
+          .filterIsInstance<Instantiate>()
+          .flatMap { it.instances }
+          .map { it.prefix }
+      )
+    }
+
     fun instantiate(
       instance: Instance,
       instanceData: List<ContextVariable> =
@@ -86,7 +99,6 @@ constructor(
       val instances = graph.instances
 
       eventHandler.addPublishers(graph.getOutgoing(instances).map { it.event })
-      eventHandler.addSubscribers(instances.flatMap { it.subscriptions })
 
       hierarchy.forEach { machine -> machine.start(parentContext = runtimeJob) }
     }
@@ -104,6 +116,7 @@ constructor(
           .onFailure { logger.warn { "variable '${k}' already exists or failed to create" } }
       }
     }
+
     csml.instances.filter { it.name in run }.forEach { instanceRegistry.instantiate(it) }
   }
 

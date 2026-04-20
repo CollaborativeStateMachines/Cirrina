@@ -97,7 +97,9 @@ class Log internal constructor(description: LogDescription) : Action {
 class Instantiate internal constructor(csml: Csml, description: InstantiateDescription) : Action {
   val instances =
     description.instances.map {
-      DynamicInstance.create(csml, it.value, Expression(it.key)).getOrThrow()
+      val dynamicName = it.key
+      DynamicInstance.create(csml, it.value, dynamicName.first, Expression(dynamicName.second))
+        .getOrThrow()
     }
 }
 

@@ -17,7 +17,7 @@ collaborativeStateMachine {
               yields {
                 new Instantiate {
                   instances {
-                    ["'' + i"] = new Instance {
+                    [Pair("i", "'' + i")] = new Instance {
                       stateMachineName = "instantiated"
                       subscription = Regex("instantiator")
                       data { ["i"] = "i" }
