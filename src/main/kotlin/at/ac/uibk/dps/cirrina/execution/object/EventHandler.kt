@@ -61,6 +61,13 @@ class EventHandler(private val handler: PropagationHandler) : AutoCloseable {
     }
   }
 
+  fun addDynamicSubscribers(instancePrefixes: List<String>) {
+    instancePrefixes.forEach { prefix ->
+      val key = "events/$prefix\$*/**"
+      subscribers.computeIfAbsent(key) { createSubscriber(key, subscriberDetection = true) }
+    }
+  }
+
   fun emit(event: Event) {
     if (event.channel != Csml.EventChannel.EXTERNAL) return
 

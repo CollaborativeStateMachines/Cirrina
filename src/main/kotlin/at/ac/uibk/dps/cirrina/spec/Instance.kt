@@ -24,12 +24,19 @@ class Instance private constructor(val name: String, csml: Csml, description: In
 }
 
 class DynamicInstance
-private constructor(val name: Expression, val csml: Csml, val description: InstanceDescription) {
-  fun evaluate(extent: Extent) = Instance.create(csml, description, name.evaluate(extent) as String)
+private constructor(
+  val prefix: String,
+  val name: Expression,
+  val csml: Csml,
+  val description: InstanceDescription,
+) {
+  fun evaluate(extent: Extent) =
+    Instance.create(csml, description, prefix + name.evaluate(extent) as String)
 
   companion object {
-    fun create(csml: Csml, description: InstanceDescription, name: Expression) = runCatching {
-      DynamicInstance(name, csml, description)
-    }
+    fun create(csml: Csml, description: InstanceDescription, prefix: String, name: Expression) =
+      runCatching {
+        DynamicInstance(prefix, name, csml, description)
+      }
   }
 }
