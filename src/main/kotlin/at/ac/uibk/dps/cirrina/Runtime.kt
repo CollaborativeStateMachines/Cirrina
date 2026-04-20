@@ -11,11 +11,11 @@ import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
 import at.ac.uibk.dps.cirrina.spec.Event
 import at.ac.uibk.dps.cirrina.spec.Instance
 import at.ac.uibk.dps.cirrina.spec.Instantiate
-import at.ac.uibk.dps.cirrina.spec.graph.EventGraph
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
 import jakarta.inject.Inject
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.time.measureTime
@@ -57,10 +57,10 @@ constructor(
     var version = 0L
       private set
 
-    private val graph = EventGraph()
+    private val map = ConcurrentHashMap<String, StateMachine>()
 
     val instances: List<StateMachine>
-      get() = graph.instances
+      get() = map.values.toList()
 
     init {
       eventHandler.addSubscribers(csml.instances.map { it.name })
@@ -79,8 +79,8 @@ constructor(
       instanceData: List<ContextVariable> =
         instance.data.map { (k, v) -> ContextVariable(k, v.evaluate()) },
     ) {
-      val hierarchy =
-        stateMachineFactory.createHierarchy(
+      stateMachineFactory
+        .createHierarchy(
           name = instance.name,
           specification = instance.stateMachine,
           instanceData = instanceData,
@@ -91,20 +91,16 @@ constructor(
           eventHandler = eventHandler,
           serviceImplementationSelector = serviceImplementationSelector,
         )
+        .forEach {
+          map.put(it.name, it)
+          eventHandler.addPublishers(it.outputEvents)
+          ++version
 
-      hierarchy.forEach { machine -> graph.addInstance(machine) }
-
-      ++version
-
-      val instances = graph.instances
-
-      eventHandler.addPublishers(graph.getOutgoing(instances).map { it.event })
-
-      hierarchy.forEach { machine -> machine.start(parentContext = runtimeJob) }
+          it.start(runtimeJob)
+        }
     }
 
-    fun findStateMachineInstance(name: String): StateMachine? =
-      graph.instances.filter { it.name == name }.firstOrNull()
+    fun findStateMachineInstance(name: String): StateMachine? = map.get(name)
   }
 
   private val instanceRegistry = InstanceRegistry(stateMachineFactory)

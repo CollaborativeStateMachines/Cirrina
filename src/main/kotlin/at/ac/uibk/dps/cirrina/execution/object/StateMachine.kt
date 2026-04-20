@@ -85,6 +85,8 @@ internal constructor(
   val subscriptions: List<String>
     get() = subscriptionCache.get(instanceRegistry.version)
 
+  var outputEvents = specification.outputEvents.map { it.copy(source = name) }
+
   var nested: List<String> by
     Delegates.vetoable(emptyList()) { _, old, _ ->
       if (old.isNotEmpty()) error("nested instance names is already set")
