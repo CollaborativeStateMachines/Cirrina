@@ -14,9 +14,6 @@ import at.ac.uibk.dps.cirrina.spec.StateMachine as StateMachineSpecification
 import at.ac.uibk.dps.cirrina.spec.Timeout
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer
-import com.google.common.cache.CacheBuilder
-import com.google.common.cache.CacheLoader
-import com.google.common.cache.LoadingCache
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -56,10 +53,10 @@ class StateMachine
 internal constructor(
   @Assisted val name: String,
   @Assisted val specification: StateMachineSpecification,
-  @Assisted val instanceData: List<ContextVariable>,
-  @Assisted val instanceSubscription: Regex,
+  @Assisted val subscription: Regex,
   @Assisted override val instanceRegistry: Runtime.InstanceRegistry,
   @Assisted private val parent: StateMachine?,
+  @Assisted data: List<ContextVariable>,
   @Assisted runtimeExtent: Extent,
   @Assisted eventHandler: EventHandler,
   @Assisted serviceImplementationSelector: ServiceImplementationSelector,
@@ -68,22 +65,6 @@ internal constructor(
   metricRegistry: MetricRegistry,
 ) : Scope {
   override val extent: Extent
-
-  private val subscriptionCache: LoadingCache<Long, List<String>> =
-    CacheBuilder.newBuilder()
-      .maximumSize(1)
-      .build(
-        object : CacheLoader<Long, List<String>>() {
-          override fun load(key: Long): List<String> {
-            return instanceRegistry.instances
-              .filter { instanceSubscription.matches(it.name) }
-              .map { it.name }
-          }
-        }
-      )
-
-  val subscriptions: List<String>
-    get() = subscriptionCache.get(instanceRegistry.version)
 
   var outputEvents = specification.outputEvents.map { it.copy(source = name) }
 
@@ -145,7 +126,7 @@ internal constructor(
     val transientContext =
       Context.empty().apply {
         specification.transient.forEach { (k, v) -> create(k, v.evaluate()) }
-        instanceData.forEach { create(it.name, it.value) }
+        data.forEach { create(it.name, it.value) }
       }
 
     val eventContext = Context.empty()
@@ -241,7 +222,7 @@ internal constructor(
 
   private fun Event.isValid(): Boolean {
     if (target.isNotEmpty() && target != name) return false
-    if (channel == EventChannel.EXTERNAL && source !in subscriptions) return false
+    if (channel == EventChannel.EXTERNAL && !subscription.matches(source)) return false
 
     return true
   }
@@ -372,9 +353,9 @@ internal constructor(
     fun create(
       name: String,
       specification: StateMachineSpecification,
-      instanceData: List<ContextVariable>,
-      instanceSubscription: Regex,
-      instanceRegistry: Runtime.InstanceRegistry,
+      subscription: Regex,
+      registry: Runtime.InstanceRegistry,
+      data: List<ContextVariable>,
       parent: StateMachine?,
       runtimeExtent: Extent,
       eventHandler: EventHandler,
@@ -386,9 +367,9 @@ internal constructor(
 fun Factory.createHierarchy(
   name: String,
   specification: StateMachineSpecification,
-  instanceData: List<ContextVariable>,
-  instanceSubscription: Regex,
+  subscription: Regex,
   instanceRegistry: Runtime.InstanceRegistry,
+  data: List<ContextVariable>,
   parent: StateMachine?,
   runtimeExtent: Extent,
   eventHandler: EventHandler,
@@ -397,9 +378,9 @@ fun Factory.createHierarchy(
   create(
       name,
       specification,
-      instanceData,
-      instanceSubscription,
+      subscription,
       instanceRegistry,
+      data,
       parent,
       runtimeExtent,
       eventHandler,
@@ -411,9 +392,9 @@ fun Factory.createHierarchy(
           createHierarchy(
             "${current.name}@${nested.name}",
             nested,
-            instanceData,
-            instanceSubscription,
+            subscription,
             instanceRegistry,
+            data,
             current,
             runtimeExtent,
             eventHandler,

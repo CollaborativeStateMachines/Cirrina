@@ -83,9 +83,9 @@ constructor(
         .createHierarchy(
           name = instance.name,
           specification = instance.stateMachine,
-          instanceData = instanceData,
-          instanceSubscription = instance.subscription,
+          subscription = instance.subscription,
           instanceRegistry = this,
+          data = instanceData,
           parent = null,
           runtimeExtent = extent,
           eventHandler = eventHandler,
