@@ -1,0 +1,67 @@
+amends
+  "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+local n = 3
+
+collaborativeStateMachine {
+  stateMachines {
+    ["arbiter"] {
+      transient {
+        ["ingredients"] = "[0, 1, 2, ...]"
+        ["count"] = "0"
+      }
+      states {
+        ["run"] = new Initial {
+          entry {
+            new Eval { expression = "++count" }
+            new Ctr { counter = "arbiter.rounds" }
+            new Emit {
+              event {
+                topic = "provided"
+                data { ["ingredients"] = "ingredients - [std:takeRandom(ingredients)]" }
+              }
+            }
+          }
+          on {
+            ["finish"] = new Transition { to = "run" }
+          }
+        }
+      }
+    }
+    ["smoker"] {
+      states {
+        ["wait"] = new Initial {
+          on {
+            ["provided"] = new Transition {
+              to = "smoking"
+              provided = "!($ingredients.contains(id))"
+            }
+          }
+        }
+        ["smoking"] = new State {
+          after {
+            ["wait"] = new Timeout {
+              delay = "std:randomAround(10,2)"
+              triggers = new Emit { event = new Internal { topic = "continue" } }
+            }
+          }
+          on {
+            ["continue"] = new Transition {
+              to = "wait"
+              yields { new Emit { event { topic = "finish" }; target = "'arbiter'" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+instances {
+  ["arbiter"] { stateMachineName = "arbiter" }
+  for (i in IntSeq(0, n - 1)) {
+    ["\(i)"] {
+      stateMachineName = "smoker"
+      data { ["id"] = "\(i)" }
+    }
+  }
+}

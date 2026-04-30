@@ -1,0 +1,58 @@
+amends
+  "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+collaborativeStateMachine {
+  stateMachines {
+    // The first state machine class has two states.
+    ["one"] {
+      states {
+        // Append to the global `message` variable and send an event to the second state machine.
+        ["a"] = new Initial {
+          entry {
+            new Eval { expression="message += 'Hello, '" }
+            new Emit { event { topic="advance" }; target="'two'" }
+          }
+          // Upon receiving an event back from the second state machine, progress to the next state.
+          on {
+            ["advance"] {
+              to = "b"
+            }
+          }
+        }
+        // Log the message and terminate the state machine.
+        ["b"] = new Terminal {
+          entry {
+            new Log { message="message" }
+          }
+        }
+      }
+    }
+    // The second state machine class has two states.
+    ["two"] {
+      states {
+        ["a"] = new Initial {
+          // Upon receiving an event from the first state machine, progress to the next state.
+          on {
+            ["advance"] {
+              to = "b"
+            }
+          }
+        }
+        // Append to the global `message` variable and send an event to the first state machine.
+        ["b"] = new Terminal {
+          entry {
+            new Eval { expression="message += 'World!'" }
+            new Emit { event { topic="advance" }; target="'one'" }
+          }
+        }
+      }
+    }
+  }
+  // Declare the global `message` variable.
+  persistent { ["message"] = "''" }
+}
+// Declare one instance per state machine class.
+instances {
+  ["one"] { stateMachineName = "one" }
+  ["two"] { stateMachineName = "two" }
+}

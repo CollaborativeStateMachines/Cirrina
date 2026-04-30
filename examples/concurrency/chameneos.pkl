@@ -1,0 +1,100 @@
+amends "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+local n = 12
+
+collaborativeStateMachine {
+  stateMachines {
+    ["chameneos"] {
+      transient {
+        ["color"] = "std:takeRandom([1,2,3,...])"
+      }
+      states {
+        ["request"] = new Initial {
+          entry {
+            new Emit {
+              event {
+                topic = "requesting"
+                data { ["id"] = "id"; ["color"] = "color" }
+              }
+              target = "'mall'"
+            }
+          }
+          on {
+            ["matchMade"] = new Transition {
+              to = "request"
+              yields {
+                new Eval { expression = "color = (function (x,y) { if (x == y) {x} else  {x ^ y} })(color, $color)" }
+                new Emit {
+                  event {
+                    topic = "change"
+                    data { ["color"] = "color" }
+                  }
+                  target = "$partner.toString()"
+                }
+              }
+            }
+            ["change"] = new Transition {
+              to = "request"
+              yields {
+                new Eval { expression = "color = $color" }
+              }
+            }
+          }
+        }
+      }
+    }
+    ["mall"] {
+      transient {
+        ["waiting"] = "[...]"
+        ["count"] = "0"
+      }
+      states {
+        ["wait"] = new Initial {
+          on {
+            ["requesting"] = new Transition {
+              yields {
+                new Match {
+                  cases {
+                    new Case {
+                      of = "waiting.isEmpty()"
+                      yields { new Eval { expression = "waiting += [$id]" } }
+                    }
+                    new Case {
+                      of = "!waiting.isEmpty()"
+                      yields {
+                        new Eval { expression = "++count" }
+                        new Ctr { counter = "mall.meetings" }
+                        new Emit {
+                          event {
+                            topic = "matchMade"
+                            data {
+                              ["partner"] = "$id"
+                              ["color"] = "$color"
+                            }
+                          }
+                          target = "waiting.get(0).toString()"
+                        }
+                        new Eval { expression = "waiting -= [waiting.get(0)]" }
+                      }
+                    }
+                  }
+
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+instances {
+  ["mall"] { stateMachineName = "mall" }
+  for (i in IntSeq(0, n - 1)) {
+    ["\(i)"] {
+      stateMachineName = "chameneos"
+      data { ["id"] = "\(i)" }
+    }
+  }
+}

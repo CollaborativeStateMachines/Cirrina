@@ -1,0 +1,50 @@
+amends
+  "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+collaborativeStateMachine {
+  stateMachines {
+    ["producer"] {
+      states {
+        ["init"] = new Initial {
+          entry {
+            new Emit { event = new Internal { topic = "send" } }
+          }
+          on { ["send"] = new Transition { to = "send" } }
+        }
+        ["send"] = new State {
+          after {
+            ["send"] = new Timeout {
+              delay = "std:randomAround(10,2)"
+              triggers = new Emit { event = new Internal { topic = "send" } }
+            }
+          }
+          on {
+            ["send"] = new Transition {
+              to = "init"
+              yields { new Emit { event { topic = "increment" } } }
+            }
+          }
+        }
+      }
+    }
+    ["counter"] {
+      transient { ["count"] = "0" }
+      states {
+        ["count"] = new Initial {
+          on {
+            ["increment"] = new Transition {
+              yields {
+                new Eval { expression = "++count" }
+                new Ctr { counter = "counter.count" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+instances {
+  ["counter"] { stateMachineName = "counter" }
+  ["producer"] { stateMachineName = "producer" }
+}
