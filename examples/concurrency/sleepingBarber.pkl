@@ -1,0 +1,147 @@
+amends
+"https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+local n = 12
+
+collaborativeStateMachine {
+  stateMachines {
+    ["barber"] {
+      states {
+        ["sleeping"] = new Initial {
+          on {
+            ["sit"] = new Transition {
+              to = "cutting"
+              yields { new Emit { event { topic = "comeIn" }; target = "$customer.toString()" } }
+            }
+          }
+        }
+        ["cutting"] = new State {
+          after {
+            ["wait"] = new Timeout {
+              delay = "std:randomAround(10,2)"
+              triggers = new Emit { event = new Internal { topic = "continue" } }
+            }
+          }
+          on {
+            ["continue"] = new Transition {
+              to = "sleeping"
+              yields {
+                new Emit { event { topic = "done" }; target = "$customer.toString()" }
+                new Emit { event { topic = "ready" }; target = "'waitingRoom'" }
+              }
+            }
+          }
+        }
+      }
+    }
+    ["customer"] {
+      transient { ["counter"] = "0" }
+      states {
+        ["request"] = new Initial {
+          entry {
+            new Emit {
+              event { topic = "enter"; data { ["customer"] = "id" } }
+              target = "'waitingRoom'"
+            }
+          }
+          on {
+            ["full"] = new Transition { to = "backoff" }
+            ["comeIn"] = new Transition { to = "haircut" }
+          }
+        }
+        ["backoff"] = new State {
+          after {
+            ["retry"] = new Timeout {
+              delay = "std:randomAround(10,2)"
+              triggers = new Emit { event = new Internal { topic = "retry" } }
+            }
+          }
+          on {
+            ["retry"] = new Transition { to = "request" }
+          }
+        }
+        ["haircut"] = new State {
+          entry {
+            new Eval { expression = "++counter" }
+            new Ctr { counter = "customer.haircuts" }
+          }
+          on {
+            ["done"] = new Transition { to = "request" }
+          }
+        }
+      }
+    }
+    ["waitingRoom"] {
+      transient {
+        ["waiting"] = "[...]"
+        ["isBarberSleeping"] = "true"
+      }
+      states {
+        ["process"] = new Initial {
+          on {
+            ["enter"] = new Transition {
+              yields {
+                new Match {
+                  cases {
+                    new Case {
+                      of = "waiting.size() < 3"
+                      yields {
+                        new Eval { expression = "waiting.add($customer)" }
+                        new Match {
+                          cases {
+                            new Case {
+                              of = "isBarberSleeping"
+                              yields {
+                                new Eval { expression = "isBarberSleeping = false" }
+                                new Emit {
+                                  event { topic = "sit"; data { ["customer"] = "waiting.get(0)" } }
+                                  target = "'barber'"
+                                }
+                                new Eval { expression = "waiting.remove(0)" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  default = new Emit { event { topic = "full" }; target = "$customer.toString()" }
+                }
+              }
+            }
+            ["ready"] = new Transition {
+              yields {
+                new Eval { expression = "isBarberSleeping = true" }
+                new Match {
+                  cases {
+                    new Case {
+                      of = "!waiting.isEmpty()"
+                      yields {
+                        new Eval { expression = "isBarberSleeping = false" }
+                        new Emit {
+                          event { topic = "sit"; data { ["customer"] = "waiting.get(0)" } }
+                          target = "'barber'"
+                        }
+                        new Eval { expression = "waiting.remove(0)" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+instances {
+  ["barber"] { stateMachineName = "barber" }
+  ["waitingRoom"] { stateMachineName = "waitingRoom" }
+  for (i in IntSeq(0, n - 1)) {
+    ["\(i)"] {
+      stateMachineName = "customer"
+      data { ["id"] = "\(i)" }
+    }
+  }
+}

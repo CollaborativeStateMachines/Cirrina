@@ -1,0 +1,116 @@
+amends
+  "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+local n = 12
+
+collaborativeStateMachine {
+  stateMachines {
+    ["big"] {
+      transient { ["count"] = "0" }
+      states {
+        ["register"] = new Initial {
+          entry { new Emit { event { topic = "register" }; target = "'sink'" } }
+          on {
+            ["initial"] = new Transition {
+              to = "run"
+            }
+          }
+        }
+        ["run"] = new State {
+          entry {
+            new Eval { expression = "++count" }
+            new Ctr { counter = "big.pings" }
+            new Emit {
+              event {
+                topic = "ping"
+                data { ["sender"] = "id" }
+              }
+              target = "std:takeRandom(peers).toString()"
+            }
+          }
+          on {
+            ["ping"] {
+              yields {
+                new Emit {
+                  event {
+                    topic = "pong"
+                    data { ["sender"] = "id" }
+                  }
+                  target = "$sender.toString()"
+                }
+              }
+            }
+            ["pong"] {
+              yields {
+                new Match {
+                  cases {
+                    new Case {
+                      of = "count % 1000 == 0"
+                      yields {
+                        new Emit { event { topic = "report" } }
+                      }
+                    }
+                  }
+                }
+                new Eval { expression = "++count" }
+                new Ctr { counter = "big.pings" }
+                new Emit {
+                  event {
+                    topic = "ping"
+                    data { ["sender"] = "id" }
+                  }
+                  target = "std:takeRandom(peers).toString()"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    ["sink"] = new StateMachine {
+      transient {
+        ["total"] = "0"
+        ["registered"] = "0"
+      }
+      states {
+        ["wait"] = new Initial {
+          on {
+            ["register"] = new Transition {
+              yields {
+                new Eval { expression = "++registered" }
+                new Match {
+                  cases {
+                    new Case {
+                      of = "registered == 12"
+                      yields {
+                        new Emit { event { topic = "initial" } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            ["report"] {
+              yields {
+                new Eval { expression = "total += 1000" }
+                new Ctr { counter = "sink.total"; by = 1000 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+instances {
+  ["sink"] { stateMachineName = "sink" }
+  for (i in IntSeq(0, n - 1)) {
+    ["\(i)"] {
+      stateMachineName = "big"
+      data {
+        ["id"] = "\(i)"
+        ["peers"] = "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] - [\(i)]"
+      }
+    }
+  }
+}

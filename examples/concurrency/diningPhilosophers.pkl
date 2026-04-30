@@ -1,0 +1,124 @@
+amends
+  "https://raw.githubusercontent.com/CollaborativeStateMachines/Cirrina/refs/heads/develop/src/main/resources/pkl/csm/csml.pkl"
+
+local n = 6
+
+collaborativeStateMachine {
+  stateMachines {
+    ["arbitrator"] {
+      transient {
+        ["forks"] = "std:repeat(false, \(n))"
+        ["waiting"] = "std:repeat(false, \(n))"
+      }
+      states {
+        ["serving"] = new Initial {
+          static { ["count"] = "0" }
+          on {
+            ["hungry"] {
+              yields {
+                new Match {
+                  cases {
+                    new Case {
+                      of = "!(forks[$id] || forks[($id + 1) % 6])"
+                      yields {
+                        new Eval { expression = "forks[$id] = forks[($id + 1) % 6] = true" }
+                        new Emit { event { topic = "acquire" }; target = "$id.toString()" }
+                      }
+                    }
+                  }
+                  default = new Eval { expression = "waiting[$id] = true" }
+                }
+              }
+            }
+            ["release"] {
+              yields {
+                new Eval { expression = "forks[$id] = forks[($id + 1) % 6] = false" }
+                new Emit {
+                  event = new Internal { topic = "test"; data { ["nid"] = "($id + 5) % 6" } }
+                }
+                new Emit {
+                  event = new Internal { topic = "test"; data { ["nid"] = "($id + 1) % 6" } }
+                }
+              }
+            }
+            ["test"] {
+              yields {
+                new Match {
+                  cases {
+                    new Case {
+                      of = "waiting[$nid] && !(forks[$nid] || forks[($nid + 1) % 6])"
+                      yields {
+                        new Eval {
+                          expression =
+                            "waiting[$nid] = false; forks[$nid] = forks[($nid + 1) % 6] = true"
+                        }
+                        new Emit { event { topic = "acquire" }; target = "$nid.toString()" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    ["philosopher"] {
+      states {
+        ["hungry"] = new Initial {
+          entry {
+            new Emit { event { topic = "hungry"; data { ["id"] = "id" } }; target = "'arbitrator'" }
+          }
+          on {
+            ["acquire"] { to = "eating" }
+          }
+        }
+        ["eating"] {
+          static { ["meals"] = "0" }
+          after {
+            ["eating"] = new Timeout {
+              delay = "std:randomAround(10,2)"
+              triggers = new Emit { event = new Internal { topic = "ate" } }
+            }
+          }
+          on {
+            ["ate"] {
+              to = "thinking"
+              yields {
+                new Eval { expression = "++meals" }
+                new Ctr { counter = "philosopher.meals" }
+                new Emit {
+                  event { topic = "release"; data { ["id"] = "id" } }
+                  target = "'arbitrator'"
+                }
+              }
+            }
+          }
+        }
+        ["thinking"] {
+          after {
+            ["thinking"] = new Timeout {
+              delay = "std:randomAround(10,2)"
+              triggers = new Emit { event = new Internal { topic = "thought" } }
+            }
+          }
+          on {
+            ["thought"] {
+              to = "hungry"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+instances {
+  ["arbitrator"] { stateMachineName = "arbitrator" }
+  for (i in IntSeq(0, n - 1)) {
+    ["\(i)"] {
+      stateMachineName = "philosopher"
+      data { ["id"] = "\(i)" }
+    }
+  }
+}
