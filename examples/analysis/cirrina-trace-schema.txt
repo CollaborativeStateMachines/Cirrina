@@ -1,0 +1,8 @@
+Schema mapping for this GraphML export (not an application model)
+
+The graph is flattened. Vertices are observed event records or explicit unobserved boundaries; messages, contexts and nodes are not separate vertices.
+- EVENT_EMITTED represents a send observation; EVENT_HANDLED represents receive/handling at handler entry, not necessarily network arrival. STATE_ENTERED and INSTANCE_CREATED are internal observations. event names the message/event topic; eventId identifies a message.
+- kind="cause" maps to by, kind="order" to recorded local order, and kind="event" already materializes dlv. Include all three for observed causal order. This export's order chain omits send observations, so it does not realize a complete nx chain over every event; do not invent the missing links.
+- runtimeId scopes the recording runtime; instanceId identifies an instance lifetime/context; instance is its readable name. stateMachine is its class, not its identity. Names can be reused. There are no explicit physical-host vertices.
+- A send's target and a receive's source identify the remote participant when populated. A message round trip can match start target to end source; endpoint context IDs identify the observing contexts, not that remote participant.
+- timestamp is epoch milliseconds. missing and graph-level truncated mark incomplete observation; their absence does not prove complete relations. state/stateBefore/stateAfter are observations, not terminal-state declarations.
