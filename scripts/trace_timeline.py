@@ -98,11 +98,15 @@ def timeline_data(graph: nx.MultiDiGraph) -> dict[str, Any]:
     for record in records:
         record["lane"] = lane_numbers[instance_key(record["attributes"])]
 
-    by_id = {record["id"]: index for index, record in enumerate(records)}
+    # Keep the complete topology, including untimed boundary nodes. Path selection must
+    # follow local order and causes as well as deliveries, even through hidden records.
     links = [
-        {"source": by_id[str(source)], "target": by_id[str(target)]}
+        {
+            "source": str(source),
+            "target": str(target),
+            "kind": edge.get("kind", "unknown"),
+        }
         for source, target, edge in graph.edges(data=True)
-        if edge.get("kind") == "event" and str(source) in by_id and str(target) in by_id
     ]
     return {
         "records": records,

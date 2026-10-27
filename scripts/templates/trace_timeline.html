@@ -40,9 +40,7 @@
         align-items: center;
         margin: 14px 0;
       }
-      button,
-      select,
-      input[type="search"] {
+      button {
         font: inherit;
         border: 1px solid #b9c4d1;
         border-radius: 5px;
@@ -55,9 +53,9 @@
       button:hover {
         background: #eef2f7;
       }
-      input[type="search"] {
-        flex: 1;
-        min-width: 240px;
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
       }
       .comparison {
         display: grid;
@@ -74,11 +72,7 @@
       .selection.y {
         border-top-color: #1d4ed8;
       }
-      .selection select {
-        width: 100%;
-        margin: 8px 0;
-      }
-      .selection label {
+      .selection strong {
         font-weight: 600;
       }
       .selection p {
@@ -154,12 +148,10 @@
         clocks and include their synchronization error.
       </p>
       <div class="toolbar">
-        <input
-          id="search"
-          type="search"
-          aria-label="Find events in selection menus"
-          placeholder="Find events in menus: instance, event, state or ID"
-        />
+        <span id="selection-hint" aria-live="polite"
+          >Click an event to select X, then another to select Y.</span
+        >
+        <button id="clear-selection">Clear selection</button>
         <label
           ><input id="show-all" type="checkbox" /> Include creation and state
           entry</label
@@ -167,11 +159,7 @@
       </div>
       <div class="comparison">
         <section class="selection">
-          <label
-            ><input type="radio" name="pick" value="x" checked /> Select X on
-            the diagram</label
-          >
-          <select id="event-x" aria-label="Event X"></select>
+          <strong>X</strong>
           <p id="details-x" class="muted"></p>
           <details>
             <summary>Full record</summary>
@@ -179,11 +167,7 @@
           </details>
         </section>
         <section class="selection y">
-          <label
-            ><input type="radio" name="pick" value="y" /> Select Y on the
-            diagram</label
-          >
-          <select id="event-y" aria-label="Event Y"></select>
+          <strong>Y</strong>
           <p id="details-y" class="muted"></p>
           <details>
             <summary>Full record</summary>
@@ -192,6 +176,7 @@
         </section>
       </div>
       <output id="difference" aria-live="polite"></output>
+      <p id="path-status" class="muted" aria-live="polite"></p>
       <p id="precision" class="muted"></p>
       <div class="toolbar">
         <button id="zoom-in">Zoom in</button
@@ -199,9 +184,12 @@
         <button id="fit">Fit all</button
         ><button id="fit-selection">Fit X–Y</button>
         <button id="swap">Swap X/Y</button>
+        <button id="start-at-x">Start at X</button>
+        <button id="reset-start">Reset start</button>
+        <button id="export-svg">Export SVG</button>
         <label
-          ><input id="show-links" type="checkbox" checked /> Event delivery
-          arrows</label
+          ><input id="show-links" type="checkbox" checked /> Other event
+          deliveries</label
         >
         <span class="muted"
           >Scroll to zoom · Drag to pan · Hollow: send · Filled: handle</span
@@ -217,7 +205,10 @@
       </div>
       <p class="muted">
         Time runs left to right. Markers sharing a timestamp are stacked
-        vertically, without changing their time.
+        vertically, without changing their time. Blue paths connect X to Y using
+        event delivery, causes, and local order. Dashed links indicate causes or
+        hidden observations. Start at X sets the time origin and moves the view
+        to X; zoom and pan adjust the visible interval.
       </p>
       <noscript>Enable JavaScript to explore this offline timeline.</noscript>
     </main>
@@ -240,6 +231,20 @@
         "#287d79",
       ];
       const selected = { x: null, y: null };
+      const recordIndices = new Map(
+        trace.records.map((record, index) => [record.id, index]),
+      );
+      const outgoing = new Map();
+      const incoming = new Map();
+      trace.links.forEach((link, index) => {
+        if (!outgoing.has(link.source)) outgoing.set(link.source, []);
+        if (!incoming.has(link.target)) incoming.set(link.target, []);
+        outgoing.get(link.source).push(index);
+        incoming.get(link.target).push(index);
+      });
+      let pathLinks = new Set();
+      let pathNodes = new Set();
+      let timeOrigin = trace.start;
       const margin = { left: 260, right: 35, top: 70 };
       let visible = [];
       let viewStart = 0;
@@ -249,7 +254,7 @@
       let dragged = false;
 
       const element = (id) => document.getElementById(id);
-      const elapsed = (record) => record.timestamp - trace.start;
+      const elapsed = (record) => record.timestamp - timeOrigin;
       const format = (value) =>
         (value === 0 ? 0 : value).toLocaleString("en-US", {
           maximumFractionDigits: 3,
@@ -271,33 +276,108 @@
       }
 
       function describe(record) {
-        return `+${format(elapsed(record))} ms · ${trace.lanes[record.lane].label} · ${record.label} · #${record.id.slice(0, 8)}`;
+        const time = elapsed(record);
+        return `${time > 0 ? "+" : ""}${format(time)} ms · ${trace.lanes[record.lane].label} · ${record.label} · #${record.id.slice(0, 8)}`;
       }
 
-      function updateMenus() {
-        const query = element("search").value.toLowerCase();
-        for (const name of ["x", "y"]) {
-          const menu = element(`event-${name}`);
-          menu.replaceChildren(new Option("Choose an event", ""));
-          for (const index of visible) {
-            const record = trace.records[index];
-            if (
-              index === selected[name] ||
-              JSON.stringify(record).toLowerCase().includes(query)
-            ) {
-              menu.add(new Option(describe(record), String(index)));
+      function reachable(start, reverse = false) {
+        const adjacency = reverse ? incoming : outgoing;
+        const seen = new Set([start]);
+        const pending = [start];
+        while (pending.length) {
+          for (const index of adjacency.get(pending.pop()) || []) {
+            const link = trace.links[index];
+            const next = reverse ? link.source : link.target;
+            if (!seen.has(next)) {
+              seen.add(next);
+              pending.push(next);
             }
           }
-          menu.value = selected[name] === null ? "" : String(selected[name]);
         }
+        return seen;
+      }
+
+      function findPaths() {
+        pathLinks = new Set();
+        pathNodes = new Set();
+        if (selected.x === null || selected.y === null) return;
+        const x = trace.records[selected.x].id;
+        const y = trace.records[selected.y].id;
+        if (x === y) {
+          pathNodes.add(x);
+          return;
+        }
+        const fromX = reachable(x);
+        if (!fromX.has(y)) return;
+        const toY = reachable(y, true);
+        // A link lies on an X-to-Y route when its source is reachable from X and
+        // its target can reach Y. This covers every branch without enumerating paths.
+        trace.links.forEach((link, index) => {
+          if (fromX.has(link.source) && toY.has(link.target)) {
+            pathLinks.add(index);
+            pathNodes.add(link.source);
+            pathNodes.add(link.target);
+          }
+        });
+      }
+
+      function pathSegments() {
+        const shown = new Set(visible.map((index) => trace.records[index].id));
+        const segments = new Map();
+        for (const source of shown) {
+          if (!pathNodes.has(source)) continue;
+          const pending = [source];
+          const seen = new Set([source]);
+          while (pending.length) {
+            const current = pending.pop();
+            for (const index of outgoing.get(current) || []) {
+              if (!pathLinks.has(index)) continue;
+              const link = trace.links[index];
+              if (shown.has(link.target)) {
+                const key = JSON.stringify([source, link.target]);
+                if (!segments.has(key))
+                  segments.set(key, {
+                    source: recordIndices.get(source),
+                    target: recordIndices.get(link.target),
+                    kinds: new Set(),
+                  });
+                segments
+                  .get(key)
+                  .kinds.add(
+                    current === source ? link.kind : "hidden observations",
+                  );
+              } else if (!seen.has(link.target)) {
+                // Hidden state entries and untimed boundaries still connect the path.
+                seen.add(link.target);
+                pending.push(link.target);
+              }
+            }
+          }
+        }
+        return [...segments.values()];
       }
 
       function updateComparison() {
+        findPaths();
+        const complete = selected.x !== null && selected.y !== null;
+        element("selection-hint").textContent =
+          selected.x === null
+            ? "Click an event to select X, then another to select Y."
+            : complete
+              ? "Click an event to start a new X–Y comparison."
+              : "Now click an event to select Y.";
+        element("fit-selection").disabled = !complete;
+        element("swap").disabled = !complete;
+        element("export-svg").disabled = !complete;
+        element("start-at-x").disabled = selected.x === null;
+        element("reset-start").disabled = timeOrigin === trace.start;
+        element("clear-selection").disabled =
+          selected.x === null && selected.y === null;
         for (const name of ["x", "y"]) {
           const record = trace.records[selected[name]];
           element(`details-${name}`).textContent = record
-            ? `${utc(record)}\nEpoch: ${record.timestamp} ms`
-            : "Choose an event from the menu or diagram.";
+            ? `${describe(record)}\n${utc(record)} · epoch ${record.timestamp} ms`
+            : `Click an event to select ${name.toUpperCase()}.`;
           element(`record-${name}`).textContent = record
             ? JSON.stringify(
                 { recordId: record.id, ...record.attributes },
@@ -308,6 +388,13 @@
         }
         const x = trace.records[selected.x];
         const y = trace.records[selected.y];
+        element("path-status").textContent = !complete
+          ? ""
+          : selected.x === selected.y
+            ? "X and Y are the same observation."
+            : pathLinks.size
+              ? `Highlighting ${pathLinks.size} recorded links on paths from X to Y.`
+              : "No directed path from X to Y in the exported trace. The time difference is still measurable.";
         if (!x || !y) {
           element("difference").textContent =
             "Select X and Y to measure elapsed time";
@@ -316,7 +403,7 @@
         }
         const delta = y.timestamp - x.timestamp;
         element("difference").textContent =
-          `Y − X: ${delta > 0 ? "+" : ""}${format(delta)} ms`;
+          `Δx,y = ${delta > 0 ? "+" : ""}${format(delta)} ms`;
         element("precision").textContent =
           delta === 0
             ? "Same recorded millisecond; finer timing cannot be resolved."
@@ -324,12 +411,18 @@
       }
 
       function selectEvent(index) {
-        const name = document.querySelector('input[name="pick"]:checked').value;
-        selected[name] = index;
-        document.querySelector(
-          `input[name="pick"][value="${name === "x" ? "y" : "x"}"]`,
-        ).checked = true;
-        updateMenus();
+        if (selected.x === null || selected.y !== null) {
+          selected.x = index;
+          selected.y = null;
+        } else {
+          selected.y = index;
+        }
+        updateComparison();
+        draw();
+      }
+
+      function clearSelection() {
+        selected.x = selected.y = null;
         updateComparison();
         draw();
       }
@@ -379,6 +472,12 @@
           }
           const height = Math.max(86, tracks.length * 16 + 38);
           const center = bottom + height / 2;
+          // Keep offscreen endpoints so selected paths can cross the view boundary.
+          for (const index of indices)
+            points.set(index, {
+              x: position(elapsed(trace.records[index])),
+              y: center,
+            });
           for (const entry of entries)
             points.set(entry.index, {
               x: entry.x,
@@ -399,7 +498,12 @@
         );
         svgElement(
           "rect",
-          { x: margin.left, y: 48, width: plotWidth, height: bottom - 48 },
+          {
+            x: margin.left - 8,
+            y: 48,
+            width: plotWidth + 16,
+            height: bottom - 48,
+          },
           undefined,
           clip,
         );
@@ -423,6 +527,10 @@
           undefined,
           marker,
         );
+        const selectedMarker = marker.cloneNode(true);
+        selectedMarker.id = "path-arrow";
+        selectedMarker.firstElementChild.setAttribute("fill", "#1d4ed8");
+        defs.appendChild(selectedMarker);
         for (const lane of lanes) {
           const info = trace.lanes[lane.lane];
           svgElement("rect", {
@@ -452,7 +560,7 @@
         svgElement(
           "text",
           { x: margin.left, y: 20, class: "axis" },
-          `Elapsed milliseconds from ${new Date(trace.start).toISOString()}`,
+          `Elapsed milliseconds from ${new Date(timeOrigin).toISOString()}`,
         );
         const roughStep =
           (viewEnd - viewStart) / Math.max(2, Math.floor(plotWidth / 100));
@@ -483,20 +591,20 @@
         }
         const plot = svgElement("g", { "clip-path": "url(#plot-clip)" });
         if (element("show-links").checked) {
-          for (const link of trace.links) {
-            const source = points.get(link.source),
-              target = points.get(link.target);
+          for (const [index, link] of trace.links.entries()) {
+            if (link.kind !== "event" || pathLinks.has(index)) continue;
+            const sourceIndex = recordIndices.get(link.source);
+            const targetIndex = recordIndices.get(link.target);
+            const source = points.get(sourceIndex),
+              target = points.get(targetIndex);
             if (!source || !target) continue;
-            const emphasized =
-              [selected.x, selected.y].includes(link.source) ||
-              [selected.x, selected.y].includes(link.target);
             const edge = svgElement(
               "path",
               {
                 d: `M ${source.x} ${source.y} L ${target.x} ${target.y}`,
                 stroke: "#356887",
-                "stroke-opacity": emphasized ? 0.8 : 0.18,
-                "stroke-width": emphasized ? 1.5 : 1,
+                "stroke-opacity": selected.y === null ? 0.18 : 0.08,
+                "stroke-width": 1,
                 "marker-end": "url(#arrow)",
                 fill: "none",
               },
@@ -506,16 +614,54 @@
             svgElement(
               "title",
               {},
-              `Send → handling start: ${format(trace.records[link.target].timestamp - trace.records[link.source].timestamp)} ms`,
+              `Send → handling start: ${format(trace.records[targetIndex].timestamp - trace.records[sourceIndex].timestamp)} ms`,
               edge,
             );
           }
+        }
+        for (const link of pathSegments()) {
+          const source = points.get(link.source),
+            target = points.get(link.target);
+          if (!source || !target) continue;
+          const edge = svgElement(
+            "path",
+            {
+              d: `M ${source.x} ${source.y} L ${target.x} ${target.y}`,
+              stroke: "#1d4ed8",
+              "stroke-width": 2,
+              fill: "none",
+              "stroke-dasharray":
+                link.kinds.has("cause") || link.kinds.has("hidden observations")
+                  ? "5 3"
+                  : "none",
+              "marker-end": "url(#path-arrow)",
+              class: "trace-path",
+              "data-source": trace.records[link.source].id,
+              "data-target": trace.records[link.target].id,
+            },
+            undefined,
+            plot,
+          );
+          svgElement(
+            "title",
+            {},
+            `${[...link.kinds].join(", ")} · ${format(trace.records[link.target].timestamp - trace.records[link.source].timestamp)} ms`,
+            edge,
+          );
         }
         for (const name of ["x", "y"]) {
           const record = trace.records[selected[name]];
           if (!record) continue;
           const x = position(elapsed(record));
           const color = name === "x" ? "#b45309" : "#1d4ed8";
+          const labelLeft =
+            (name === "x" && x > margin.left + 20) ||
+            x > width - margin.right - 20;
+          const sameTime =
+            selected.x !== null &&
+            selected.y !== null &&
+            trace.records[selected.x].timestamp ===
+              trace.records[selected.y].timestamp;
           svgElement(
             "line",
             {
@@ -529,33 +675,40 @@
             undefined,
             plot,
           );
+          if (name === "y" && sameTime) continue;
           svgElement(
             "text",
             {
-              x: x + (name === "x" ? -5 : 5),
+              x: x + (labelLeft ? -7 : 7),
               y: 61,
-              "text-anchor": name === "x" ? "end" : "start",
+              "text-anchor": labelLeft ? "end" : "start",
               fill: color,
               "font-weight": 600,
             },
-            name.toUpperCase(),
+            sameTime ? "X, Y" : name.toUpperCase(),
             plot,
           );
         }
         for (const [index, point] of points) {
+          if (point.x < margin.left - 8 || point.x > width - margin.right + 8)
+            continue;
           const record = trace.records[index];
+          const onPath = pathNodes.has(record.id);
+          const endpoint = selected.x === index || selected.y === index;
           const color =
             selected.x === index
               ? "#b45309"
               : selected.y === index
                 ? "#1d4ed8"
-                : colors[record.lane % colors.length];
+                : onPath
+                  ? "#1d4ed8"
+                  : colors[record.lane % colors.length];
           const dot = svgElement(
             "circle",
             {
               cx: point.x,
               cy: point.y,
-              r: 5,
+              r: endpoint ? 6 : 5,
               stroke: color,
               "stroke-width": 1.8,
               fill: record.type === "EVENT_EMITTED" ? "white" : color,
@@ -564,6 +717,7 @@
               role: "button",
               "aria-label": describe(record),
               "data-index": index,
+              opacity: selected.y !== null && !onPath && !endpoint ? 0.3 : 1,
             },
             undefined,
             plot,
@@ -592,40 +746,146 @@
             ? [index]
             : [],
         );
-        for (const name of ["x", "y"])
-          if (!visible.includes(selected[name])) selected[name] = null;
-        updateMenus();
+        if (!visible.includes(selected.x)) selected.x = selected.y = null;
+        if (!visible.includes(selected.y)) selected.y = null;
         updateComparison();
         draw();
       }
 
-      for (const name of ["x", "y"])
-        element(`event-${name}`).addEventListener("change", (event) => {
-          selected[name] =
-            event.target.value === "" ? null : Number(event.target.value);
-          updateComparison();
-          draw();
-        });
-      element("search").addEventListener("input", updateMenus);
+      function buildExportSvg() {
+        const width = Number(svg.getAttribute("width"));
+        const lines = [element("difference").textContent];
+        for (const name of ["x", "y"]) {
+          const record = trace.records[selected[name]];
+          if (!record) continue;
+          lines.push(
+            `${name.toUpperCase()}: ${trace.lanes[record.lane].label} · ${record.label}`,
+          );
+          lines.push(`${utc(record)} · record ${record.id}`);
+        }
+        lines.push(element("path-status").textContent);
+        lines.push(
+          "Signed Y − X; wall-clock timestamps at 1 ms resolution. Clock synchronization error applies between machines.",
+        );
+        // Wrap the caption so long event and instance names remain in the exported image.
+        const caption = [];
+        const maxCharacters = Math.floor((width - 48) / 8);
+        for (const line of lines) {
+          let row = "";
+          for (const word of line.split(/\s+/)) {
+            if (row && row.length + word.length + 1 > maxCharacters) {
+              caption.push(row);
+              row = "";
+            }
+            row += (row ? " " : "") + word;
+          }
+          caption.push(row);
+        }
+        const headerHeight = 36 + caption.length * 23;
+        const height = Number(svg.getAttribute("height")) + headerHeight;
+        const exported = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        exported.setAttribute("width", width);
+        exported.setAttribute("height", height);
+        exported.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        exported.setAttribute("font-family", "system-ui, sans-serif");
+        exported.setAttribute("font-size", "14");
+        svgElement(
+          "title",
+          {},
+          `Execution timeline · ${element("difference").textContent}`,
+          exported,
+        );
+        // Inline the styles: the saved SVG must not depend on the surrounding HTML.
+        svgElement(
+          "style",
+          {},
+          document.querySelector("style").textContent,
+          exported,
+        );
+        svgElement(
+          "rect",
+          { width, height, fill: "white" },
+          undefined,
+          exported,
+        );
+        caption.forEach((line, index) =>
+          svgElement(
+            "text",
+            {
+              x: 24,
+              y: 32 + index * 23,
+              fill: "#243044",
+              "font-size": index === 0 ? 20 : 13,
+              "font-weight": index === 0 ? 600 : 400,
+            },
+            line,
+            exported,
+          ),
+        );
+        const drawing = svg.cloneNode(true);
+        drawing.setAttribute("y", headerHeight);
+        drawing.removeAttribute("id");
+        drawing
+          .querySelectorAll("[tabindex]")
+          .forEach((node) => node.removeAttribute("tabindex"));
+        exported.appendChild(drawing);
+        return exported;
+      }
+
+      function exportSvg() {
+        const source = new XMLSerializer().serializeToString(buildExportSvg());
+        const url = URL.createObjectURL(
+          new Blob([source], { type: "image/svg+xml;charset=utf-8" }),
+        );
+        const download = document.createElement("a");
+        download.href = url;
+        download.download = "trace-selection.svg";
+        download.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      element("clear-selection").onclick = clearSelection;
       element("show-all").addEventListener("change", updateVisible);
       element("show-links").addEventListener("change", draw);
       element("zoom-in").onclick = () => zoom(0.5);
       element("zoom-out").onclick = () => zoom(2);
-      element("fit").onclick = () => fit(0, trace.end - trace.start);
+      element("fit").onclick = () =>
+        fit(trace.start - timeOrigin, trace.end - timeOrigin);
       element("fit-selection").onclick = () => {
         if (selected.x === null || selected.y === null) return;
-        const times = [
-          elapsed(trace.records[selected.x]),
-          elapsed(trace.records[selected.y]),
-        ];
+        const times = trace.records
+          .filter(
+            (record, index) =>
+              pathNodes.has(record.id) ||
+              index === selected.x ||
+              index === selected.y,
+          )
+          .map(elapsed);
         fit(Math.min(...times), Math.max(...times));
       };
       element("swap").onclick = () => {
         [selected.x, selected.y] = [selected.y, selected.x];
-        updateMenus();
         updateComparison();
         draw();
       };
+      element("start-at-x").onclick = () => {
+        if (selected.x === null) return;
+        const span = viewEnd - viewStart;
+        timeOrigin = trace.records[selected.x].timestamp;
+        viewStart = 0;
+        viewEnd = Math.max(4, span);
+        updateComparison();
+        draw();
+      };
+      element("reset-start").onclick = () => {
+        timeOrigin = trace.start;
+        updateComparison();
+        fit(0, trace.end - trace.start);
+      };
+      element("export-svg").onclick = exportSvg;
       svg.addEventListener(
         "wheel",
         (event) => {
@@ -663,8 +923,11 @@
 
       const backwards = trace.links.filter(
         (link) =>
-          trace.records[link.target].timestamp <
-          trace.records[link.source].timestamp,
+          link.kind === "event" &&
+          recordIndices.has(link.source) &&
+          recordIndices.has(link.target) &&
+          trace.records[recordIndices.get(link.target)].timestamp <
+            trace.records[recordIndices.get(link.source)].timestamp,
       ).length;
       const notes = [
         `${trace.records.length} timestamped observations · ${trace.lanes.length} instances · ${format(trace.end - trace.start)} ms recorded span`,
