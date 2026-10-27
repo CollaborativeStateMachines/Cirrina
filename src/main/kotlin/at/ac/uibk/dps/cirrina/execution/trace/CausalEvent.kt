@@ -2,20 +2,20 @@ package at.ac.uibk.dps.cirrina.execution.trace
 
 import at.ac.uibk.dps.cirrina.util.getInsecureUuid
 
-enum class TraceRecordType {
+enum class CausalEventType {
   INSTANCE_CREATED,
   STATE_ENTERED,
   EVENT_EMITTED,
   EVENT_HANDLED,
 }
 
-sealed class TraceRecord {
+sealed class CausalEvent {
   abstract val id: String
   abstract val instanceId: String
   abstract val runtimeId: String
   abstract val timestamp: Long
   abstract val previousRecord: String?
-  abstract val type: TraceRecordType
+  abstract val type: CausalEventType
   abstract val instance: String
   abstract val stateMachine: String
   abstract val causalParent: String?
@@ -29,8 +29,8 @@ sealed class TraceRecord {
     override val runtimeId: String = "",
     override val timestamp: Long = System.currentTimeMillis(),
     override val previousRecord: String? = null,
-  ) : TraceRecord() {
-    override val type = TraceRecordType.INSTANCE_CREATED
+  ) : CausalEvent() {
+    override val type = CausalEventType.INSTANCE_CREATED
   }
 
   data class StateEntered(
@@ -43,8 +43,8 @@ sealed class TraceRecord {
     override val runtimeId: String = "",
     override val timestamp: Long = System.currentTimeMillis(),
     override val previousRecord: String? = null,
-  ) : TraceRecord() {
-    override val type = TraceRecordType.STATE_ENTERED
+  ) : CausalEvent() {
+    override val type = CausalEventType.STATE_ENTERED
   }
 
   data class EventEmitted(
@@ -61,8 +61,8 @@ sealed class TraceRecord {
     override val runtimeId: String = "",
     override val timestamp: Long = System.currentTimeMillis(),
     override val previousRecord: String? = null,
-  ) : TraceRecord() {
-    override val type = TraceRecordType.EVENT_EMITTED
+  ) : CausalEvent() {
+    override val type = CausalEventType.EVENT_EMITTED
   }
 
   data class EventHandled(
@@ -83,12 +83,12 @@ sealed class TraceRecord {
     override val runtimeId: String = "",
     override val timestamp: Long = System.currentTimeMillis(),
     override val previousRecord: String? = null,
-  ) : TraceRecord() {
-    override val type = TraceRecordType.EVENT_HANDLED
+  ) : CausalEvent() {
+    override val type = CausalEventType.EVENT_HANDLED
   }
 }
 
-internal fun TraceRecord.properties(): Map<String, Any?> =
+internal fun CausalEvent.properties(): Map<String, Any?> =
   linkedMapOf<String, Any?>(
       "id" to id,
       "type" to type.name,
@@ -102,16 +102,16 @@ internal fun TraceRecord.properties(): Map<String, Any?> =
     )
     .apply {
       when (val record = this@properties) {
-        is TraceRecord.InstanceCreated -> Unit
-        is TraceRecord.StateEntered -> put("state", record.state)
-        is TraceRecord.EventEmitted -> {
+        is CausalEvent.InstanceCreated -> Unit
+        is CausalEvent.StateEntered -> put("state", record.state)
+        is CausalEvent.EventEmitted -> {
           put("event", record.event)
           put("eventId", record.eventId)
           put("channel", record.channel)
           put("target", record.target)
           put("state", record.state)
         }
-        is TraceRecord.EventHandled -> {
+        is CausalEvent.EventHandled -> {
           put("event", record.event)
           put("eventId", record.eventId)
           put("channel", record.channel)

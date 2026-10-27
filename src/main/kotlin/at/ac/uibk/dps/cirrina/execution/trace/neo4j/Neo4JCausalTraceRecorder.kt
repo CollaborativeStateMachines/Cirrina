@@ -1,8 +1,8 @@
 package at.ac.uibk.dps.cirrina.execution.trace.neo4j
 
 import at.ac.uibk.dps.cirrina.EnvironmentVariables
-import at.ac.uibk.dps.cirrina.execution.trace.TraceRecord
-import at.ac.uibk.dps.cirrina.execution.trace.TraceRecorder
+import at.ac.uibk.dps.cirrina.execution.trace.CausalEvent
+import at.ac.uibk.dps.cirrina.execution.trace.CausalTraceRecorder
 import at.ac.uibk.dps.cirrina.execution.trace.properties
 import java.time.Duration
 import java.util.concurrent.ArrayBlockingQueue
@@ -19,12 +19,12 @@ import org.neo4j.driver.TransactionConfig
 
 private val logger = KotlinLogging.logger {}
 
-class Neo4jTraceRecorder(
+class Neo4JCausalTraceRecorder(
   private val driver: Driver,
   private val database: String = "neo4j",
   queueCapacity: Int = 10_000,
-) : TraceRecorder {
-  private val queue = ArrayBlockingQueue<TraceRecord>(queueCapacity)
+) : CausalTraceRecorder {
+  private val queue = ArrayBlockingQueue<CausalEvent>(queueCapacity)
   private val droppedRecords = AtomicLong()
   private val lifecycleLock = Any()
   private var closed = false
@@ -40,7 +40,7 @@ class Neo4jTraceRecorder(
     executor.scheduleWithFixedDelay({ flush() }, 100, 100, TimeUnit.MILLISECONDS)
   }
 
-  override fun record(record: TraceRecord) {
+  override fun record(record: CausalEvent) {
     synchronized(lifecycleLock) {
       check(!closed) { "trace recorder is closed" }
 
@@ -57,7 +57,7 @@ class Neo4jTraceRecorder(
   private fun flush() {
     reportDroppedRecords()
 
-    val batch = ArrayList<TraceRecord>(500)
+    val batch = ArrayList<CausalEvent>(500)
 
     while (!Thread.currentThread().isInterrupted && queue.drainTo(batch, 500) > 0) {
       try {
@@ -73,7 +73,7 @@ class Neo4jTraceRecorder(
     }
   }
 
-  private fun writeBatch(batch: List<TraceRecord>) {
+  private fun writeBatch(batch: List<CausalEvent>) {
     driver.session(SessionConfig.forDatabase(database)).use { session ->
       if (!schemaReady) {
         listOf("TraceRecord", "TraceEvent", "TraceInstance", "TraceRuntime").forEach { label ->
@@ -127,7 +127,7 @@ class Neo4jTraceRecorder(
   }
 
   companion object {
-    fun create(): Neo4jTraceRecorder {
+    fun create(): Neo4JCausalTraceRecorder {
       val driver =
         GraphDatabase.driver(
           EnvironmentVariables.neo4jUri.get(),
@@ -142,7 +142,7 @@ class Neo4jTraceRecorder(
             .build(),
         )
 
-      return Neo4jTraceRecorder(driver, EnvironmentVariables.neo4jDatabase.get())
+      return Neo4JCausalTraceRecorder(driver, EnvironmentVariables.neo4jDatabase.get())
     }
 
     private val WRITE_RECORDS =

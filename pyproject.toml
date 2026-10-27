@@ -11,8 +11,16 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "networkx (>=3.7,<4.0)",
     "neo4j (>=6.4.1,<7.0.0)",
-    "matplotlib (>=3.10,<4)"
+    "matplotlib (>=3.10,<4)",
+    "typer (>=0.27.3,<0.28.0)",
+    "rich (>=15.0.0,<16.0.0)"
 ]
+
+[project.scripts]
+cirrina = "cirrina_cli.cli:app"
+
+[tool.poetry]
+packages = [{include = "cirrina_cli", from = "scripts"}]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

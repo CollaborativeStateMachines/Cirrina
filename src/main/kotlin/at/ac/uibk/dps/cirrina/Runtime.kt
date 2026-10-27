@@ -5,7 +5,7 @@ import at.ac.uibk.dps.cirrina.cirrina.di.Run
 import at.ac.uibk.dps.cirrina.execution.`object`.*
 import at.ac.uibk.dps.cirrina.execution.service.RandomServiceImplementationSelector
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementation
-import at.ac.uibk.dps.cirrina.execution.trace.TraceRecorder
+import at.ac.uibk.dps.cirrina.execution.trace.CausalTraceRecorder
 import at.ac.uibk.dps.cirrina.io.CsmParser
 import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Csml as CsmlSpec
@@ -40,7 +40,7 @@ constructor(
   metricRegistry: MetricRegistry,
   persistentContext: Context?,
   stateMachineFactory: StateMachine.Factory,
-  private val traceRecorder: TraceRecorder,
+  private val causalTraceRecorder: CausalTraceRecorder,
 ) : PropagationHandler {
   val extent = persistentContext?.let { Extent.of(it) } ?: Extent.of()
 
@@ -156,7 +156,7 @@ constructor(
         try {
           eventHandler.close()
         } finally {
-          traceRecorder.close()
+          causalTraceRecorder.close()
         }
       }
     }

@@ -5,9 +5,9 @@ import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.`object`.StateMachine.Factory
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.trace.TraceCause
-import at.ac.uibk.dps.cirrina.execution.trace.TraceRecord
-import at.ac.uibk.dps.cirrina.execution.trace.TraceRecorder
+import at.ac.uibk.dps.cirrina.execution.trace.CausalEvent
+import at.ac.uibk.dps.cirrina.execution.trace.CausalTrace
+import at.ac.uibk.dps.cirrina.execution.trace.CausalTraceRecorder
 import at.ac.uibk.dps.cirrina.spec.Action
 import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Emit
@@ -67,7 +67,7 @@ internal constructor(
   stateFactory: State.Factory,
   transitionFactory: Transition.Factory,
   metricRegistry: MetricRegistry,
-  private val traceRecorder: TraceRecorder,
+  private val causalTraceRecorder: CausalTraceRecorder,
 ) : Scope {
   override val extent: Extent
 
@@ -124,7 +124,7 @@ internal constructor(
   private val traceInstanceId = getInsecureUuid().toString()
   private var creationRecordId: String? = null
   private var lastRecordId: String? = null
-  private var currentCause: TraceCause? = null
+  private var currentCause: CausalTrace? = null
 
   private val eventExtent: Extent
 
@@ -148,9 +148,9 @@ internal constructor(
   fun start(parentContext: Job, causalParent: String? = null): Job {
     logger.info { "'$this' entering initial state" }
 
-    if (traceRecorder.enabled) {
+    if (causalTraceRecorder.enabled) {
       val created =
-        TraceRecord.InstanceCreated(
+        CausalEvent.InstanceCreated(
           instance = name,
           instanceId = traceInstanceId,
           stateMachine = specification.name,
@@ -160,9 +160,9 @@ internal constructor(
 
       creationRecordId = created.id
       lastRecordId = created.id
-      currentCause = TraceCause(created.id, specification.initial.name)
+      currentCause = CausalTrace(created.id, specification.initial.name)
 
-      traceRecorder.record(created)
+      causalTraceRecorder.record(created)
     }
 
     val initial = stateInstances[specification.initial.name] ?: error("initial state not found")
@@ -228,8 +228,8 @@ internal constructor(
       }
 
       val handling =
-        if (traceRecorder.enabled)
-          TraceRecord.EventHandled(
+        if (causalTraceRecorder.enabled)
+          CausalEvent.EventHandled(
             instance = name,
             instanceId = traceInstanceId,
             stateMachine = specification.name,
@@ -246,7 +246,7 @@ internal constructor(
           )
         else null
 
-      val cause = handling?.let { TraceCause(it.id, it.stateBefore, collectEmissions = true) }
+      val cause = handling?.let { CausalTrace(it.id, it.stateBefore, collectEmissions = true) }
       currentCause = cause
 
       if (handling != null) lastRecordId = handling.id
@@ -266,7 +266,7 @@ internal constructor(
         currentCause = null
 
         if (handling != null) {
-          traceRecorder.record(
+          causalTraceRecorder.record(
             handling.copy(
               stateAfter = activeState?.specification?.name,
               emittedEventIds = cause!!.emittedEventIds(),
@@ -347,9 +347,9 @@ internal constructor(
   private fun doEnter(state: State): ActiveTransition? {
     activeState = state
 
-    if (traceRecorder.enabled) {
+    if (causalTraceRecorder.enabled) {
       val entered =
-        TraceRecord.StateEntered(
+        CausalEvent.StateEntered(
           instance = name,
           instanceId = traceInstanceId,
           stateMachine = specification.name,
@@ -360,7 +360,7 @@ internal constructor(
         )
 
       lastRecordId = entered.id
-      traceRecorder.record(entered)
+      causalTraceRecorder.record(entered)
       currentCause = currentCause?.inState(state.specification.name)
     }
 
@@ -390,7 +390,7 @@ internal constructor(
   private tailrec fun execute(
     actions: List<Action>,
     scope: Scope,
-    cause: TraceCause? = currentCause,
+    cause: CausalTrace? = currentCause,
   ) {
     if (actions.isEmpty()) return
 
@@ -419,7 +419,7 @@ internal constructor(
 
     // Timer callbacks must not inherit whichever event happens to be processing when they fire.
     val cause =
-      if (traceRecorder.enabled) TraceCause(lastRecordId!!, activeState?.specification?.name)
+      if (causalTraceRecorder.enabled) CausalTrace(lastRecordId!!, activeState?.specification?.name)
       else null
     timeoutActionManager.start(timeout.name, delay) {
       val action = timeout.triggers
@@ -434,15 +434,15 @@ internal constructor(
   override fun toString() = "StateMachine(name='$name')"
 
   inner class StateMachineEventHandler(val eventHandler: EventHandler) {
-    fun emit(event: Event, cause: TraceCause? = null) {
+    fun emit(event: Event, cause: CausalTrace? = null) {
       eventHandler.emit(prepareEmission(event, cause))
     }
 
-    fun propagateToParent(event: Event, cause: TraceCause? = null) {
+    fun propagateToParent(event: Event, cause: CausalTrace? = null) {
       deliverToParent(prepareEmission(event, cause))
     }
 
-    private fun prepareEmission(event: Event, cause: TraceCause?): Event {
+    private fun prepareEmission(event: Event, cause: CausalTrace?): Event {
       val now = Clock.System.now()
       val emitted =
         event.copy(
@@ -451,9 +451,9 @@ internal constructor(
           emittedTime = now.epochSeconds * 1_000_000_000L + now.nanosecondsOfSecond,
         )
 
-      if (traceRecorder.enabled) {
-        traceRecorder.record(
-          TraceRecord.EventEmitted(
+      if (causalTraceRecorder.enabled) {
+        causalTraceRecorder.record(
+          CausalEvent.EventEmitted(
             instance = name,
             instanceId = traceInstanceId,
             stateMachine = specification.name,

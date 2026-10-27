@@ -3,7 +3,7 @@ package at.ac.uibk.dps.cirrina.execution.`object`
 import at.ac.uibk.dps.cirrina.Runtime
 import at.ac.uibk.dps.cirrina.csm.Csml.EventChannel
 import at.ac.uibk.dps.cirrina.execution.service.ServiceImplementationSelector
-import at.ac.uibk.dps.cirrina.execution.trace.TraceCause
+import at.ac.uibk.dps.cirrina.execution.trace.CausalTrace
 import at.ac.uibk.dps.cirrina.spec.Action
 import at.ac.uibk.dps.cirrina.spec.ContextVariable
 import at.ac.uibk.dps.cirrina.spec.Ctr
@@ -39,7 +39,7 @@ class ActionExecutor(
   private val eventHandler: StateMachine.StateMachineEventHandler,
   private val coroutineScope: CoroutineScope,
 ) {
-  fun execute(specification: Action, scope: Scope, cause: TraceCause? = null): List<Action> =
+  fun execute(specification: Action, scope: Scope, cause: CausalTrace? = null): List<Action> =
     when (specification) {
       is Invoke -> executeInvoke(specification, scope, cause)
       is Eval -> executeEval(specification, scope)
@@ -53,7 +53,11 @@ class ActionExecutor(
       else -> error("unknown action type '${specification::class.simpleName}'")
     }
 
-  private fun executeInvoke(specification: Invoke, scope: Scope, cause: TraceCause?): List<Action> {
+  private fun executeInvoke(
+    specification: Invoke,
+    scope: Scope,
+    cause: CausalTrace?,
+  ): List<Action> {
     val service =
       selector.select(specification.type, specification.mode)
         ?: error("no service implementation found for type '${specification.type}'")
@@ -106,7 +110,7 @@ class ActionExecutor(
     return emptyList()
   }
 
-  private fun executeEmit(specification: Emit, scope: Scope, cause: TraceCause?): List<Action> {
+  private fun executeEmit(specification: Emit, scope: Scope, cause: CausalTrace?): List<Action> {
     val emittedEvent =
       specification.event.run {
         val evaluatedData =
@@ -144,7 +148,7 @@ class ActionExecutor(
   private fun executeInstantiate(
     specification: Instantiate,
     scope: Scope,
-    cause: TraceCause?,
+    cause: CausalTrace?,
   ): List<Action> {
     val instances = specification.instances.map { it.evaluate(scope.extent).getOrThrow() }
 

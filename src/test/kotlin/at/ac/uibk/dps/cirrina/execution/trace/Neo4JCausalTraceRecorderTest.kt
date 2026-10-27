@@ -1,6 +1,6 @@
 package at.ac.uibk.dps.cirrina.execution.trace
 
-import at.ac.uibk.dps.cirrina.execution.trace.neo4j.Neo4jTraceRecorder
+import at.ac.uibk.dps.cirrina.execution.trace.neo4j.Neo4JCausalTraceRecorder
 import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -30,7 +30,7 @@ import org.neo4j.driver.exceptions.ServiceUnavailableException
 import org.neo4j.driver.summary.ResultSummary
 
 @Timeout(15)
-class Neo4jTraceRecorderTest {
+class Neo4JCausalTraceRecorderTest {
   private inline fun <reified T : Any> mockInterface(): T =
     mock(T::class.java, withSettings().mockMaker(MockMakers.PROXY))
 
@@ -68,8 +68,8 @@ class Neo4jTraceRecorderTest {
       check(release.await(5, TimeUnit.SECONDS))
     }
 
-    val records = List(4) { TraceRecord.InstanceCreated("instance", "machine") }
-    val recorder = Neo4jTraceRecorder(driver, queueCapacity = 2)
+    val records = List(4) { CausalEvent.InstanceCreated("instance", "machine") }
+    val recorder = Neo4JCausalTraceRecorder(driver, queueCapacity = 2)
 
     try {
       recorder.record(records[0])
@@ -91,8 +91,8 @@ class Neo4jTraceRecorderTest {
 
   @Test
   fun `shutdown drains all accepted records in bounded batches`() {
-    val records = List(1200) { TraceRecord.InstanceCreated("instance", "machine") }
-    Neo4jTraceRecorder(driver).use { recorder -> records.forEach(recorder::record) }
+    val records = List(1200) { CausalEvent.InstanceCreated("instance", "machine") }
+    Neo4JCausalTraceRecorder(driver).use { recorder -> records.forEach(recorder::record) }
 
     assertEquals(records.map { it.id }, batches.flatten().map { it["id"] })
     assertTrue(batches.size >= 3)
@@ -115,8 +115,8 @@ class Neo4jTraceRecorderTest {
       delivered.countDown()
     }
 
-    val records = List(2) { TraceRecord.InstanceCreated("instance", "machine") }
-    Neo4jTraceRecorder(driver).use { recorder ->
+    val records = List(2) { CausalEvent.InstanceCreated("instance", "machine") }
+    Neo4JCausalTraceRecorder(driver).use { recorder ->
       recorder.record(records[0])
       assertTrue(failed.await(5, TimeUnit.SECONDS))
       recorder.record(records[1])

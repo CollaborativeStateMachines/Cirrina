@@ -2,8 +2,7 @@ package at.ac.uibk.dps.cirrina.execution.trace
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-/** Captured when an action starts, so async completions keep their original cause and state. */
-class TraceCause
+class CausalTrace
 private constructor(
   val id: String,
   val state: String?,
@@ -15,7 +14,7 @@ private constructor(
     collectEmissions: Boolean = false,
   ) : this(id, state, if (collectEmissions) ConcurrentLinkedQueue() else null)
 
-  internal fun inState(state: String) = TraceCause(id, state, emitted)
+  internal fun inState(state: String) = CausalTrace(id, state, emitted)
 
   internal fun emitted(eventId: String) {
     emitted?.add(eventId)
