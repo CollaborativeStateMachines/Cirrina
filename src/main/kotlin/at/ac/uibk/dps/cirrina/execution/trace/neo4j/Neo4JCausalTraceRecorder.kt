@@ -4,6 +4,7 @@ import at.ac.uibk.dps.cirrina.EnvironmentVariables
 import at.ac.uibk.dps.cirrina.execution.trace.CausalEvent
 import at.ac.uibk.dps.cirrina.execution.trace.CausalTraceRecorder
 import at.ac.uibk.dps.cirrina.execution.trace.properties
+import com.codahale.metrics.MetricRegistry
 import java.time.Duration
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Executors
@@ -13,7 +14,6 @@ import mu.KotlinLogging
 import org.neo4j.driver.AuthTokens
 import org.neo4j.driver.Config
 import org.neo4j.driver.Driver
-import org.neo4j.driver.GraphDatabase
 import org.neo4j.driver.SessionConfig
 import org.neo4j.driver.TransactionConfig
 
@@ -127,20 +127,21 @@ class Neo4JCausalTraceRecorder(
   }
 
   companion object {
-    fun create(): Neo4JCausalTraceRecorder {
+    fun create(metricRegistry: MetricRegistry = MetricRegistry()): Neo4JCausalTraceRecorder {
       val driver =
-        GraphDatabase.driver(
-          EnvironmentVariables.neo4jUri.get(),
-          AuthTokens.basic(
-            EnvironmentVariables.neo4jUser.get(),
-            EnvironmentVariables.neo4jPassword.get(),
-          ),
-          Config.builder()
-            .withConnectionTimeout(2, TimeUnit.SECONDS)
-            .withConnectionAcquisitionTimeout(2, TimeUnit.SECONDS)
-            .withMaxTransactionRetryTime(2, TimeUnit.SECONDS)
-            .build(),
-        )
+        TraceDriverFactory(metricRegistry.meter("trace.sentBytes"))
+          .create(
+            EnvironmentVariables.neo4jUri.get(),
+            AuthTokens.basic(
+              EnvironmentVariables.neo4jUser.get(),
+              EnvironmentVariables.neo4jPassword.get(),
+            ),
+            Config.builder()
+              .withConnectionTimeout(2, TimeUnit.SECONDS)
+              .withConnectionAcquisitionTimeout(2, TimeUnit.SECONDS)
+              .withMaxTransactionRetryTime(2, TimeUnit.SECONDS)
+              .build(),
+          )
 
       return Neo4JCausalTraceRecorder(driver, EnvironmentVariables.neo4jDatabase.get())
     }
