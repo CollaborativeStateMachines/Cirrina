@@ -19,13 +19,32 @@ services:
       - "127.0.0.1:7687:7687"
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-password}
+      NEO4J_PLUGINS: '["apoc-extended"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.custom.*"
+      NEO4J_apoc_custom_procedures_refresh: "1000"
       NEO4J_server_memory_heap_initial__size: 256m
       NEO4J_server_memory_heap_max__size: 512m
       NEO4J_server_memory_pagecache_size: 256m
     volumes:
       - trace-neo4j:/data
+      - ./scripts/neo4j/install-traces.cypher:/setup/install-traces.cypher:ro
+    post_start:
+      - command:
+          - /bin/bash
+          - -ec
+          - |
+            export NEO4J_USERNAME=neo4j NEO4J_PASSWORD="$${NEO4J_AUTH#*/}"
+            for attempt in $$(seq 1 60); do
+              if cypher-shell -d neo4j 'RETURN 1' >/dev/null 2>&1; then
+                cypher-shell -d system -f /setup/install-traces.cypher
+                exit 0
+              fi
+              sleep 2
+            done
+            echo 'Neo4j did not become ready for trace setup' >&2
+            exit 1
     healthcheck:
-      test: [ 'CMD-SHELL', 'cypher-shell -u neo4j -p "$${NEO4J_AUTH#*/}" "RETURN 1"' ]
+      test: [ 'CMD-SHELL', 'cypher-shell -u neo4j -p "$${NEO4J_AUTH#*/}" -d neo4j "CALL custom.writeTraces([])"' ]
       interval: 5s
       timeout: 10s
       retries: 20

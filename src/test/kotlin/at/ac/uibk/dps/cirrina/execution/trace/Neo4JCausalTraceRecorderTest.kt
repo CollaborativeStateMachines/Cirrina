@@ -45,6 +45,7 @@ class Neo4JCausalTraceRecorderTest {
     whenever(driver.session(any<SessionConfig>())).thenReturn(session)
     whenever(session.run(any<String>())).thenReturn(result)
     whenever(transaction.run(any<String>(), any<Map<String, Any?>>())).thenAnswer { invocation ->
+      assertEquals("CALL custom.writeTraces(\$records)", invocation.getArgument<String>(0))
       val parameters = invocation.getArgument<Map<String, List<Map<String, Any?>>>>(1)
       batches.add(parameters.getValue("records"))
       onWrite()
