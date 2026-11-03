@@ -107,7 +107,7 @@ collaborativeStateMachine {
           on {
             ["thought"] {
               to = "hungry"
-              provided = "meals < 5"
+              provided = "meals < 1000"
               or = "sated"
             }
           }
